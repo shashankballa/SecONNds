@@ -64,6 +64,7 @@ extern Truncation *truncation;
 extern XTProtocol *xt;
 extern MathFunctions *math;
 #endif
+extern TripleGenerator<sci::NetIO> *tripleGen;
 extern ArgMaxProtocol<sci::NetIO, intType> *argmax;
 extern ReLUProtocol<sci::NetIO, intType> *relu;
 extern MaxPoolProtocol<sci::NetIO, intType> *maxpool;
@@ -97,6 +98,7 @@ extern Truncation *truncationArr[MAX_THREADS];
 extern XTProtocol *xtArr[MAX_THREADS];
 extern MathFunctions *mathArr[MAX_THREADS];
 #endif
+extern TripleGenerator<sci::NetIO> *tripleGenArr[MAX_THREADS];
 extern ReLUProtocol<sci::NetIO, intType> *reluArr[MAX_THREADS];
 extern MaxPoolProtocol<sci::NetIO, intType> *maxpoolArr[MAX_THREADS];
 // Additional classes for Athos

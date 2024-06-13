@@ -35,6 +35,7 @@ public:
   MillionaireWithEquality<sci::NetIO> *mill_and_eq;
 
   AuxProtocols(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack);
+  AuxProtocols(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack, TripleGenerator<sci::NetIO> *triplegen);
 
   ~AuxProtocols();
 

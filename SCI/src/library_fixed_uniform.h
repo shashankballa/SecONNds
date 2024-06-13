@@ -25,6 +25,16 @@ SOFTWARE.
 #include "defines_uniform.h"
 #include "utils/ArgMapping/ArgMapping.h"
 
+// Forward
+namespace seal {
+class SEALContext;
+class PublicKey;
+
+class Plaintext;
+class Ciphertext;
+class Evaluator;
+}  // namespace seal
+
 // Note of the bracket around each expression use -- if this is not there, not
 // macro expansion
 //  can result in hard in trace bugs when expanded around expressions like 1-2.
@@ -46,6 +56,21 @@ signedIntType funcReconstruct2PCCons(intType x, int revealParty);
 
 void MatMul2D(int32_t s1, int32_t s2, int32_t s3, const intType *A,
               const intType *B, intType *C, bool modelIsA);
+void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
+                   signedIntType CI, signedIntType FH, signedIntType FW,
+                   signedIntType CO, signedIntType zPadHLeft,
+                   signedIntType zPadHRight, signedIntType zPadWLeft,
+                   signedIntType zPadWRight, signedIntType strideH,
+                   signedIntType strideW, intType *inputArr, intType *filterArr,
+                   intType *outArr);
+              
+void Conv2DEncodeFilter(signedIntType N, signedIntType H, signedIntType W,
+                   signedIntType CI, signedIntType FH, signedIntType FW,
+                   signedIntType CO, signedIntType zPadHLeft,
+                   signedIntType zPadHRight, signedIntType zPadWLeft,
+                   signedIntType zPadWRight, signedIntType strideH,
+                   signedIntType strideW, intType *filterArr,
+                   std::vector<std::vector<seal::Plaintext>> &filterPts);
 
 void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
@@ -53,6 +78,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
                    signedIntType zPadWRight, signedIntType strideH,
                    signedIntType strideW, intType *inputArr, intType *filterArr,
+                   std::vector<std::vector<seal::Plaintext>> &filterPts,
                    intType *outArr);
 
 void Conv2DGroupWrapper(signedIntType N, signedIntType H, signedIntType W,

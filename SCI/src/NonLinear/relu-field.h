@@ -36,9 +36,13 @@ public:
   IO *io = nullptr;
   sci::OTPack<IO> *otpack = nullptr;
   TripleGenerator<IO> *triple_gen = nullptr;
+  bool del_tripgen = false;
   MillionaireProtocol<IO> *millionaire;
+  bool del_mill = false;
   DReLUFieldProtocol<IO> *relu_triple_compare_oracle = nullptr;
+  bool del_relu_oracle = false;
   AuxProtocols *aux;
+  bool del_aux = false;
   int party;
   int algeb_str;
   int l, b;
@@ -65,16 +69,50 @@ public:
     this->otpack = otpack;
     this->relu_triple_compare_oracle =
         new DReLUFieldProtocol<IO>(party, l + 1, b, mod, io, otpack);
+    this->del_relu_oracle = true;
     this->millionaire = this->relu_triple_compare_oracle->millionaire;
     this->triple_gen = this->millionaire->triple_gen;
     this->aux = new AuxProtocols(party, io, otpack);
+    this->del_aux = true;
+    configure();
+  }
+
+  ReLUFieldProtocol(int party, int algeb_str, IO *io, int l, int b,
+                    uint64_t mod, sci::OTPack<IO> *otpack,
+                    TripleGenerator<IO> *triplegen) {
+    this->party = party;
+    this->algeb_str = algeb_str;
+    this->io = io;
+    this->l = l;
+    this->b = b;
+    this->p = mod;
+    this->p_bitlen = l;
+    this->p_bitlen_triple_comparison = l + 1;
+    this->otpack = otpack;
+    this->triple_gen = triplegen;
+    this->relu_triple_compare_oracle =
+        new DReLUFieldProtocol<IO>(party, l + 1, b, mod, io, otpack, triplegen);
+    this->del_relu_oracle = true;
+    this->millionaire = this->relu_triple_compare_oracle->millionaire;
+    this->aux = new AuxProtocols(party, io, otpack, triplegen);
+    this->del_aux = true;
     configure();
   }
 
   // Destructor
   virtual ~ReLUFieldProtocol() {
-    delete triple_gen;
-    delete relu_triple_compare_oracle;
+    if (del_relu_oracle) {
+      delete this->relu_triple_compare_oracle;
+    }
+    if (del_mill) {
+      delete this->millionaire;
+    }
+    if (del_tripgen) {
+      delete this->triple_gen;
+    }
+    if (del_aux) {
+      delete this->aux;
+    }
   }
 
   void configure() {

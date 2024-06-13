@@ -1443,13 +1443,16 @@ void StartComputation() {
 #endif
     if (i & 1) {
       otpackArr[i] = new sci::OTPack<sci::NetIO>(ioArr[i], 3 - party);
+      tripleGenArr[i] = new TripleGenerator(3 - party, ioArr[i], otpackArr[i], true);
     } else {
       otpackArr[i] = new sci::OTPack<sci::NetIO>(ioArr[i], party);
+      tripleGenArr[i] = new TripleGenerator(party, ioArr[i], otpackArr[i], true);
     }
   }
 
   io = ioArr[0];
   otpack = otpackArr[0];
+  tripleGen = tripleGenArr[0];
   iknpOT = new sci::IKNP<sci::NetIO>(io);
   iknpOTRoleReversed = new sci::IKNP<sci::NetIO>(io);
   kkot = new sci::KKOT<sci::NetIO>(io);
@@ -1459,10 +1462,11 @@ void StartComputation() {
   std::cout 
     << "SCI_OT"
     << ": initializing "
+    << "tripleGen, "
     // << "mult, "
     // << "truncation, "
     // << "multUniform, "
-    // << "relu, "
+    << "relu, "
     // << "maxpool, "
     << "argmax, "
     // << "math"
@@ -1472,12 +1476,12 @@ void StartComputation() {
   // truncation = new Truncation(party, io, otpack);
   // multUniform = new MatMulUniform<sci::NetIO, intType, sci::IKNP<sci::NetIO>>(
   //     party, bitlength, io, iknpOT, iknpOTRoleReversed);
-  // relu = new ReLURingProtocol<sci::NetIO, intType>(party, RING, io, bitlength,
-  //                                                  MILL_PARAM, otpack);
+  relu = new ReLURingProtocol<sci::NetIO, intType>(party, RING, io, bitlength,
+                                                   MILL_PARAM, otpack, tripleGen);
   // maxpool = new MaxPoolProtocol<sci::NetIO, intType>(
   //     party, RING, io, bitlength, MILL_PARAM, 0, otpack, relu);
   argmax = new ArgMaxProtocol<sci::NetIO, intType>(party, RING, io, bitlength,
-                                                   MILL_PARAM, 0, otpack, relu);
+                                                   MILL_PARAM, 0, otpack, tripleGen, relu);
   // math = new MathFunctions(party, io, otpack);
 #endif
 
@@ -1512,26 +1516,26 @@ void StartComputation() {
   std::cout 
     << "MULTITHREADED_NONLIN && SCI_OT"
     << ": num_threads = " << num_threads
-    << ", initializing reluArr, maxpoolArr, multArr, truncationArr"
+    << ", initializing tripleGenArr, reluArr, maxpoolArr, multArr, truncationArr"
     << std::endl;
 
   for (int i = 0; i < num_threads; i++) {
     if (i & 1) {
       reluArr[i] = new ReLURingProtocol<sci::NetIO, intType>(
-          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i]);
+          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i], tripleGenArr[i]);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
-          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i],
+          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i], tripleGenArr[i],
           reluArr[i]);
-      multArr[i] = new LinearOT(3 - party, ioArr[i], otpackArr[i]);
-      truncationArr[i] = new Truncation(3 - party, ioArr[i], otpackArr[i]);
+      multArr[i] = new LinearOT(3 - party, ioArr[i], otpackArr[i], tripleGenArr[i]);
+      truncationArr[i] = new Truncation(3 - party, ioArr[i], otpackArr[i], tripleGenArr[i]);
     } else {
       reluArr[i] = new ReLURingProtocol<sci::NetIO, intType>(
-          party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i]);
+          party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i], tripleGenArr[i]);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
-          party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i],
+          party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i], tripleGenArr[i],
           reluArr[i]);
-      multArr[i] = new LinearOT(party, ioArr[i], otpackArr[i]);
-      truncationArr[i] = new Truncation(party, ioArr[i], otpackArr[i]);
+      multArr[i] = new LinearOT(party, ioArr[i], otpackArr[i], tripleGenArr[i]);
+      truncationArr[i] = new Truncation(party, ioArr[i], otpackArr[i], tripleGenArr[i]);
     }
   }
 #endif

@@ -37,6 +37,17 @@ AuxProtocols::AuxProtocols(int party, sci::NetIO *io,
       new MillionaireWithEquality<sci::NetIO>(party, io, otpack);
 }
 
+AuxProtocols::AuxProtocols(int party, sci::NetIO *io,
+                           OTPack<sci::NetIO> *otpack,
+                           TripleGenerator<sci::NetIO> *triplegen) {
+  this->party = party;
+  this->io = io;
+  this->otpack = otpack;
+  this->mill = new MillionaireProtocol<sci::NetIO>(party, io, otpack, triplegen);
+  this->mill_and_eq =
+      new MillionaireWithEquality<sci::NetIO>(party, io, otpack, triplegen);
+}
+
 AuxProtocols::~AuxProtocols() {
   delete mill;
   delete mill_and_eq;

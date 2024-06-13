@@ -29,6 +29,7 @@ SOFTWARE.
 #include <iostream>
 #include <map>
 #include <thread>
+#include <vector>
 
 typedef uint64_t intType;
 typedef int64_t signedIntType;

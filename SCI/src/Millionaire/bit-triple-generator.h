@@ -160,7 +160,15 @@ public:
     }
   }
 
-  ~TripleGenerator() { delete prg; }
+  ~TripleGenerator() { 
+    delete prg; 
+    // delete buffer
+    if(buffEnable) {
+      delete[] Bai;
+      delete[] Bbi;
+      delete[] Bci;
+    }
+  }
 
   void generate(int party, uint8_t *ai, uint8_t *bi, uint8_t *ci,
                 int num_triples, TripleGenMethod method, bool packed = false,

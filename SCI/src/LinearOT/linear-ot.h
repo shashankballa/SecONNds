@@ -46,6 +46,8 @@ public:
 
   LinearOT(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack);
 
+  LinearOT(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack, TripleGenerator<sci::NetIO> *triplegen);
+
   ~LinearOT();
 
   void hadamard_cleartext(int dim, uint64_t *inA, uint64_t *inB,

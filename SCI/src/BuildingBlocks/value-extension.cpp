@@ -39,6 +39,22 @@ XTProtocol::XTProtocol(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
   this->triple_gen = this->millionaire->triple_gen;
 }
 
+XTProtocol::XTProtocol(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
+                       TripleGenerator<sci::NetIO> *triplegen,
+                       AuxProtocols *auxp) {
+  this->party = party;
+  this->io = io;
+  this->otpack = otpack;
+  this->triple_gen = triplegen;
+  if (auxp == nullptr) {
+    del_aux = true;
+    this->aux = new AuxProtocols(party, io, otpack, triplegen);
+  } else {
+    this->aux = auxp;
+  }
+  this->millionaire = this->aux->mill;
+}
+
 XTProtocol::~XTProtocol() {
   if (del_aux) {
     delete this->aux;

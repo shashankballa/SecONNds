@@ -54,6 +54,22 @@ public:
     configure(bitlength, radix_base);
   }
 
+  Equality(int party, IO *io, sci::OTPack<IO> *otpack, TripleGenerator<IO> *triplegen,
+           MillionaireProtocol<IO> *mill_in = nullptr, int bitlength = 32,
+           int radix_base = MILL_PARAM) {
+    this->party = party;
+    this->io = io;
+    this->otpack = otpack;
+    this->triple_gen = triplegen;
+    this->mill = mill_in;
+    if (mill_in == nullptr) {
+      del_mill = true;
+      mill =
+          new MillionaireProtocol<IO>(party, io, otpack, triplegen, bitlength, radix_base);
+    }
+    configure(bitlength, radix_base);
+  }
+
   void configure(int bitlength, int radix_base = MILL_PARAM) {
     assert(radix_base <= 8);
     assert(bitlength <= 64);

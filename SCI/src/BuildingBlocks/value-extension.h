@@ -39,6 +39,10 @@ public:
   XTProtocol(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack,
              AuxProtocols *auxp = nullptr);
 
+  XTProtocol(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack,
+             TripleGenerator<sci::NetIO> *triplegen,
+             AuxProtocols *auxp = nullptr);
+
   // Destructor
   ~XTProtocol();
 

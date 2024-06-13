@@ -44,6 +44,7 @@ public:
   IO *io = nullptr;
   sci::OTPack<IO> *otpack;
   TripleGenerator<IO> *triple_gen;
+  bool del_trip_gen = false;
   int party;
   int l, r, log_alpha, beta, beta_pow;
   int num_digits, num_triples_corr, num_triples_std, log_num_digits;
@@ -62,6 +63,18 @@ public:
     , false
 #endif
     );
+    del_trip_gen = true;
+    configure(bitlength, radix_base);
+  }
+
+  
+  MillionaireProtocol(int party, IO *io, sci::OTPack<IO> *otpack, 
+                      TripleGenerator<IO> *triplegen,
+                      int bitlength = 32, int radix_base = MILL_PARAM) {
+    this->party = party;
+    this->io = io;
+    this->otpack = otpack;
+    this->triple_gen = triplegen;
     configure(bitlength, radix_base);
   }
 
@@ -86,7 +99,11 @@ public:
     this->beta_pow = 1 << beta;
   }
 
-  ~MillionaireProtocol() { delete triple_gen; }
+  ~MillionaireProtocol() { 
+    if (del_trip_gen) {
+      delete this->triple_gen;
+    }
+  }
 
   void compare(uint8_t *res, uint64_t *data, int num_cmps, int bitlength,
                bool greater_than = true, bool equality = false,
@@ -96,6 +113,15 @@ public:
 #else
     compare_old(res, data, num_cmps, bitlength, greater_than, equality, radix_base);
 #endif
+  }
+  void traverse_and_compute_ANDs(int num_cmps, uint8_t *leaf_res_eq,
+                                 uint8_t *leaf_res_cmp){
+#if USE_NEW
+    traverse_and_compute_ANDs_new(num_cmps, leaf_res_eq, leaf_res_cmp);
+#else
+    traverse_and_compute_ANDs_old(num_cmps, leaf_res_eq, leaf_res_cmp);
+#endif
+
   }
 
 
@@ -367,7 +393,7 @@ public:
    *                         AND computation related functions
    **************************************************************************************************/
 
-  void traverse_and_compute_ANDs(int num_cmps, uint8_t *leaf_res_eq,
+  void traverse_and_compute_ANDs_old(int num_cmps, uint8_t *leaf_res_eq,
                                  uint8_t *leaf_res_cmp) {
 #if defined(WAN_EXEC) || USE_CHEETAH
     Triple triples_std((num_triples)*num_cmps, true);
@@ -901,7 +927,7 @@ public:
     log_time << " ms" << std::endl;
 #endif
 
-    traverse_and_compute_ANDs_new(num_cmps, bit_res_eql, bit_res_cmp);
+    traverse_and_compute_ANDs(num_cmps, bit_res_eql, bit_res_cmp);
 
 #if PRINT_TIME
     // get running time of traverse_and_compute_ANDs in ms

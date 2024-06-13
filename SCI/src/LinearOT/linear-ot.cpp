@@ -57,6 +57,16 @@ LinearOT::LinearOT(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack) {
   this->xt = new XTProtocol(party, io, otpack, aux);
 }
 
+LinearOT::LinearOT(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
+                   TripleGenerator<sci::NetIO> *triplegen) {
+  this->party = party;
+  this->io = io;
+  this->otpack = otpack;
+  this->aux = new AuxProtocols(party, io, otpack, triplegen);
+  this->trunc = new Truncation(party, io, otpack, triplegen, aux);
+  this->xt = new XTProtocol(party, io, otpack, triplegen, aux);
+}
+
 LinearOT::~LinearOT() {
   delete aux;
   delete trunc;

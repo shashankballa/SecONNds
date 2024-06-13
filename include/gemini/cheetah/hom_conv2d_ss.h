@@ -75,6 +75,12 @@ class HomConv2DSS {
                 const Meta &meta, std::vector<seal::Ciphertext> &out_share0,
                 Tensor<uint64_t> &out_share1, size_t nthreads = 1) const;
 
+  Code conv2DSS_NTT(const std::vector<seal::Ciphertext> &img_share0,
+                const std::vector<seal::Plaintext> &img_share1,
+                const std::vector<std::vector<seal::Plaintext>> &filters,
+                const Meta &meta, std::vector<seal::Ciphertext> &out_share0,
+                Tensor<uint64_t> &out_share1, size_t nthreads = 1) const;
+
   Code decryptToTensor(const std::vector<seal::Ciphertext> &enc_tensor,
                        const Meta &meta, Tensor<uint64_t> &out,
                        size_t nthreads = 1) const;
@@ -89,10 +95,8 @@ class HomConv2DSS {
                          const Meta &meta, seal::Ciphertext *out_buff,
                          size_t out_buff_sze) const;
 
-  size_t conv2DOneFilterNTT(const std::vector<seal::Ciphertext> &enc_tensor,
-                         const std::vector<seal::Plaintext> &filter,
-                         const Meta &meta, seal::Ciphertext *out_buff,
-                         size_t out_buff_sze) const;
+  size_t conv2DFilToNTT(const Meta &meta, const seal::parms_id_type pid,
+                        std::vector<seal::Plaintext> &filter) const;
 
   Code sampleRandomMask(const std::vector<size_t> &targets,
                         uint64_t *coeffs_buff, size_t buff_size,

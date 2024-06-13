@@ -71,6 +71,21 @@ public:
     configure();
   }
 
+  ReLURingProtocol(int party, int algeb_str, IO *io, int l, int b,
+                   sci::OTPack<IO> *otpack,
+                   TripleGenerator<IO> *triplegen) {
+    this->party = party;
+    this->algeb_str = algeb_str;
+    this->io = io;
+    this->l = l;
+    this->b = b;
+    this->otpack = otpack;
+    this->triple_gen = triplegen;
+    this->millionaire = new MillionaireProtocol<IO>(party, io, otpack, triplegen);
+    this->aux = new AuxProtocols(party, io, otpack, triplegen);
+    configure();
+  }
+
   // Destructor
   virtual ~ReLURingProtocol() { delete millionaire; }
 

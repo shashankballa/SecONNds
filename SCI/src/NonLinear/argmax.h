@@ -74,6 +74,39 @@ public:
     }
     configure();
   }
+  
+  // Constructor
+  ArgMaxProtocol(int party, int algeb_str, IO *io, int l, int b, uint64_t prime,
+                 sci::OTPack<IO> *otpack,
+                 TripleGenerator<IO> *triplegen,
+                 ReLUProtocol<IO, type> *relu_obj = nullptr) {
+    this->party = party;
+    this->algeb_str = algeb_str;
+    this->io = io;
+    this->l = l;
+    mask_lower = (1ULL << this->l) - 1;
+    mask_upper = (1ULL << (2 * this->l)) - 1 - mask_lower;
+    this->b = b;
+    this->prime_mod = prime;
+    this->otpack = otpack;
+    if (algeb_str == RING) {
+      if (relu_obj == nullptr) {
+        this->relu_oracle = new ReLURingProtocol<IO, type>(party, RING, io, l, b, otpack, triplegen);
+        createdReluObj = true;
+      } else {
+        this->relu_oracle = (ReLURingProtocol<IO, type> *)relu_obj;
+      }
+    } else {
+      if (relu_obj == nullptr) {
+        this->relu_field_oracle = new ReLUFieldProtocol<IO, type>(
+            party, FIELD, io, l, b, this->prime_mod, otpack, triplegen);
+        createdReluObj = true;
+      } else {
+        this->relu_field_oracle = (ReLUFieldProtocol<IO, type> *)relu_obj;
+      }
+    }
+    configure();
+  }
 
   // Destructor
   ~ArgMaxProtocol() {

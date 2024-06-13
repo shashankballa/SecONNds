@@ -59,6 +59,23 @@ class DReLUFieldProtocol {
     configure();
   }
 
+  DReLUFieldProtocol(int party, int bitlength, int log_radix_base,
+                     uint64_t prime_mod, IO *io, sci::OTPack<IO> *otpack,
+                     TripleGenerator<IO> *triplegen) {
+    assert(log_radix_base <= 8);
+    assert(bitlength <= 64);
+    this->party = party;
+    this->l = bitlength;
+    this->beta = log_radix_base;
+    this->io = io;
+    this->p = prime_mod;
+    this->otpack = otpack;
+    this->triple_gen = triplegen;
+    this->millionaire = new MillionaireProtocol<IO>(party, io, otpack, triplegen,
+                                                    bitlength, log_radix_base);
+    configure();
+  }
+
   void configure() {
     this->num_digits = ceil((double)l / beta);
     this->r = l % beta;

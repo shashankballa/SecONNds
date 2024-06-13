@@ -68,6 +68,36 @@ public:
     configure();
   }
 
+  MaxPoolProtocol(int party, int algeb_str, IO *io, int l, int b,
+                  uint64_t prime, sci::OTPack<IO> *otpack,
+                  TripleGenerator<IO> *triplegen,
+                  ReLUProtocol<IO, type> *relu_obj = nullptr) {
+    this->party = party;
+    this->algeb_str = algeb_str;
+    this->io = io;
+    this->l = l;
+    this->b = b;
+    this->prime_mod = prime;
+    this->otpack = otpack;
+    this->triple_gen = triplegen;
+    if (algeb_str == RING) {
+      if (relu_obj == nullptr) {
+        this->relu_oracle =
+            new ReLURingProtocol<IO, type>(party, RING, io, l, b, otpack, triplegen);
+      } else {
+        this->relu_oracle = (ReLURingProtocol<IO, type> *)relu_obj;
+      }
+    } else {
+      if (relu_obj == nullptr) {
+        this->relu_field_oracle = new ReLUFieldProtocol<IO, type>(
+            party, FIELD, io, l, b, this->prime_mod, otpack, triplegen);
+      } else {
+        this->relu_field_oracle = (ReLUFieldProtocol<IO, type> *)relu_obj;
+      }
+    }
+    configure();
+  }
+
   // Destructor
   ~MaxPoolProtocol() {
     // Empty

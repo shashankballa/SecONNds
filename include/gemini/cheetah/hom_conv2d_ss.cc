@@ -618,11 +618,8 @@ size_t HomConv2DSS::conv2DOneFilter(const std::vector<seal::Ciphertext> &image,
   return out_size;
 }
 
-size_t HomConv2DSS::conv2DOneFilterNTT(const std::vector<seal::Ciphertext> &image_ntt,
-                                    const std::vector<seal::Plaintext> &filter,
-                                    const Meta &meta,
-                                    seal::Ciphertext *out_buff,
-                                    size_t out_buff_sze) const {
+size_t HomConv2DSS::conv2DFilToNTT(const Meta &meta, const seal::parms_id_type pid,
+                                   std::vector<seal::Plaintext> &filter) const {
   if (!evaluator_) {
     LOG(WARNING) << "conv2DOneFilter: evaluator is absent";
     return size_t(-1);
@@ -637,49 +634,15 @@ size_t HomConv2DSS::conv2DOneFilterNTT(const std::vector<seal::Ciphertext> &imag
     return size_t(-1);
   }
 
-  const size_t out_size = image_ntt.size() / filter.size();
-  if (out_size < 1) {
-    return size_t(-1);
-  }
-
-  if (out_size > out_buff_sze || !out_buff) {
-    LOG(WARNING) << "conv2DOneFilter: require a larger out_buff";
-    return size_t(-1);
-  }
-
   const size_t accum_cnt = filter.size();
-  for (size_t i = 0; i < out_size; ++i) {
-    out_buff[i].release();
-  }
-
-  // get parms_id from the first ciphertext
-  seal::parms_id_type pid = image_ntt[0].parms_id();
-
   for (size_t c = 0; c < accum_cnt; ++c) {
     // filter on the margin might be all-zero
     if (filter.at(c).is_zero()) {
       continue;
     }
-
-    seal::Plaintext filter_c_ntt;
-    evaluator_->transform_to_ntt(filter.at(c), pid, filter_c_ntt);
-
-    for (size_t i = 0; i < out_size; ++i) {
-      size_t ii = c * out_size + i;
-      size_t o = ii % out_size;
-
-      if (out_buff[o].size() > 0) {
-        // TODO Use FMA. out_buf[o] += tensor[ii] * filter[c];
-        auto cpy_ct{image_ntt.at(ii)};
-        evaluator_->multiply_plain_inplace(cpy_ct, filter_c_ntt);
-        evaluator_->add_inplace(out_buff[o], cpy_ct);
-      } else {
-        evaluator_->multiply_plain(image_ntt.at(ii), filter_c_ntt, out_buff[o]);
-      }
-    }
+    evaluator_->transform_to_ntt_inplace(filter.at(c), pid);
   }
-
-  return out_size;
+  return accum_cnt;
 }
 
 Code HomConv2DSS::conv2DSS(
@@ -715,6 +678,8 @@ Code HomConv2DSS::conv2DSS(
   auto tl_pool =
       seal::MemoryManager::GetPool(seal::mm_prof_opt::mm_force_thread_local);
 
+  ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
+
   std::vector<seal::Ciphertext> image;
   auto add_program = [&](long wid, size_t start, size_t end) {
     for (size_t i = start; i < end; ++i) {
@@ -728,7 +693,101 @@ Code HomConv2DSS::conv2DSS(
     return Code::OK;
   };
 
+  if (meta.is_shared_input) {
+    image.resize(img_share0.size(), seal::Ciphertext(tl_pool));
+    CHECK_ERR(LaunchWorks(tpool, image.size(), add_program), "add");
+  }
+  else {
+    image = img_share0;
+  }
+
+  const size_t N = poly_degree();
+  ConvCoeffIndexCalculator indexer(N, meta.ishape, meta.fshape, meta.padding,
+                                   meta.stride);
+  const size_t n_one_channel = indexer.slice_size(1) * indexer.slice_size(2);
+  const size_t n_out_ct = meta.n_filters * n_one_channel;
+  out_share0.resize(n_out_ct);
+  auto conv_program = [&](long wid, size_t start, size_t end) {
+    for (size_t m = start; m < end; ++m) {
+      seal::Ciphertext *ct_start = &out_share0.at(m * n_one_channel);
+      size_t used = conv2DOneFilter(image, filters[m], meta, ct_start, n_one_channel);
+      if (used == (size_t)-1 || used != n_one_channel) {
+        return Code::ERR_INTERNAL;
+      }
+    };
+
+    return Code::OK;
+  };
+
+  CHECK_ERR(LaunchWorks(tpool, meta.n_filters, conv_program), "conv2D");
+
+  out_share1.Reshape(out_shape);
+  addRandomMask(out_share0, out_share1, meta, nthreads);
+
+  if (scheme() == seal::scheme_type::bfv) {
+    auto truncate_program = [&](long wid, size_t start, size_t end) {
+      for (size_t cid = start; cid < end; ++cid) {
+        truncate_for_decryption(out_share0[cid], *evaluator_, *context_);
+      }
+      return Code::OK;
+    };
+
+    CHECK_ERR(LaunchWorks(tpool, out_share0.size(), truncate_program), "truncate");
+  }
+
+  // Post-processing for compressing out_ct volume.
+  removeUnusedCoeffs(out_share0, meta);
+  return Code::OK;
+}
+
+Code HomConv2DSS::conv2DSS_NTT(
+    const std::vector<seal::Ciphertext> &img_share0,
+    const std::vector<seal::Plaintext> &img_share1,
+    const std::vector<std::vector<seal::Plaintext>> &filters, const Meta &meta,
+    std::vector<seal::Ciphertext> &out_share0, Tensor<uint64_t> &out_share1,
+    size_t nthreads) const {
+  if (filters.size() != meta.n_filters) {
+    LOG(WARNING) << "conv2DSS: #filters " << filters.size()
+                 << " != " << meta.n_filters << "\n";
+    return Code::ERR_DIM_MISMATCH;
+  }
+
+  if (meta.is_shared_input && img_share0.size() != img_share1.size()) {
+    LOG(WARNING) << "conv2DSS: #shares " << img_share0.size()
+                 << " != " << img_share1.size() << "\n";
+    return Code::ERR_DIM_MISMATCH;
+  }
+
+  ENSURE_OR_RETURN(filters.size() == meta.n_filters, Code::ERR_DIM_MISMATCH);
+  if (meta.is_shared_input) {
+    ENSURE_OR_RETURN(img_share0.size() == img_share1.size(),
+                     Code::ERR_DIM_MISMATCH);
+  }
+
+  TensorShape out_shape = GetConv2DOutShape(meta);
+  if (out_shape.num_elements() == 0) {
+    LOG(WARNING) << "conv2DSS: empty out_shape";
+    return Code::ERR_CONFIG;
+  }
+
+  auto tl_pool =
+      seal::MemoryManager::GetPool(seal::mm_prof_opt::mm_force_thread_local);
+
   ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
+
+  std::vector<seal::Ciphertext> image;
+  auto add_program = [&](long wid, size_t start, size_t end) {
+    for (size_t i = start; i < end; ++i) {
+      try {
+        evaluator_->add_plain(img_share0[i], img_share1[i], image[i]);
+      } catch (std::logic_error e) {
+        LOG(WARNING) << "SEAL ERROR: " << e.what();
+        return Code::ERR_INTERNAL;
+      }
+    }
+    return Code::OK;
+  };
+
   if (meta.is_shared_input) {
     image.resize(img_share0.size(), seal::Ciphertext(tl_pool));
     CHECK_ERR(LaunchWorks(tpool, image.size(), add_program), "add");
@@ -754,12 +813,25 @@ Code HomConv2DSS::conv2DSS(
   ConvCoeffIndexCalculator indexer(N, meta.ishape, meta.fshape, meta.padding,
                                    meta.stride);
   const size_t n_one_channel = indexer.slice_size(1) * indexer.slice_size(2);
+
+  auto filters_ntt = filters;
+  auto fil_to_ntt_program = [&](long wid, size_t start, size_t end) {
+    for (size_t m = start; m < end; ++m) {
+      size_t used = conv2DFilToNTT(meta, image[0].parms_id(), filters_ntt[m]);
+      if (used == (size_t)-1 || used != n_one_channel) {
+        return Code::ERR_INTERNAL;
+      }
+    };
+    return Code::OK;
+  };
+  CHECK_ERR(LaunchWorks(tpool, meta.n_filters, fil_to_ntt_program), "fil_ntt");
+
   const size_t n_out_ct = meta.n_filters * n_one_channel;
   out_share0.resize(n_out_ct);
   auto conv_program = [&](long wid, size_t start, size_t end) {
     for (size_t m = start; m < end; ++m) {
       seal::Ciphertext *ct_start = &out_share0.at(m * n_one_channel);
-      size_t used = conv2DOneFilterNTT(image, filters[m], meta, ct_start, n_one_channel);
+      size_t used = conv2DOneFilter(image, filters_ntt[m], meta, ct_start, n_one_channel);
       if (used == (size_t)-1 || used != n_one_channel) {
         return Code::ERR_INTERNAL;
       }
@@ -794,8 +866,7 @@ Code HomConv2DSS::conv2DSS(
       return Code::OK;
     };
 
-    CHECK_ERR(LaunchWorks(tpool, out_share0.size(), truncate_program),
-              "conv2D");
+    CHECK_ERR(LaunchWorks(tpool, out_share0.size(), truncate_program), "truncate");
   }
 
   // Post-processing for compressing out_ct volume.

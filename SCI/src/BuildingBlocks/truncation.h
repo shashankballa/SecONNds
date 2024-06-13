@@ -43,6 +43,11 @@ public:
   Truncation(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack,
              AuxProtocols *auxp = nullptr,
              MillionaireWithEquality<sci::NetIO> *mill_eq_in = nullptr);
+             
+  Truncation(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack,
+             TripleGenerator<sci::NetIO> *triplegen,
+             AuxProtocols *auxp = nullptr,
+             MillionaireWithEquality<sci::NetIO> *mill_eq_in = nullptr);
 
   // Destructor
   ~Truncation();
