@@ -29,12 +29,13 @@ class CheetahLinear {
               const ConvMeta &meta, Tensor<uint64_t> &out_tensor) const;
 
   // HomConv
-  void conv2d_enc_fil(const std::vector<Tensor<uint64_t>> &filters,
-              const ConvMeta &meta, std::vector<std::vector<seal::Plaintext>> &encoded_filters) const;
+  void conv2d_offline(const std::vector<Tensor<uint64_t>> &filters,
+                      const ConvMeta &meta, 
+                      std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt) const;
 
   // HomConv
-  void conv2d(const Tensor<uint64_t> &in_tensor,
-              const std::vector<std::vector<seal::Plaintext>> &encoded_filters,
+  void conv2d_online(const Tensor<uint64_t> &in_tensor,
+              const std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt,
               const ConvMeta &meta, Tensor<uint64_t> &out_tensor) const;
 
   // HomFC

@@ -28,7 +28,7 @@ SOFTWARE.
 #include "utils/emp-tool.h"
 #include <cmath>
 
-#define USE_NEW 1
+#define USE_NEW 0
 
 #define PRINT_TIME 0
 #define PRINT_COMP 0

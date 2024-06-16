@@ -487,9 +487,12 @@ void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
   }
 }
 
-void CheetahLinear::conv2d_enc_fil(
-                           const std::vector<Tensor<uint64_t>> &filters,
-                           const ConvMeta &meta, std::vector<std::vector<seal::Plaintext>> &encoded_filters) const {
+void CheetahLinear::conv2d_offline(const std::vector<Tensor<uint64_t>> &filters,
+                                   const ConvMeta &meta,
+                                   std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt) const {
+  // if (!meta.ishape.IsSameSize(in_tensor.shape())) {
+  //   throw std::invalid_argument("CheetahLinear::conv2d meta.ishape mismatch");
+  // }
   if (meta.n_filters != filters.size()) {
     throw std::invalid_argument(
         "CheetahLinear::conv2d meta.n_filters mismatch");
@@ -504,28 +507,83 @@ void CheetahLinear::conv2d_enc_fil(
 
   Code code;
   if (party_ == sci::BOB) {
+    // {
+    //   std::vector<seal::Serializable<seal::Ciphertext>> ct_buff;
+    //   code = impl.encryptImage(in_tensor, meta, ct_buff, nthreads_);
+    //   if (code != Code::OK) {
+    //     throw std::runtime_error("CheetahLinear::conv2d encryptImage " +
+    //                              CodeMessage(code));
+    //   }
+    //   send_encrypted_vector(io_, ct_buff);
+    // }
+
+    // // Wait for result
+    // std::vector<seal::Ciphertext> ct_buff;
+    // recv_encrypted_vector(io_, *context_, ct_buff, true);
+
+    // code = impl.decryptToTensor(ct_buff, meta, out_tensor, nthreads_);
+    // if (code != Code::OK) {
+    //   throw std::runtime_error("CheetahLinear::conv2d decryptToTensor " +
+    //                            CodeMessage(code));
+    // }
     return;
   } else {
     std::vector<std::vector<seal::Plaintext>> encoded_filters;
     code = impl.encodeFilters(filters, meta, encoded_filters, nthreads_);
     if (code != Code::OK) {
-      throw std::runtime_error("CheetahLinear::conv2d encodeFilters " +
+      throw std::runtime_error("CheetahLinear::conv2d ecnodeFilters " +
                                CodeMessage(code));
     }
+
+    // std::vector<std::vector<seal::Plaintext>> encoded_filters_ntt;
+    code = impl.filtersToNtt(encoded_filters, encoded_filters_ntt, nthreads_);
+    if (code != Code::OK) {
+      throw std::runtime_error("CheetahLinear::conv2d filtersToNtt " +
+                               CodeMessage(code));
+    }
+
+
+    // std::vector<seal::Plaintext> encoded_share;
+    // if (meta.is_shared_input) {
+    //   code = impl.encodeImage(in_tensor, meta, encoded_share, nthreads_);
+    //   if (code != Code::OK) {
+    //     throw std::runtime_error("CheetahLinear::conv2d encodeImage " +
+    //                              CodeMessage(code));
+    //   }
+    // }
+
+    // std::vector<seal::Ciphertext> ct_buff;
+    // recv_encrypted_vector(io_, *context_, ct_buff, false);
+
+    // std::vector<seal::Ciphertext> out_ct;
+    // auto code = impl.conv2DSS(ct_buff, encoded_share, encoded_filters, meta,
+    //                           out_ct, out_tensor, nthreads_);
+    // if (code != Code::OK) {
+    //   throw std::runtime_error("CheetahLinear::conv2d conv2DSS: " +
+    //                            CodeMessage(code));
+    // }
+    // send_encrypted_vector(io_, out_ct);
   }
 }
 
-void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
-                           const std::vector<std::vector<seal::Plaintext>> &encoded_filters,
+
+void CheetahLinear::conv2d_online(const Tensor<uint64_t> &in_tensor,
+                           const std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt,
                            const ConvMeta &meta,
                            Tensor<uint64_t> &out_tensor) const {
+                            
   if (!meta.ishape.IsSameSize(in_tensor.shape())) {
     throw std::invalid_argument("CheetahLinear::conv2d meta.ishape mismatch");
   }
-  if (meta.n_filters != encoded_filters.size()) {
-    throw std::invalid_argument(
-        "CheetahLinear::conv2d meta.n_filters mismatch");
-  }
+  // if (meta.n_filters != filters.size()) {
+  //   throw std::invalid_argument(
+  //       "CheetahLinear::conv2d meta.n_filters mismatch");
+  // }
+  // for (const auto &f : filters) {
+  //   if (!meta.fshape.IsSameSize(f.shape())) {
+  //     throw std::invalid_argument("CheetahLinear::conv2d meta.fshape mismatch");
+  //   }
+  // }
 
   const auto &impl = conv2d_impl_;
 
@@ -551,6 +609,12 @@ void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
                                CodeMessage(code));
     }
   } else {
+    // std::vector<std::vector<seal::Plaintext>> encoded_filters;
+    // code = impl.encodeFilters(filters, meta, encoded_filters, nthreads_);
+    // if (code != Code::OK) {
+    //   throw std::runtime_error("CheetahLinear::conv2d ecnodeFilters " +
+    //                            CodeMessage(code));
+    // }
 
     std::vector<seal::Plaintext> encoded_share;
     if (meta.is_shared_input) {
@@ -565,7 +629,7 @@ void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
     recv_encrypted_vector(io_, *context_, ct_buff, false);
 
     std::vector<seal::Ciphertext> out_ct;
-    auto code = impl.conv2DSS_NTT(ct_buff, encoded_share, encoded_filters, meta,
+    auto code = impl.conv2DSSNTT(ct_buff, encoded_share, encoded_filters_ntt, meta,
                               out_ct, out_tensor, nthreads_);
     if (code != Code::OK) {
       throw std::runtime_error("CheetahLinear::conv2d conv2DSS: " +
@@ -574,7 +638,6 @@ void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
     send_encrypted_vector(io_, out_ct);
   }
 }
-
 
 void CheetahLinear::bn(const Tensor<uint64_t> &input_vector,
                        const Tensor<uint64_t> &scale_vector, const BNMeta &meta,

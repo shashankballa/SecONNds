@@ -1443,10 +1443,22 @@ void StartComputation() {
 #endif
     if (i & 1) {
       otpackArr[i] = new sci::OTPack<sci::NetIO>(ioArr[i], 3 - party);
-      tripleGenArr[i] = new TripleGenerator(3 - party, ioArr[i], otpackArr[i], true);
+      tripleGenArr[i] = new TripleGenerator(3 - party, ioArr[i], otpackArr[i]
+#if USE_NEW
+      , true
+#else
+      , false
+#endif
+      );
     } else {
       otpackArr[i] = new sci::OTPack<sci::NetIO>(ioArr[i], party);
-      tripleGenArr[i] = new TripleGenerator(party, ioArr[i], otpackArr[i], true);
+      tripleGenArr[i] = new TripleGenerator(party, ioArr[i], otpackArr[i]
+#if USE_NEW
+      , true
+#else
+      , false
+#endif
+      );
     }
   }
 

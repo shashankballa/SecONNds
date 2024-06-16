@@ -420,14 +420,13 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
 #endif  // VERIFY_LAYERWISE
 }
 
-void Conv2DEncodeFilter(signedIntType N, signedIntType H, signedIntType W,
-                   signedIntType CI, signedIntType FH, signedIntType FW,
-                   signedIntType CO, signedIntType zPadHLeft,
-                   signedIntType zPadHRight, signedIntType zPadWLeft,
-                   signedIntType zPadWRight, signedIntType strideH,
-                   signedIntType strideW, intType *filterArr,
-                   std::vector<std::vector<seal::Plaintext>> &filterPts
-                   ) {
+void Conv2DOfflineWrapper(signedIntType N, signedIntType H, signedIntType W,
+                    signedIntType CI, signedIntType FH, signedIntType FW,
+                    signedIntType CO, signedIntType zPadHLeft,
+                    signedIntType zPadHRight, signedIntType zPadWLeft,
+                    signedIntType zPadWRight, signedIntType strideH,
+                    signedIntType strideW, intType *inputArr, intType *filterArr,
+                    std::vector<std::vector<seal::Plaintext>> &encoded_filters) {
 #ifdef LOG_LAYERWISE
   INIT_ALL_IO_DATA_SENT;
   INIT_TIMER;
@@ -470,7 +469,7 @@ void Conv2DEncodeFilter(signedIntType N, signedIntType H, signedIntType W,
   meta.is_shared_input = kIsSharedInput;
 
   printf(
-      "ConvEncFil #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
+      "HomConvOffline #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
       "CO=%ld, S=%ld, Padding %s (%d %d %d %d)\n",
       ctr++, N, meta.ishape.height(), meta.ishape.width(),
       meta.ishape.channels(), meta.fshape.height(), meta.fshape.width(),
@@ -478,34 +477,25 @@ void Conv2DEncodeFilter(signedIntType N, signedIntType H, signedIntType W,
       (meta.padding == gemini::Padding::VALID ? "VALID" : "SAME"), zPadHLeft,
       zPadHRight, zPadWLeft, zPadWRight);
 
-#ifdef LOG_LAYERWISE
-  const int64_t io_counter = cheetah_linear->io_counter();
-#endif
-
-  cheetah_linear->conv2d_enc_fil(filters, meta, filterPts);
+  cheetah_linear->conv2d_offline(filters, meta, encoded_filters);
 
 #ifdef LOG_LAYERWISE
-  auto temp = TIMER_TILL_NOW;
-  ConvTimeInMilliSec += temp;
-  const int64_t nbytes_sent = cheetah_linear->io_counter() - io_counter;
-  std::cout << "Time in sec for current conv = [" << (temp / 1000.0)
-            << "] sent [" << (nbytes_sent / 1024. / 1024.) << "] MB"
+  auto off_time = TIMER_TILL_NOW;
+  std::cout << "Time in sec for offline conv = [" 
+            << (off_time / 1000.0)
+            << "]"
             << std::endl;
-
-  uint64_t curComm;
-  FIND_ALL_IO_TILL_NOW(curComm);
-  ConvCommSent += curComm;
 #endif
 }
 
-void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
-                   signedIntType CI, signedIntType FH, signedIntType FW,
-                   signedIntType CO, signedIntType zPadHLeft,
-                   signedIntType zPadHRight, signedIntType zPadWLeft,
-                   signedIntType zPadWRight, signedIntType strideH,
-                   signedIntType strideW, intType *inputArr, intType *filterArr,
-                   std::vector<std::vector<seal::Plaintext>> &filterPts,
-                   intType *outArr) {
+void Conv2DOnlineWrapper(signedIntType N, signedIntType H, signedIntType W,
+                    signedIntType CI, signedIntType FH, signedIntType FW,
+                    signedIntType CO, signedIntType zPadHLeft,
+                    signedIntType zPadHRight, signedIntType zPadWLeft,
+                    signedIntType zPadWRight, signedIntType strideH,
+                    signedIntType strideW, intType *inputArr, intType *filterArr,
+                    std::vector<std::vector<seal::Plaintext>> encoded_filters,
+                    intType *outArr) {
 #ifdef LOG_LAYERWISE
   INIT_ALL_IO_DATA_SENT;
   INIT_TIMER;
@@ -526,29 +516,13 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
   meta.fshape = gemini::TensorShape({CI, FH, FW});
   meta.n_filters = CO;
 
-  std::vector<gemini::Tensor<intType>> filters(CO);
-  for (auto &f : filters) {
-    f.Reshape(meta.fshape);
-  }
-
-  for (int i = 0; i < FH; i++) {
-    for (int j = 0; j < FW; j++) {
-      for (int k = 0; k < CI; k++) {
-        for (int p = 0; p < CO; p++) {
-          filters.at(p)(k, i, j) =
-              getRingElt(Arr4DIdxRowM(filterArr, FH, FW, CI, CO, i, j, k, p));
-        }
-      }
-    }
-  }
-
   const int npads = zPadHLeft + zPadHRight + zPadWLeft + zPadWRight;
   meta.padding = npads == 0 ? gemini::Padding::VALID : gemini::Padding::SAME;
   meta.stride = strideH;
   meta.is_shared_input = kIsSharedInput;
 
   printf(
-      "HomConv #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
+      "HomConvOnline #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
       "CO=%ld, S=%ld, Padding %s (%d %d %d %d)\n",
       ctr++, N, meta.ishape.height(), meta.ishape.width(),
       meta.ishape.channels(), meta.fshape.height(), meta.fshape.width(),
@@ -559,8 +533,6 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
 #ifdef LOG_LAYERWISE
   const int64_t io_counter = cheetah_linear->io_counter();
 #endif
-
-  cheetah_linear->conv2d_enc_fil(filters, meta, filterPts);
 
   for (int i = 0; i < N; ++i) {
     gemini::Tensor<intType> image(meta.ishape);
@@ -574,7 +546,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
     }
 
     gemini::Tensor<intType> out_tensor;
-    cheetah_linear->conv2d(image, filterPts, meta, out_tensor);
+    cheetah_linear->conv2d_online(image, encoded_filters, meta, out_tensor);
 
     for (int j = 0; j < newH; j++) {
       for (int k = 0; k < newW; k++) {

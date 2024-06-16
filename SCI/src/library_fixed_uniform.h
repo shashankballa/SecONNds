@@ -56,6 +56,7 @@ signedIntType funcReconstruct2PCCons(intType x, int revealParty);
 
 void MatMul2D(int32_t s1, int32_t s2, int32_t s3, const intType *A,
               const intType *B, intType *C, bool modelIsA);
+              
 void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
@@ -63,22 +64,23 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType zPadWRight, signedIntType strideH,
                    signedIntType strideW, intType *inputArr, intType *filterArr,
                    intType *outArr);
-              
-void Conv2DEncodeFilter(signedIntType N, signedIntType H, signedIntType W,
-                   signedIntType CI, signedIntType FH, signedIntType FW,
-                   signedIntType CO, signedIntType zPadHLeft,
-                   signedIntType zPadHRight, signedIntType zPadWLeft,
-                   signedIntType zPadWRight, signedIntType strideH,
-                   signedIntType strideW, intType *filterArr,
-                   std::vector<std::vector<seal::Plaintext>> &filterPts);
 
-void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
+void Conv2DOfflineWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
                    signedIntType zPadWRight, signedIntType strideH,
                    signedIntType strideW, intType *inputArr, intType *filterArr,
-                   std::vector<std::vector<seal::Plaintext>> &filterPts,
+                   std::vector<std::vector<seal::Plaintext>> &encoded_filters);
+
+void Conv2DOnlineWrapper(signedIntType N, signedIntType H, signedIntType W,
+                   signedIntType CI, signedIntType FH, signedIntType FW,
+                   signedIntType CO, signedIntType zPadHLeft,
+                   signedIntType zPadHRight, signedIntType zPadWLeft,
+                   signedIntType zPadWRight, signedIntType strideH,
+                   signedIntType strideW, intType *inputArr, 
+                   intType *filterArr,
+                   std::vector<std::vector<seal::Plaintext>> encoded_filters,
                    intType *outArr);
 
 void Conv2DGroupWrapper(signedIntType N, signedIntType H, signedIntType W,

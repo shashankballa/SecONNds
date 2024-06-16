@@ -73,8 +73,8 @@ public:
   }
 };
 
-#define BSIZE 67108864 // Default buffer size
-#define CSIZE 67108864 // Default chunk size
+#define BSIZE 134217728 // Default buffer size
+#define CSIZE 134217728 // Default chunk size
 template <typename IO> class TripleGenerator {
 public:
   IO *io = nullptr;
@@ -512,7 +512,13 @@ public:
       generate(party, triples->ai, triples->bi, triples->ci, triples->num_triples, method, triples->packed, triples->offset);
       return;
     }
-    if(buffPtr+triples->num_triples > buffSize){
+    if(buffPtr + triples->num_triples < buffSize){
+      int startBytes = buffPtr >> 3;
+      memcpy(triples->ai, Bai + startBytes, triples->num_bytes);
+      memcpy(triples->bi, Bbi + startBytes, triples->num_bytes);
+      memcpy(triples->ci, Bci + startBytes, triples->num_bytes);
+      buffPtr += (triples->num_bytes) << 3;
+    } else {
       int n_trips = triples->num_triples;
       int r_bytes = 0;
       if (buffPtr < buffSize){ // copy the remaining triples from the buffer
@@ -524,29 +530,77 @@ public:
         buffPtr += (r_bytes << 3);
       }
       n_trips -= (r_bytes << 3);
+
       // generate triples in chunks of size chunkSize
       int nChunks = ceil((double)n_trips / chunkSize);
       for (int i = 0; i < nChunks; i++) {
         int start = i * chunkSize;
         int startBytes = start >> 3;
         int end = std::min(n_trips, (i + 1) * chunkSize);
+       
+#if PRINT_COMM || PRINT_TIME
+    std::string f_tag = "NEW | 3Get";
+#endif
+#if PRINT_COMM
+    int _wcomm = 10;
+    std::stringstream log_comm;
+    uint64_t start_comm = io->counter;
+    uint64_t total_comm = 0;
+    log_comm << "P" << party << " COMM | ";
+    log_comm << f_tag;
+    log_comm << ": n_trips = " << n_trips;
+    log_comm << ", r_bytes = " << r_bytes;
+    log_comm << ", buffPtr = " << buffPtr;
+    log_comm << ", buffSize = " << buffSize;
+    log_comm << ", chunkSize = " << chunkSize;
+    log_comm << std::endl;
+#endif
+#if PRINT_TIME
+    int _wtime = 10;
+    std::stringstream log_time;
+    auto start_time = std::chrono::system_clock::now();
+    auto end_time   = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time = end_time - start_time;
+    log_time << "P" << party << " TIME | ";
+    log_time << f_tag;
+    log_time << ": n_trips = " << n_trips;
+    log_time << ", r_bytes = " << r_bytes;
+    log_time << ", buffPtr = " << buffPtr;
+    log_time << ", buffSize = " << buffSize;
+    log_time << ", chunkSize = " << chunkSize;
+    log_time << std::endl;
+#endif 
         generate(party, 
                   triples->ai + r_bytes + startBytes, 
                   triples->bi + r_bytes + startBytes,
                   triples->ci + r_bytes + startBytes,
                   end - start, method, true);
+#if PRINT_TIME
+    end_time = std::chrono::system_clock::now();
+    std::chrono::duration<double> generate_time = end_time - (start_time + total_time);
+    total_time += generate_time;
+    log_time << "P" << party << " TIME | ";
+    log_time << f_tag;
+    log_time << ": generate = " << std::setw(_wtime) << generate_time.count() * 1000;
+    log_time << " ms";
+    log_time << std::endl;
+#endif
+#if PRINT_COMM
+    uint64_t generate_comm = io->counter - (start_comm + total_comm);
+    total_comm += generate_comm;
+    log_comm << "P" << party << " COMM | ";
+    log_comm << f_tag;
+    log_comm << ": generate = " << std::setw(_wcomm) << generate_comm;
+    log_comm << " bytes";
+    log_comm << std::endl;
+#endif
+#if PRINT_COMM
+    std::cout << log_comm.str();
+#endif
+#if PRINT_TIME
+    std::cout << log_time.str();
+#endif          
       }
-      if (buffPtr >= buffSize){
-        refillBuffer(party, buffSize, method);
-      }
-      return;
-    }
-    if(buffPtr+triples->num_triples < buffSize){
-      int startBytes = buffPtr >> 3;
-      memcpy(triples->ai, Bai + startBytes, triples->num_bytes);
-      memcpy(triples->bi, Bbi + startBytes, triples->num_bytes);
-      memcpy(triples->ci, Bci + startBytes, triples->num_bytes);
-      buffPtr += (triples->num_bytes) << 3;
       return;
     }
   }
