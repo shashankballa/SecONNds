@@ -55,7 +55,7 @@ make install -j2
 
 target=SEAL
 cd $DEPS_DIR/$target
-git checkout 7923472 #v3.7.2
+git checkout 3a05feb #v4.1.2
 patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/SEAL.patch -d $DEPS_DIR/SEAL/
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
@@ -64,7 +64,18 @@ cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$B
                         -DSEAL_THROW_ON_TRANSPARENT_CIPHERTEXT=ON
 make install -j4
 
-for deps in eigen3 emp-ot emp-tool hexl SEAL-3.7
+# Troy (seal-cuda)
+target=seal-cuda
+cd $DEPS_DIR/$target
+# Build the basic library
+mkdir -p build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+make -j4 VERBOSE=1
+make install VERBOSE=1
+cd ..
+
+for deps in eigen3 emp-ot emp-tool hexl SEAL-4.1 troy
 do
   if [ ! -d $BUILD_DIR/include/$deps ] 
   then

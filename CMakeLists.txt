@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project(Cheetah)
+project(Cheetah LANGUAGES CXX CUDA)
 include(CMakeFindDependencyMacro)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -15,7 +15,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Eigen3 3.3.3 REQUIRED)
-find_package(SEAL REQUIRED)
+find_package(SEAL 4.1 REQUIRED)
+find_package(Troy REQUIRED)
 find_package(emp-tool REQUIRED)
 find_package(emp-ot REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR}

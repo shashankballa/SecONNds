@@ -6,7 +6,7 @@ index 0039517..17ac79f 100644
          message(STATUS "Intel HEXL: download ...")
          seal_fetch_thirdparty_content(ExternalIntelHEXL)
      else()
--        find_package(HEXL 1.2.3)
+-        find_package(HEXL 1.2.4)
 +        find_package(HEXL 1.2.2)
          if (NOT TARGET HEXL::hexl)
              message(FATAL_ERROR "Intel HEXL: not found")

@@ -126,7 +126,7 @@ $RECYCLE.BIN/
 build
 # End of https://www.toptal.com/developers/gitignore/api/cmake,linux,macos,windows,c++
 
-deps/*
+deps/hexl/cmake/*
 sqnet_demo/imagenet-sample-images/*
 
 logs/*
