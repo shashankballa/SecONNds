@@ -46,7 +46,6 @@ cmake $DEPS_DIR/$target/build/cmake -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DZSTD_BUI
                                       -DZLIB_BUILD_STATIC=ON -DZSTD_BUILD_TESTS=OFF -DZSTD_MULTITHREAD_SUPPORT=OFF
 make install -j2
 
-
 target=hexl
 cd $DEPS_DIR/$target
 git checkout 343acab #v1.2.2
