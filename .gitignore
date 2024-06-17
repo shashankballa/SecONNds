@@ -126,8 +126,17 @@ $RECYCLE.BIN/
 build
 # End of https://www.toptal.com/developers/gitignore/api/cmake,linux,macos,windows,c++
 
+# Logs
 logs/*
 *.log
+
+# Dependencies
+deps/emp-tool/*
+deps/emp-ot/*
+deps/hexl/*
+deps/SEAL/*
+deps/zstd/*
+deps/eigen/*
 
 # vscode
 .vscode
