@@ -5,6 +5,12 @@ check_tools
 if [ -d .git ]; then
   git submodule init
   git submodule update
+  git submodule update --init --recursive $DEPS_DIR/emp-tool
+  git submodule update --init --recursive $DEPS_DIR/emp-ot
+  git submodule update --init --recursive $DEPS_DIR/eigen
+  git submodule update --init --recursive $DEPS_DIR/zstd
+  git submodule update --init --recursive $DEPS_DIR/hexl
+  git submodule update --init --recursive $DEPS_DIR/SEAL
 else
   git clone https://github.com/emp-toolkit/emp-tool.git $DEPS_DIR/emp-tool
   git clone https://github.com/emp-toolkit/emp-ot.git $DEPS_DIR/emp-ot
@@ -21,7 +27,7 @@ patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/emp-tool.patch -
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR
-make install -j2
+make install -j8
 
 target=emp-ot
 cd $DEPS_DIR/$target
@@ -29,7 +35,7 @@ git checkout 7f3d4f0
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR
-make install -j2
+make install -j8
 
 target=eigen
 cd $DEPS_DIR/$target
@@ -37,20 +43,20 @@ git checkout 1f05f51 #v3.3.3
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR
-make install -j2
+make install -j8
 
 target=zstd
 cd $DEPS_DIR/$target
 
 cmake $DEPS_DIR/$target/build/cmake -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_SHARED=OFF\
                                       -DZLIB_BUILD_STATIC=ON -DZSTD_BUILD_TESTS=OFF -DZSTD_MULTITHREAD_SUPPORT=OFF
-make install -j2
+make install -j8
 
 target=hexl
 cd $DEPS_DIR/$target
 git checkout 343acab #v1.2.2
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DHEXL_BENCHMARK=OFF -DHEXL_COVERAGE=OFF -DHEXL_TESTING=OFF
-make install -j2
+make install -j8
 
 target=SEAL
 cd $DEPS_DIR/$target
@@ -61,17 +67,16 @@ cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR -DSEAL_USE_MSGSL=OFF -DSEAL_USE_ZLIB=OFF\
 	                    -DSEAL_USE_ZSTD=ON -DCMAKE_BUILD_TYPE=Release -DSEAL_USE_INTEL_HEXL=ON -DSEAL_BUILD_DEPS=OFF\
                         -DSEAL_THROW_ON_TRANSPARENT_CIPHERTEXT=ON
-make install -j4
+make install -j8
 
 # Troy (seal-cuda)
 target=seal-cuda
 cd $DEPS_DIR/$target
-# Build the basic library
 mkdir -p build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-make -j4 VERBOSE=1
-make install VERBOSE=1
+cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR
+make -j8
+make install
 cd ..
 
 for deps in eigen3 emp-ot emp-tool hexl SEAL-4.1 troy

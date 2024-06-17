@@ -1,9 +1,6 @@
 [submodule "deps/zstd"]
 	path = deps/zstd
 	url = https://github.com/facebook/zstd.git
-[submodule "deps/emp-ot"]
-	path = deps/emp-ot
-	url = https://github.com/emp-toolkit/emp-ot.git
 [submodule "deps/hexl"]
 	path = deps/hexl
 	url = https://github.com/intel/hexl.git
@@ -19,3 +16,6 @@
 [submodule "sqnet_demo/imagenet-sample-images"]
 	path = sqnet_demo/imagenet-sample-images
 	url = https://github.com/EliSchwartz/imagenet-sample-images.git
+[submodule "deps/emp-ot"]
+	path = deps/emp-ot
+	url = https://github.com/emp-toolkit/emp-ot.git
