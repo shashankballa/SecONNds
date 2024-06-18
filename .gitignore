@@ -133,13 +133,11 @@ logs
 # data
 data
 
-# Dependencies
-deps/eigen
-deps/SEAL
-deps/hexl
-deps/emp-ot
-deps/emp-tool
-
 # vscode
 .vscode
 
+deps/eigen/*
+deps/SEAL/*
+deps/hexl/*
+deps/emp-ot/*
+deps/emp-tool/*
