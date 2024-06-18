@@ -1,3 +1,0 @@
-[submodule "sqnet_demo/imagenet-sample-images"]
-	path = sqnet_demo/imagenet-sample-images
-	url = https://github.com/EliSchwartz/imagenet-sample-images.git
