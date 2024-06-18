@@ -136,8 +136,8 @@ data
 # vscode
 .vscode
 
-deps/eigen/*
-deps/SEAL/*
-deps/hexl/*
-deps/emp-ot/*
-deps/emp-tool/*
+deps/eigen
+deps/SEAL
+deps/hexl
+deps/emp-ot
+deps/emp-tool
