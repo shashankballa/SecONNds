@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler -fPIC")
 
 add_compile_options(-fPIC)
 add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=0)
@@ -16,18 +17,23 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Eigen3 3.3.3 REQUIRED)
 find_package(SEAL 4.1 REQUIRED)
-find_package(Troy REQUIRED)
 find_package(emp-tool REQUIRED)
 find_package(emp-ot REQUIRED)
+find_package(CUDA REQUIRED)
+find_package(Troy REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR}
                     ${EMP-OT_INCLUDE_DIRS} 
-                    ${EMP-TOOL_INCLUDE_DIRS})
+                    ${EMP-TOOL_INCLUDE_DIRS}
+                    ${CUDA_INCLUDE_DIRS})
+
+include_directories(/usr/local/cuda-11.7/targets/x86_64-linux/include)
+link_directories(${CUDA_LIBRARY_DIRS})
 
 ## cheetah-core
 add_library(gemini SHARED)
 include_directories(include)
 add_subdirectory(include)
-target_link_libraries(gemini SEAL::seal Eigen3::Eigen Threads::Threads)
+target_link_libraries(gemini SEAL::seal Eigen3::Eigen Threads::Threads ${CUDA_LIBRARIES})
 
 if (USE_APPROX_RESHARE)
   target_compile_definitions(gemini PUBLIC USE_APPROX_RESHARE=1)

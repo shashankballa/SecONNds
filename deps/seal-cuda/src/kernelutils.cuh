@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cuda_runtime.h>
 #include "kernelprovider.cuh"
 #include "utils/devicearray.cuh"
 #include "utils/hostarray.h"
