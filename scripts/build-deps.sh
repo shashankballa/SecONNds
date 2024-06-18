@@ -2,27 +2,46 @@
 
 check_tools
 
-if [ -d .git ]; then
-  git submodule init
-  git submodule update
-  git submodule update --init --recursive $DEPS_DIR/emp-tool
-  git submodule update --init --recursive $DEPS_DIR/emp-ot
-  git submodule update --init --recursive $DEPS_DIR/eigen
-  git submodule update --init --recursive $DEPS_DIR/zstd
-  git submodule update --init --recursive $DEPS_DIR/hexl
-  git submodule update --init --recursive $DEPS_DIR/SEAL
-else
-  git clone https://github.com/emp-toolkit/emp-tool.git $DEPS_DIR/emp-tool
-  git clone https://github.com/emp-toolkit/emp-ot.git $DEPS_DIR/emp-ot
-  git clone https://github.com/libigl/eigen.git $DEPS_DIR/eigen
-  git clone https://github.com/facebook/zstd.git $DEPS_DIR/zstd
-  git clone https://github.com/intel/hexl.git $DEPS_DIR/hexl
-  git clone https://github.com/microsoft/SEAL.git $DEPS_DIR/SEAL
-fi
+# Function to clone or update a repository
+clone_or_update_repo() {
+  local repo_url=$1
+  local target_dir=$2
+  local commit_hash=$3
+
+  if [ -d "$target_dir/.git" ]; then
+    echo "Updating $target_dir"
+    cd $target_dir
+    git fetch origin
+    git checkout $commit_hash
+    git pull origin $commit_hash
+    cd - > /dev/null
+  else
+    echo "Cloning $repo_url into $target_dir"
+    git clone $repo_url $target_dir
+    cd $target_dir
+    git checkout $commit_hash
+    cd - > /dev/null
+  fi
+}
+
+# Repositories and their respective commit hashes
+repos=(
+  "https://github.com/emp-toolkit/emp-tool.git|$DEPS_DIR/emp-tool|44b1dde"
+  "https://github.com/emp-toolkit/emp-ot.git|$DEPS_DIR/emp-ot|7f3d4f0"
+  "https://github.com/libigl/eigen.git|$DEPS_DIR/eigen|1f05f51"
+  "https://github.com/facebook/zstd.git|$DEPS_DIR/zstd|master"
+  "https://github.com/intel/hexl.git|$DEPS_DIR/hexl|343acab"
+  "https://github.com/microsoft/SEAL.git|$DEPS_DIR/SEAL|3a05feb"
+)
+
+# Clone or update each repository
+for repo in "${repos[@]}"; do
+  IFS="|" read -r repo_url target_dir commit_hash <<< "$repo"
+  clone_or_update_repo $repo_url $target_dir $commit_hash
+done
 
 target=emp-tool
 cd $DEPS_DIR/$target
-git checkout 44b1dde
 patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/emp-tool.patch -d $DEPS_DIR/$target
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
@@ -31,7 +50,6 @@ make install -j8
 
 target=emp-ot
 cd $DEPS_DIR/$target
-git checkout 7f3d4f0
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR
@@ -39,7 +57,6 @@ make install -j8
 
 target=eigen
 cd $DEPS_DIR/$target
-git checkout 1f05f51 #v3.3.3
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR
@@ -47,20 +64,17 @@ make install -j8
 
 target=zstd
 cd $DEPS_DIR/$target
-
 cmake $DEPS_DIR/$target/build/cmake -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_SHARED=OFF\
                                       -DZLIB_BUILD_STATIC=ON -DZSTD_BUILD_TESTS=OFF -DZSTD_MULTITHREAD_SUPPORT=OFF
 make install -j8
 
 target=hexl
 cd $DEPS_DIR/$target
-git checkout 343acab #v1.2.2
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DHEXL_BENCHMARK=OFF -DHEXL_COVERAGE=OFF -DHEXL_TESTING=OFF
 make install -j8
 
 target=SEAL
 cd $DEPS_DIR/$target
-git checkout 3a05feb #v4.1.2
 patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/SEAL.patch -d $DEPS_DIR/SEAL/
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target

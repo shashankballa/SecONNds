@@ -141,3 +141,4 @@ deps/SEAL
 deps/hexl
 deps/emp-ot
 deps/emp-tool
+deps/zstd
