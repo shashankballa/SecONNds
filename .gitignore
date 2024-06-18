@@ -130,13 +130,15 @@ build
 logs
 *.log
 
+# data
+data
+
 # Dependencies
-deps/emp-tool/*
-deps/emp-ot/*
-deps/hexl/*
-deps/SEAL/*
-deps/zstd/*
-deps/eigen/*
+deps/eigen
+deps/SEAL
+deps/hexl
+deps/emp-ot
+deps/emp-tool
 
 # vscode
 .vscode
