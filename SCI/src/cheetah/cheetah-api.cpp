@@ -541,8 +541,7 @@ void CheetahLinear::conv2d_offline(const std::vector<Tensor<uint64_t>> &filters,
       throw std::runtime_error("CheetahLinear::conv2d filtersToNtt " +
                                CodeMessage(code));
     }
-
-
+    
     // std::vector<seal::Plaintext> encoded_share;
     // if (meta.is_shared_input) {
     //   code = impl.encodeImage(in_tensor, meta, encoded_share, nthreads_);

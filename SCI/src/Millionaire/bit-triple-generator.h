@@ -24,7 +24,7 @@ SOFTWARE.
 #define TRIPLE_GENERATOR_H__
 #include "OT/emp-ot.h"
 
-#define USE_NEW 0
+#define USE_NEW 1
 #define TGEN_PRINT_TIME 0
 #define TGEN_PRINT_COMP 0
 #define TGEN_PRINT_COMM 0
@@ -75,7 +75,7 @@ public:
 };
 
 #define BSIZE 67108864 // Default buffer size
-#define CSIZE 8192 // Default chunk size
+#define CSIZE 8192     // Default chunk size
 template <typename IO> class TripleGenerator {
 public:
   IO *io = nullptr;
@@ -84,15 +84,15 @@ public:
   int party;
 
   // Buffer implementation to use pre-generated triples from the offline phase
-  uint8_t *Bai;         // Buffer for Ai
-  uint8_t *Bbi;         // Buffer for Bi
-  uint8_t *Bci;         // Buffer for Ci
-  int buffSize; // Number of triples in the buffer (always multiple of 8)
-  int buffBytes;     // Number of bytes in the buffer (always = buffSize/8)
-  int chunkSize; // Number of triples to be generated in one go (always multiple of 8)
-  bool buffEnable; // Flag to enable/disable buffer
-  int buffPtr = 0;     // Pointer to the current triple in the buffer
-  int nRefill = 0;     // Number of times the buffer has been refilled
+  uint8_t *Bai;   // Buffer for Ai
+  uint8_t *Bbi;   // Buffer for Bi
+  uint8_t *Bci;   // Buffer for Ci
+  int buffSize;   // Number of triples in the buffer (always multiple of 8)
+  int buffBytes;  // Number of bytes in the buffer (always = buffSize/8)
+  int chunkSize;  // Number of triples to be generated in one go (always multiple of 8)
+  bool buffEnable = false; // Flag to enable/disable buffer
+  int buffPtr = 0;// Pointer to the current triple in the buffer
+  int nRefill = 0;// Number of times the buffer has been refilled
 
   TripleGenerator(int Party, IO *io, sci::OTPack<IO> *otpack
 #if USE_NEW

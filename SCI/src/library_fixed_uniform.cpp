@@ -1412,31 +1412,31 @@ void ScaleUp(int32_t size, intType *arr, int32_t sf) {
 }
 
 #if USE_NEW
-void funcTripleGenThread(int tid, int64_t buffSize, int64_t chunkSize) {
+void funcTripleGenThread(int tid, bool enableBuffer, int64_t buffSize, int64_t chunkSize) {
   tripleGenArr[tid] = new TripleGenerator(((tid & 1) ? 3 - party : party), 
                                           ioArr[tid], otpackArr[tid], 
-                                          true, buffSize, chunkSize);
+                                          enableBuffer, buffSize, chunkSize);
 }
 
-void funcTripleGenWrapper(int64_t buffSize, int64_t chunkSize) {
+void funcTripleGenWrapper(bool enableBuffer, int64_t buffSize, int64_t chunkSize) {
   assert(buffSize  % 8 == 0);
   assert(chunkSize % 8 == 0);
 #if defined(MULTITHREADED_NONLIN) || defined(MULTITHREADED_TRUNC)
   std::thread tripleGenThreads[num_threads];
   for (int i = 0; i < num_threads; i++) {
     tripleGenThreads[i] =
-        std::thread(funcTripleGenThread, i, buffSize, chunkSize);
+        std::thread(funcTripleGenThread, i, enableBuffer, buffSize, chunkSize);
   }
   for (int i = 0; i < num_threads; ++i) {
     tripleGenThreads[i].join();
   }
 #else
-  funcTripleGenThread(0, buffSize, chunkSize);
+  funcTripleGenThread(0, enableBuffer, buffSize, chunkSize);
 #endif
 }
 #endif
 
-void TripleGen(int64_t buffSize, int64_t chunkSize){
+void TripleGen(bool enableBuffer, int64_t buffSize, int64_t chunkSize){
   printf("Generating triples ...\n");
 
 #if USE_NEW
@@ -1455,6 +1455,7 @@ start_comm = ioArr[0]->counter;
 uint64_t total_comm = 0;
 log_comm << "P" << party << " COMM | ";
 log_comm << f_tag;
+log_comm << ": enableBuffer = " << std::boolalpha << enableBuffer;
 log_comm << ", buffSize = " << buffSize;
 log_comm << ", chunkSize = " << chunkSize;
 log_comm << std::endl;
@@ -1467,12 +1468,13 @@ auto end   = std::chrono::system_clock::now();
 std::chrono::duration<double> total_time = end - start;
 log_time << "P" << party << " TIME | ";
 log_time << f_tag;
+log_time << ": enableBuffer = " << std::boolalpha << enableBuffer;
 log_time << ", buffSize = " << buffSize;
 log_time << ", chunkSize = " << chunkSize;
 log_time << std::endl;
 #endif
 
-  funcTripleGenWrapper(buffSize, chunkSize);
+  funcTripleGenWrapper(enableBuffer, buffSize, chunkSize);
   tripleGen = tripleGenArr[0];
 
 #if TRIPGEN_PRINT_TIME
@@ -1518,12 +1520,12 @@ std::cout << log_time.str();
 #endif
 }
 
-void StartComputation() {
+void ConnectAndSetUp(){
   assert(bitlength < 64 && bitlength > 0);
   assert(num_threads <= MAX_THREADS);
   std::string backend;
 
-  std::cout << "StartComputation() called with"
+  std::cout << "ConnectAndSetUp() called with"
             << " bitlength = " << bitlength
             << ", num_threads = " << num_threads
             << std::endl;
@@ -1577,9 +1579,56 @@ void StartComputation() {
   kkot = new sci::KKOT<sci::NetIO>(io);
   prg128Instance = new sci::PRG128();
 
-  int64_t log_total_trips = 28;
-  int64_t log_buffer_size = 1ULL << (log_total_trips - (int64_t) std::ceil(std::log2(num_threads)));
-  TripleGen(log_buffer_size, log_buffer_size);
+#if USE_CHEETAH
+  backend += "-Cheetah";
+  int n_gemini_thrds = num_threads;
+  cheetah_linear = new gemini::CheetahLinear(party, io, prime_mod, n_gemini_thrds);
+#elif defined(SCI_HE)
+  backend += "-SCI_HE";
+  he_conv = new ConvField(party, io);
+#elif defined(SCI_OT)
+  backend += "-SCI_OT";
+#endif
+  doneConnectAndSetUp = true;
+}
+
+void GenerateTriples(int log_num_triples){
+  bool enableBuffer = log_num_triples >= 3;
+  int64_t buffer_size = 1ULL << (log_num_triples - (int64_t) std::ceil(std::log2(num_threads)));
+  buffer_size = enableBuffer ? buffer_size : 0;
+  TripleGen(enableBuffer, buffer_size, buffer_size);
+  doneGenerateTriples = true;
+}
+
+void StartComputation() {
+
+  if (!doneConnectAndSetUp) {
+    ConnectAndSetUp();
+  }
+
+  if (!doneGenerateTriples) {
+    GenerateTriples();
+  }
+
+  std::string backend;
+
+#ifdef SCI_HE
+  backend = "PrimeField";
+#elif SCI_OT
+  backend = "Ring";
+#endif
+#if USE_CHEETAH
+  backend += "-SilentOT";
+#else
+  backend += "-OT";
+#endif
+#if USE_CHEETAH
+  backend += "-Cheetah";
+#elif defined(SCI_HE)
+  backend += "-SCI_HE";
+#elif defined(SCI_OT)
+  backend += "-SCI_OT";
+#endif
 
 #ifdef SCI_OT
   std::cout 
@@ -1606,16 +1655,6 @@ void StartComputation() {
   argmax = new ArgMaxProtocol<sci::NetIO, intType>(party, RING, io, bitlength,
                                                    MILL_PARAM, 0, otpack, tripleGen, relu);
   // math = new MathFunctions(party, io, otpack);
-#endif
-
-#if USE_CHEETAH
-  backend += "-Cheetah";
-  cheetah_linear = new gemini::CheetahLinear(party, io, prime_mod, num_threads);
-#elif defined(SCI_HE)
-  backend += "-SCI_HE";
-  he_conv = new ConvField(party, io);
-#elif defined(SCI_OT)
-  backend += "-SCI_OT";
 #endif
 
 #ifdef SCI_HE
@@ -1783,6 +1822,8 @@ void EndComputation() {
   std::cout << "------------------------------------------------------\n";
 
 #ifdef LOG_LAYERWISE
+  std::cout << "Total time in Conv Offline = " << (ConvOffTimeInMilliSec / 1000.0)
+            << " seconds." << std::endl;
   std::cout << "Total time in Conv = " << (ConvTimeInMilliSec / 1000.0)
             << " seconds." << std::endl;
   std::cout << "Total time in MatMul = " << (MatMulTimeInMilliSec / 1000.0)

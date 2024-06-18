@@ -425,7 +425,7 @@ void Conv2DOfflineWrapper(signedIntType N, signedIntType H, signedIntType W,
                     signedIntType CO, signedIntType zPadHLeft,
                     signedIntType zPadHRight, signedIntType zPadWLeft,
                     signedIntType zPadWRight, signedIntType strideH,
-                    signedIntType strideW, intType *inputArr, intType *filterArr,
+                    signedIntType strideW, intType *filterArr,
                     std::vector<std::vector<seal::Plaintext>> &encoded_filters) {
 #ifdef LOG_LAYERWISE
   INIT_ALL_IO_DATA_SENT;
@@ -481,6 +481,7 @@ void Conv2DOfflineWrapper(signedIntType N, signedIntType H, signedIntType W,
 
 #ifdef LOG_LAYERWISE
   auto off_time = TIMER_TILL_NOW;
+  ConvOffTimeInMilliSec += off_time;
   std::cout << "Time in sec for offline conv = [" 
             << (off_time / 1000.0)
             << "]"

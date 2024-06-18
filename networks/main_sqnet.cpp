@@ -9,6 +9,8 @@ using namespace std;
 
 int party = 0;
 int port = 32000;
+int _snn = 0;
+bool use_seconnds = false;
 string address = "127.0.0.1";
 int num_threads = 8;
 int32_t bitlength = 32;
@@ -2270,8 +2272,11 @@ int main(int argc, char **argv) {
   amap.arg("nt", num_threads, "Number of Threads");
   amap.arg("ell", bitlength, "Uniform Bitwidth");
   amap.arg("k", kScale, "scaling factor");
+  amap.arg("snn", _snn, "Use SecONNds");
 
   amap.parse(argc, argv);
+
+  use_seconnds = (_snn == 1);
 
   assert(party == SERVER || party == CLIENT);
   std::cerr << "Loading input from stdin..." << std::endl;
@@ -3096,6 +3101,99 @@ int main(int argc, char **argv) {
     Arr1DIdxRowM(tmp52, (int32_t)1000, i0) =
         (party == SERVER) ? __tmp_in_tmp52 : 0;
   }
+    
+  std::vector<std::vector<seal::Plaintext>> 
+  tmp1_pts , tmp3_pts , tmp5_pts , tmp7_pts , tmp9_pts , 
+  tmp11_pts, tmp13_pts, tmp15_pts, tmp17_pts, tmp19_pts, 
+  tmp21_pts, tmp23_pts, tmp25_pts, tmp27_pts, tmp29_pts, 
+  tmp31_pts, tmp33_pts, tmp35_pts, tmp37_pts, tmp39_pts, 
+  tmp41_pts, tmp43_pts, tmp45_pts, tmp47_pts, tmp49_pts, 
+  tmp51_pts;
+
+  if(use_seconnds){
+    ConnectAndSetUp();
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)2, (int32_t)2, tmp1, tmp1_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp3, tmp3_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp5, tmp5_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp7, tmp7_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
+                  (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp9, tmp9_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp11, tmp11_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp13, tmp13_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
+                  (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp15, tmp15_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                  (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp17, tmp17_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                  (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp19, tmp19_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
+                  (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp21, tmp21_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                  (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp23, tmp23_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                  (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp25, tmp25_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
+                  (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp27, tmp27_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                  (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp29, tmp29_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                  (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp31, tmp31_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                  (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp33, tmp33_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                  (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp35, tmp35_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                  (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp37, tmp37_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp39, tmp39_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp41, tmp41_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                  (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp43, tmp43_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp45, tmp45_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp47, tmp47_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                  (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp49, tmp49_pts);
+    Conv2DOfflineWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                  (int32_t)1, (int32_t)1000, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp51, tmp51_pts);
+    
+    GenerateTriples(28);
+  }
+
   std::cerr << "input loaded, starting computation..." << std::endl;
   StartComputation();
 
@@ -3104,9 +3202,18 @@ int main(int argc, char **argv) {
 #if USE_CHEETAH
   kIsSharedInput = false;
 #endif
-  Conv2DWrapper((int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
-                (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)2, (int32_t)2, tmp0, tmp1, tmp53);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)2, (int32_t)2, tmp0, tmp1, tmp53);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)2, (int32_t)2, tmp0, tmp1, tmp1_pts, tmp53);
+  }
+
 #if USE_CHEETAH
   kIsSharedInput = true;
 #endif
@@ -3137,9 +3244,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp63 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
-                (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp61, tmp3, tmp63);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp61, tmp3, tmp63);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp61, tmp3, tmp3_pts, tmp63);
+  }
+
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, tmp61);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)64, (int32_t)16, tmp3);
 
@@ -3159,9 +3275,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp71 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
-                (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp69, tmp5, tmp71);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp69, tmp5, tmp71);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp69, tmp5, tmp5_pts, tmp71);
+  }
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)16, (int32_t)64, tmp5);
 
   uint64_t *tmp73 =
@@ -3180,9 +3305,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp78 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
-                (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp69, tmp7, tmp78);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp69, tmp7, tmp78);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp69, tmp7, tmp7_pts, tmp78);
+  }
+
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, tmp69);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)16, (int32_t)64, tmp7);
 
@@ -3213,9 +3347,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp91 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
-                (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp87, tmp9, tmp91);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
+                  (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp87, tmp9, tmp91);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
+                  (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp87, tmp9, tmp9_pts, tmp91);
+  }
+              
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, tmp87);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)128, (int32_t)16, tmp9);
 
@@ -3235,9 +3378,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp99 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
-                (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp97, tmp11, tmp99);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp97, tmp11, tmp99);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp97, tmp11, tmp11_pts, tmp99);
+  }
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)16, (int32_t)64, tmp11);
 
   uint64_t *tmp101 =
@@ -3256,9 +3408,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp106 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
-                (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp97, tmp13, tmp106);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp97, tmp13, tmp106);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                  (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp97, tmp13, tmp13_pts, tmp106);
+  }         
+
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)16, (int32_t)64, tmp13);
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, tmp97);
 
@@ -3297,9 +3458,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp121 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
-                (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp119, tmp15, tmp121);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
+                  (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp119, tmp15, tmp121);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
+                  (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp119, tmp15, tmp15_pts, tmp121);
+  }        
+
   ClearMemSecret4((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, tmp119);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)128, (int32_t)32, tmp15);
 
@@ -3319,9 +3489,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp129 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
-                (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp127, tmp17, tmp129);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                  (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp127, tmp17, tmp129);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                  (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp127, tmp17, tmp17_pts, tmp129);
+  }       
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)32, (int32_t)128, tmp17);
 
   uint64_t *tmp131 =
@@ -3340,9 +3519,19 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp136 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
-                (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp127, tmp19, tmp136);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                  (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp127, tmp19, tmp136);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                  (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp127, tmp19, tmp19_pts, tmp136);
+    
+  } 
+
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)32, (int32_t)128, tmp19);
   ClearMemSecret4((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, tmp127);
 
@@ -3373,9 +3562,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp149 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
-                (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp145, tmp21, tmp149);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
+                  (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp145, tmp21, tmp149);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
+                  (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp145, tmp21, tmp21_pts, tmp149);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)256, (int32_t)32, tmp21);
   ClearMemSecret4((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, tmp145);
 
@@ -3395,9 +3593,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp157 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
-                (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp155, tmp23, tmp157);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                  (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp155, tmp23, tmp157);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                  (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp155, tmp23, tmp23_pts, tmp157);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)32, (int32_t)128, tmp23);
 
   uint64_t *tmp159 =
@@ -3416,9 +3623,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp164 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
-                (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp155, tmp25, tmp164);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                  (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp155, tmp25, tmp164);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                  (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp155, tmp25, tmp25_pts, tmp164);
+  } 
+
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)32, (int32_t)128, tmp25);
   ClearMemSecret4((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, tmp155);
 
@@ -3457,9 +3673,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp179 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
-                (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp177, tmp27, tmp179);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
+                  (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp177, tmp27, tmp179);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
+                  (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp177, tmp27, tmp27_pts, tmp179);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, tmp177);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)256, (int32_t)48, tmp27);
 
@@ -3479,9 +3704,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp187 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
-                (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp185, tmp29, tmp187);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                  (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp185, tmp29, tmp187);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                  (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp185, tmp29, tmp29_pts, tmp187);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)48, (int32_t)192, tmp29);
 
   uint64_t *tmp189 =
@@ -3500,9 +3734,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp194 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
-                (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp185, tmp31, tmp194);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                  (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp185, tmp31, tmp194);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                  (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp185, tmp31, tmp31_pts, tmp194);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, tmp185);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)48, (int32_t)192, tmp31);
 
@@ -3533,9 +3776,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp207 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
-                (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp203, tmp33, tmp207);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                  (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp203, tmp33, tmp207);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                  (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp203, tmp33, tmp33_pts, tmp207);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, tmp203);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)384, (int32_t)48, tmp33);
 
@@ -3555,9 +3807,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp215 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
-                (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp213, tmp35, tmp215);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                  (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp213, tmp35, tmp215);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                  (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp213, tmp35, tmp35_pts, tmp215);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)48, (int32_t)192, tmp35);
 
   uint64_t *tmp217 =
@@ -3576,9 +3837,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp222 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
-                (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp213, tmp37, tmp222);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                  (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp213, tmp37, tmp222);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                  (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp213, tmp37, tmp37_pts, tmp222);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, tmp213);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)48, (int32_t)192, tmp37);
 
@@ -3609,9 +3879,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp235 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
-                (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp231, tmp39, tmp235);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp231, tmp39, tmp235);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp231, tmp39, tmp39_pts, tmp235);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, tmp231);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)384, (int32_t)64, tmp39);
 
@@ -3631,9 +3910,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp243 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
-                (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp241, tmp41, tmp243);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp241, tmp41, tmp243);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp241, tmp41, tmp41_pts, tmp243);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)64, (int32_t)256, tmp41);
 
   uint64_t *tmp245 =
@@ -3652,9 +3940,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp250 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
-                (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp241, tmp43, tmp250);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                  (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp241, tmp43, tmp250);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                  (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp241, tmp43, tmp43_pts, tmp250);
+  } 
+
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)64, (int32_t)256, tmp43);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, tmp241);
 
@@ -3685,9 +3982,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp263 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
-                (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp259, tmp45, tmp263);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp259, tmp45, tmp263);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                  (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp259, tmp45, tmp45_pts, tmp263);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, tmp259);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)512, (int32_t)64, tmp45);
 
@@ -3707,9 +4013,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp271 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
-                (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp269, tmp47, tmp271);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp269, tmp47, tmp271);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                  (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp269, tmp47, tmp47_pts, tmp271);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)64, (int32_t)256, tmp47);
 
   uint64_t *tmp273 =
@@ -3728,9 +4043,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp278 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
-                (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
-                (int32_t)1, (int32_t)1, (int32_t)1, tmp269, tmp49, tmp278);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                  (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp269, tmp49, tmp278);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                  (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                  (int32_t)1, (int32_t)1, (int32_t)1, tmp269, tmp49, tmp49_pts, tmp278);
+  } 
+
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)64, (int32_t)256, tmp49);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, tmp269);
 
@@ -3761,9 +4085,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp291 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)1000);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
-                (int32_t)1, (int32_t)1000, (int32_t)0, (int32_t)0, (int32_t)0,
-                (int32_t)0, (int32_t)1, (int32_t)1, tmp287, tmp51, tmp291);
+
+  if(!use_seconnds){
+    Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                  (int32_t)1, (int32_t)1000, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp287, tmp51, tmp291);
+  } else {
+    Conv2DOnlineWrapper(
+                  (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                  (int32_t)1, (int32_t)1000, (int32_t)0, (int32_t)0, (int32_t)0,
+                  (int32_t)0, (int32_t)1, (int32_t)1, tmp287, tmp51, tmp51_pts, tmp291);
+  } 
+
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)512, (int32_t)1000, tmp51);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, tmp287);
 

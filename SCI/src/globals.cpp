@@ -24,6 +24,9 @@ SOFTWARE.
 sci::NetIO *io;
 sci::OTPack<sci::NetIO> *otpack;
 
+bool doneConnectAndSetUp = false;
+bool doneGenerateTriples = false;
+
 #ifdef SCI_OT
 LinearOT *mult;
 AuxProtocols *aux;
@@ -82,6 +85,7 @@ uint64_t comm_threads[MAX_THREADS];
 uint64_t num_rounds;
 
 #ifdef LOG_LAYERWISE
+uint64_t ConvOffTimeInMilliSec = 0;
 uint64_t ConvTimeInMilliSec = 0;
 uint64_t MatAddTimeInMilliSec = 0;
 uint64_t BatchNormInMilliSec = 0;

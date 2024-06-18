@@ -57,6 +57,9 @@ SOFTWARE.
 extern sci::NetIO *io;
 extern sci::OTPack<sci::NetIO> *otpack;
 
+extern bool doneConnectAndSetUp;
+extern bool doneGenerateTriples;
+
 #ifdef SCI_OT
 extern LinearOT *mult;
 extern AuxProtocols *aux;
@@ -115,6 +118,7 @@ extern uint64_t comm_threads[MAX_THREADS];
 extern uint64_t num_rounds;
 
 #ifdef LOG_LAYERWISE
+extern uint64_t ConvOffTimeInMilliSec;
 extern uint64_t ConvTimeInMilliSec;
 extern uint64_t MatAddTimeInMilliSec;
 extern uint64_t BatchNormInMilliSec;

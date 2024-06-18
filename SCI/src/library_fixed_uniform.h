@@ -70,7 +70,7 @@ void Conv2DOfflineWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
                    signedIntType zPadWRight, signedIntType strideH,
-                   signedIntType strideW, intType *inputArr, intType *filterArr,
+                   signedIntType strideW, intType *filterArr,
                    std::vector<std::vector<seal::Plaintext>> &encoded_filters);
 
 void Conv2DOnlineWrapper(signedIntType N, signedIntType H, signedIntType W,
@@ -120,6 +120,10 @@ void AvgPool(int32_t N, int32_t H, int32_t W, int32_t C, int32_t ksizeH,
 void ScaleDown(int32_t size, intType *inArr, int32_t sf);
 
 void ScaleUp(int32_t size, intType *arr, int32_t sf);
+
+void ConnectAndSetUp();
+
+void GenerateTriples(int log_num_triples = 0);
 
 void StartComputation();
 
