@@ -13,7 +13,7 @@ using namespace std;
 int party = 0;
 int port = 32000;
 string address = "127.0.0.1";
-int num_threads = 4;
+int num_threads = 8;
 int32_t bitlength = 41;
 int32_t kScale = 12;
 int32_t kDoExtractTruncate = 1;

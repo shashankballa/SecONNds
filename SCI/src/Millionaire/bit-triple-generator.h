@@ -24,10 +24,11 @@ SOFTWARE.
 #define TRIPLE_GENERATOR_H__
 #include "OT/emp-ot.h"
 
-#define PRINT_TIME 1
-#define PRINT_COMP 0
-#define PRINT_COMM 1
-#if PRINT_COMP || PRINT_COMM || PRINT_TIME
+#define USE_NEW 0
+#define TGEN_PRINT_TIME 0
+#define TGEN_PRINT_COMP 0
+#define TGEN_PRINT_COMM 0
+#if TGEN_PRINT_COMP || TGEN_PRINT_COMM || TGEN_PRINT_TIME
 #include <iomanip>
 #endif
 
@@ -73,8 +74,8 @@ public:
   }
 };
 
-#define BSIZE 134217728 // Default buffer size
-#define CSIZE 134217728 // Default chunk size
+#define BSIZE 67108864 // Default buffer size
+#define CSIZE 8192 // Default chunk size
 template <typename IO> class TripleGenerator {
 public:
   IO *io = nullptr;
@@ -86,78 +87,87 @@ public:
   uint8_t *Bai;         // Buffer for Ai
   uint8_t *Bbi;         // Buffer for Bi
   uint8_t *Bci;         // Buffer for Ci
-  int buffSize  = (BSIZE >> 3) << 3; // Number of triples in the buffer (always multiple of 8)
-  int buffBytes = buffSize >> 3;     // Number of bytes in the buffer (always = buffSize/8)
-  int chunkSize = (CSIZE >> 3) << 3; // Number of triples to be generated in one go (always multiple of 8)
-  bool buffEnable = false; // Flag to enable/disable buffer
+  int buffSize; // Number of triples in the buffer (always multiple of 8)
+  int buffBytes;     // Number of bytes in the buffer (always = buffSize/8)
+  int chunkSize; // Number of triples to be generated in one go (always multiple of 8)
+  bool buffEnable; // Flag to enable/disable buffer
   int buffPtr = 0;     // Pointer to the current triple in the buffer
+  int nRefill = 0;     // Number of times the buffer has been refilled
 
-  TripleGenerator(int party, IO *io, sci::OTPack<IO> *otpack
+  TripleGenerator(int Party, IO *io, sci::OTPack<IO> *otpack
+#if USE_NEW
                   , bool enable_buffer = false
+                  , int buffr_size = BSIZE
+                  , int chunk_size = CSIZE
+#endif
                   ) {
     this->io = io;
     this->otpack = otpack;
     this->prg = new sci::PRG128;
 
+#if USE_NEW
     if(enable_buffer) {
+      this->party = Party;
+      this->buffSize = std::max(1, buffr_size >> 3) << 3;
+      this->buffBytes = buffSize >> 3;
+      this->chunkSize = std::max(1, chunk_size >> 3) << 3;
+#if TGEN_PRINT_COMM || TGEN_PRINT_TIME
+std::string f_tag = "NEW | 3Gen";
+#endif
+#if TGEN_PRINT_COMM
+int _wcomm = 10;
+std::stringstream log_comm;
+uint64_t start_comm = io->counter;
+uint64_t total_comm = 0;
+log_comm << "P" << party << " COMM | ";
+log_comm << f_tag;
+log_comm << ": enable_buffer = " << std::boolalpha << enable_buffer;
+log_comm << ", buffSize = " << buffSize;
+log_comm << ", chunkSize = " << chunkSize;
+log_comm << std::endl;
+#endif
+#if TGEN_PRINT_TIME
+int _wtime = 10;
+std::stringstream log_time;
+auto start = std::chrono::system_clock::now();
+auto end   = std::chrono::system_clock::now();
+std::chrono::duration<double> total_time = end - start;
+log_time << "P" << party << " TIME | ";
+log_time << f_tag;
+log_time << ": enable_buffer = " << std::boolalpha << enable_buffer;
+log_time << ", buffSize = " << buffSize;
+log_time << ", chunkSize = " << chunkSize;
+log_time << std::endl;
+#endif
+      refillBuffer();
 
-#if PRINT_COMM || PRINT_TIME
-    std::string f_tag = "NEW | 3Gen";
+#if TGEN_PRINT_TIME
+end = std::chrono::system_clock::now();
+std::chrono::duration<double> refill_time = end - (start + total_time);
+total_time += refill_time;
+log_time << "P" << party << " TIME | ";
+log_time << f_tag;
+log_time << ": refill = " << std::setw(_wtime) << refill_time.count() * 1000;
+log_time << " ms";
+log_time << std::endl;
 #endif
-#if PRINT_COMM
-    int _wcomm = 10;
-    std::stringstream log_comm;
-    uint64_t start_comm = io->counter;
-    uint64_t total_comm = 0;
-    log_comm << "P" << party << " COMM | ";
-    log_comm << f_tag;
-    log_comm << ": enable_buffer = " << std::boolalpha << enable_buffer;
-    log_comm << ", buffSize = " << buffSize;
-    log_comm << ", chunkSize = " << chunkSize;
-    log_comm << std::endl;
+#if TGEN_PRINT_COMM
+uint64_t refill_comm = io->counter - (start_comm + total_comm);
+total_comm += refill_comm;
+log_comm << "P" << party << " COMM | ";
+log_comm << f_tag;
+log_comm << ": refill = " << std::setw(_wcomm) << refill_comm;
+log_comm << " bytes";
+log_comm << std::endl;
 #endif
-#if PRINT_TIME
-    int _wtime = 10;
-    std::stringstream log_time;
-    auto start = std::chrono::system_clock::now();
-    auto end   = std::chrono::system_clock::now();
-    std::chrono::duration<double> total_time = end - start;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag;
-    log_time << ": enable_buffer = " << std::boolalpha << enable_buffer;
-    log_time << ", buffSize = " << buffSize;
-    log_time << ", chunkSize = " << chunkSize;
-    log_time << std::endl;
+#if TGEN_PRINT_COMM
+std::cout << log_comm.str();
 #endif
-      refillBuffer(party, buffSize);
-
-#if PRINT_TIME
-    // get running time of leaf OTs in ms
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> refill_time = end - (start + total_time);
-    total_time += refill_time;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag;
-    log_time << ": refill = " << std::setw(_wtime) << refill_time.count() * 1000;
-    log_time << " ms";
-    log_time << std::endl;
-#endif
-#if PRINT_COMM
-    uint64_t refill_comm = io->counter - (start_comm + total_comm);
-    total_comm += refill_comm;
-    log_comm << "P" << party << " COMM | ";
-    log_comm << f_tag;
-    log_comm << ": refill = " << std::setw(_wcomm) << refill_comm;
-    log_comm << " bytes";
-    log_comm << std::endl;
-#endif
-#if PRINT_COMM
-    std::cout << log_comm.str();
-#endif
-#if PRINT_TIME
-    std::cout << log_time.str();
+#if TGEN_PRINT_TIME
+std::cout << log_time.str();
 #endif
     }
+#endif
   }
 
   ~TripleGenerator() { 
@@ -459,6 +469,8 @@ public:
              method, triples->packed, triples->offset);
   }
 
+
+#if USE_NEW
   /* Refill the buffer with new triples
     Resets the buffer size to num_triples
     Resets the chunk size to min(buffSize, CSIZE)
@@ -466,15 +478,13 @@ public:
     Resets the buffer pointer to 0
     Enables the buffer
   */
-  void refillBuffer(int party, int num_triples, 
+  void refillBuffer(
 #if USE_CHEETAH
     TripleGenMethod method = _2ROT
 #else
     TripleGenMethod method = _16KKOT_to_4OT
 #endif
     ) {
-    buffSize = num_triples;
-    buffBytes = ceil((double)buffSize / 8);
     Bai = new uint8_t[buffBytes];
     Bbi = new uint8_t[buffBytes];
     Bci = new uint8_t[buffBytes];
@@ -493,6 +503,7 @@ public:
     }
     buffPtr = 0;
     buffEnable  = true;
+    nRefill++;
   }
 
   /* get triples from the buffer
@@ -538,10 +549,10 @@ public:
         int startBytes = start >> 3;
         int end = std::min(n_trips, (i + 1) * chunkSize);
        
-#if PRINT_COMM || PRINT_TIME
+#if TGEN_PRINT_COMM || TGEN_PRINT_TIME
     std::string f_tag = "NEW | 3Get";
 #endif
-#if PRINT_COMM
+#if TGEN_PRINT_COMM
     int _wcomm = 10;
     std::stringstream log_comm;
     uint64_t start_comm = io->counter;
@@ -555,7 +566,7 @@ public:
     log_comm << ", chunkSize = " << chunkSize;
     log_comm << std::endl;
 #endif
-#if PRINT_TIME
+#if TGEN_PRINT_TIME
     int _wtime = 10;
     std::stringstream log_time;
     auto start_time = std::chrono::system_clock::now();
@@ -575,7 +586,7 @@ public:
                   triples->bi + r_bytes + startBytes,
                   triples->ci + r_bytes + startBytes,
                   end - start, method, true);
-#if PRINT_TIME
+#if TGEN_PRINT_TIME
     end_time = std::chrono::system_clock::now();
     std::chrono::duration<double> generate_time = end_time - (start_time + total_time);
     total_time += generate_time;
@@ -585,7 +596,7 @@ public:
     log_time << " ms";
     log_time << std::endl;
 #endif
-#if PRINT_COMM
+#if TGEN_PRINT_COMM
     uint64_t generate_comm = io->counter - (start_comm + total_comm);
     total_comm += generate_comm;
     log_comm << "P" << party << " COMM | ";
@@ -594,15 +605,16 @@ public:
     log_comm << " bytes";
     log_comm << std::endl;
 #endif
-#if PRINT_COMM
+#if TGEN_PRINT_COMM
     std::cout << log_comm.str();
 #endif
-#if PRINT_TIME
+#if TGEN_PRINT_TIME
     std::cout << log_time.str();
 #endif          
       }
       return;
     }
   }
+#endif
 };
 #endif // TRIPLE_GENERATOR_H__

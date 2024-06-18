@@ -28,8 +28,19 @@ SOFTWARE.
 
 #define LOG_LAYERWISE
 #define VERIFY_LAYERWISE
+
+#define LOG_LAYERWISE
+#define VERIFY_LAYERWISE
 #undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation
 // #undef LOG_LAYERWISE // undefine this to turn OFF the log
+
+#define TRIPGEN_PRINT_TIME 1
+#define TRIPGEN_PRINT_COMP 0
+#define TRIPGEN_PRINT_COMM 1
+
+#if TRIPGEN_PRINT_TIME || TRIPGEN_PRINT_COMP || TRIPGEN_PRINT_COMM
+#include <iomanip>
+#endif
 
 #ifdef SCI_HE
 uint64_t prime_mod = sci::default_prime_mod.at(41);
@@ -1400,11 +1411,122 @@ void ScaleUp(int32_t size, intType *arr, int32_t sf) {
   }
 }
 
+#if USE_NEW
+void funcTripleGenThread(int tid, int64_t buffSize, int64_t chunkSize) {
+  tripleGenArr[tid] = new TripleGenerator(((tid & 1) ? 3 - party : party), 
+                                          ioArr[tid], otpackArr[tid], 
+                                          true, buffSize, chunkSize);
+}
+
+void funcTripleGenWrapper(int64_t buffSize, int64_t chunkSize) {
+  assert(buffSize  % 8 == 0);
+  assert(chunkSize % 8 == 0);
+#if defined(MULTITHREADED_NONLIN) || defined(MULTITHREADED_TRUNC)
+  std::thread tripleGenThreads[num_threads];
+  for (int i = 0; i < num_threads; i++) {
+    tripleGenThreads[i] =
+        std::thread(funcTripleGenThread, i, buffSize, chunkSize);
+  }
+  for (int i = 0; i < num_threads; ++i) {
+    tripleGenThreads[i].join();
+  }
+#else
+  funcTripleGenThread(0, buffSize, chunkSize);
+#endif
+}
+#endif
+
+void TripleGen(int64_t buffSize, int64_t chunkSize){
+  printf("Generating triples ...\n");
+
+#if USE_NEW
+#if TRIPGEN_PRINT_COMM || TRIPGEN_PRINT_TIME
+std::string f_tag = "NEW | 3Gen";
+#endif
+#if TRIPGEN_PRINT_COMM
+int _wcomm = 10;
+std::stringstream log_comm;
+uint64_t start_comm = 0;
+#if defined(MULTITHREADED_NONLIN) || defined(MULTITHREADED_TRUNC)
+for (int i = 0; i < num_threads; i++) start_comm += ioArr[i]->counter;
+#else
+start_comm = ioArr[0]->counter;
+#endif
+uint64_t total_comm = 0;
+log_comm << "P" << party << " COMM | ";
+log_comm << f_tag;
+log_comm << ", buffSize = " << buffSize;
+log_comm << ", chunkSize = " << chunkSize;
+log_comm << std::endl;
+#endif
+#if TRIPGEN_PRINT_TIME
+int _wtime = 10;
+std::stringstream log_time;
+auto start = std::chrono::system_clock::now();
+auto end   = std::chrono::system_clock::now();
+std::chrono::duration<double> total_time = end - start;
+log_time << "P" << party << " TIME | ";
+log_time << f_tag;
+log_time << ", buffSize = " << buffSize;
+log_time << ", chunkSize = " << chunkSize;
+log_time << std::endl;
+#endif
+
+  funcTripleGenWrapper(buffSize, chunkSize);
+  tripleGen = tripleGenArr[0];
+
+#if TRIPGEN_PRINT_TIME
+end = std::chrono::system_clock::now();
+std::chrono::duration<double> refill_time = end - (start + total_time);
+total_time += refill_time;
+log_time << "P" << party << " TIME | ";
+log_time << f_tag;
+log_time << ": refill = " << std::setw(_wtime) << refill_time.count() * 1000;
+log_time << " ms";
+log_time << std::endl;
+#endif
+#if TRIPGEN_PRINT_COMM
+uint64_t refill_comm = 0;
+#if defined(MULTITHREADED_NONLIN) || defined(MULTITHREADED_TRUNC)
+for (int i = 0; i < num_threads; i++) refill_comm += ioArr[i]->counter;
+#else
+refill_comm = ioArr[0]->counter;
+#endif
+refill_comm = refill_comm - (start_comm + total_comm);
+total_comm += refill_comm;
+log_comm << "P" << party << " COMM | ";
+log_comm << f_tag;
+log_comm << ": refill = " << std::setw(_wcomm) << refill_comm;
+log_comm << " bytes";
+log_comm << std::endl;
+#endif
+#if TRIPGEN_PRINT_COMM
+std::cout << log_comm.str();
+#endif
+#if TRIPGEN_PRINT_TIME
+std::cout << log_time.str();
+#endif
+#else
+  for (int i = 0; i < num_threads; i++) {
+    if (i & 1) {
+      tripleGenArr[i] = new TripleGenerator(3 - party, ioArr[i], otpackArr[i]);
+    } else {
+      tripleGenArr[i] = new TripleGenerator(party, ioArr[i], otpackArr[i]);
+    }
+  }
+  tripleGen = tripleGenArr[0];
+#endif
+}
+
 void StartComputation() {
   assert(bitlength < 64 && bitlength > 0);
   assert(num_threads <= MAX_THREADS);
-
   std::string backend;
+
+  std::cout << "StartComputation() called with"
+            << " bitlength = " << bitlength
+            << ", num_threads = " << num_threads
+            << std::endl;
 
 #ifdef SCI_HE
   backend = "PrimeField";
@@ -1443,32 +1565,21 @@ void StartComputation() {
 #endif
     if (i & 1) {
       otpackArr[i] = new sci::OTPack<sci::NetIO>(ioArr[i], 3 - party);
-      tripleGenArr[i] = new TripleGenerator(3 - party, ioArr[i], otpackArr[i]
-#if USE_NEW
-      , true
-#else
-      , false
-#endif
-      );
     } else {
       otpackArr[i] = new sci::OTPack<sci::NetIO>(ioArr[i], party);
-      tripleGenArr[i] = new TripleGenerator(party, ioArr[i], otpackArr[i]
-#if USE_NEW
-      , true
-#else
-      , false
-#endif
-      );
     }
   }
 
   io = ioArr[0];
   otpack = otpackArr[0];
-  tripleGen = tripleGenArr[0];
   iknpOT = new sci::IKNP<sci::NetIO>(io);
   iknpOTRoleReversed = new sci::IKNP<sci::NetIO>(io);
   kkot = new sci::KKOT<sci::NetIO>(io);
   prg128Instance = new sci::PRG128();
+
+  int64_t log_total_trips = 28;
+  int64_t log_buffer_size = 1ULL << (log_total_trips - (int64_t) std::ceil(std::log2(num_threads)));
+  TripleGen(log_buffer_size, log_buffer_size);
 
 #ifdef SCI_OT
   std::cout 
@@ -1644,7 +1755,8 @@ void EndComputation() {
   std::cout << "EndCompuation() called ...\n";
   for (int i = 0; i < num_threads; i++) {
     auto temp = ioArr[i]->counter;
-    std::cout << "Thread i = " << i << ", total data sent till now = " << temp
+    std::cout << "Thread i = " << i << ", total data sent = " << temp
+              << ", 3Gen Buffer pointer = " << tripleGenArr[i]->buffPtr
               << std::endl;
     totalComm += (temp - comm_threads[i]);
   }
@@ -1842,6 +1954,9 @@ void EndComputation() {
               << ((NormaliseL2CommSent + NormaliseL2CommSentClient) /
                   (1.0 * (1ULL << 20)))
               << " MiB." << std::endl;
+
+    std::cout << "------------------------------------------------------\n";
+    // print the buffer pointer for all the triple Generators
 
 #ifdef WRITE_LOG
     std::string file_addr = "results-Porthos2PC-server.csv";

@@ -28,12 +28,10 @@ SOFTWARE.
 #include "utils/emp-tool.h"
 #include <cmath>
 
-#define USE_NEW 0
-
-#define PRINT_TIME 0
-#define PRINT_COMP 0
-#define PRINT_COMM 0
-#if PRINT_COMP || PRINT_COMM || PRINT_TIME
+#define MILL_PRINT_TIME 0
+#define MILL_PRINT_COMP 0
+#define MILL_PRINT_COMM 0
+#if MILL_PRINT_COMP || MILL_PRINT_COMM || MILL_PRINT_TIME
 #include <iomanip>
 #endif
 
@@ -59,8 +57,6 @@ public:
     this->triple_gen = new TripleGenerator<IO>(party, io, otpack
 #if USE_NEW
     , true
-#else
-    , false
 #endif
     );
     del_trip_gen = true;
@@ -651,7 +647,7 @@ public:
 
     configure(bitlength, 1);
 
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // double time_start = emp::time::get_wall_time();
     // get current time using std::chrono::system_clock
     auto start = std::chrono::system_clock::now();
@@ -668,7 +664,7 @@ public:
     log_time << ", radix_base = " << radix_base;
     log_time << std::endl;
 #endif
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     int _w1 = 2;
     std::stringstream log_ss;
     std::string f_tag1 = "cmpare";
@@ -682,7 +678,7 @@ public:
       << ", radix_base = " << std::setw(_w1) << radix_base
       << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     int _w2 = 10;
     std::stringstream log_comm;
     uint64_t comm_start = io->counter;
@@ -719,7 +715,7 @@ public:
 //     triple_gen->generate(party, &triples_cmp, _16KKOT_to_4OT);
 // #endif
 
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> trip_gen_time = end - (start + total_time);
@@ -728,7 +724,7 @@ public:
     log_time << f_tag << " | Triple GET : " << trip_gen_time.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     uint64_t comm_trips = io->counter - (comm_start + comm_total);
     comm_total += comm_trips;
     log_comm << "P" << party << " COMM";
@@ -762,7 +758,7 @@ public:
       }
     }
 
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     // get BOB's inp_bits_0 for debugging
     uint8_t *inp_bits_0_ali = new uint8_t [n_bits];
     uint8_t *inp_bits_1_bob = new uint8_t [n_bits];
@@ -809,7 +805,7 @@ public:
     AND_step_1_new(ei , fi, inp_bits_0, inp_bits_1,
         (triples_cmp.ai), (triples_cmp.bi) , n_bits);
  
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> and_step1 = end - (start + total_time);
@@ -832,7 +828,7 @@ public:
       io->send_data(fi, n_bytes);
     }      
     
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> comm_ands = end - (start + total_time);
@@ -853,7 +849,7 @@ public:
     AND_step_2_new(bit_res_cmp, e, f,
       (triples_cmp.ai), (triples_cmp.bi), (triples_cmp.ci), n_bits);
 
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> and_step2 = end - (start + total_time);
@@ -862,7 +858,7 @@ public:
     log_time << f_tag << " | AND step 2 : " << and_step2.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     // get BOB's inp_bits_0 for debugging
     if (party == sci::BOB){
       io->send_data(bit_res_cmp, bitlength * num_cmps);
@@ -910,14 +906,14 @@ public:
         << std::endl;
     }
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     uint64_t comm_bit_lt = io->counter - (comm_start + comm_total);
     comm_total += comm_bit_lt;
     log_comm << "P" << party << " COMM";
     log_comm << ": Bit_LT = " << std::setw(_w2) << comm_bit_lt;
     log_comm << std::endl;
 #endif
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> leaf_ot_time = end - (start + total_time);
@@ -929,7 +925,7 @@ public:
 
     traverse_and_compute_ANDs(num_cmps, bit_res_eql, bit_res_cmp);
 
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of traverse_and_compute_ANDs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> and_time = end - (start + total_time);
@@ -938,7 +934,7 @@ public:
     log_time << f_tag << " | t_n_c_ANDsT: " << and_time.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     uint64_t comm_tANDs = io->counter - (comm_start + comm_total);
     comm_total += comm_tANDs;
     log_comm << "P" << party << " COMM";
@@ -949,7 +945,7 @@ public:
     for (int i = 0; i < old_num_cmps; i++)
       res[i] = bit_res_cmp[i];
 
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     // get BOB's inputs and results for debugging
     if (party == sci::BOB){
       io->send_data(data, old_num_cmps * sizeof(uint64_t));
@@ -980,13 +976,13 @@ public:
         << std::endl;
     }
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     uint64_t comm_total_1 = comm_total;
     log_comm << "P" << party << " COMM";
     log_comm << ": CMPNEW = " << std::setw(_w2) << comm_total_1;
     log_comm << std::endl;
 #endif
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of the entire function in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> total_time_ = end - start;
@@ -994,15 +990,15 @@ public:
     log_time << f_tag << " | Total      : " << total_time_.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
-#if PRINT_COMM  
+#if MILL_PRINT_COMM  
     std::cout << log_comm.str();
 #endif
-#if PRINT_COMP 
+#if MILL_PRINT_COMP 
     std::cout << log_ss.str();
     delete[] inp_bits_0_ali;
     delete[] inp_bits_1_bob;
 #endif
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     std::cout << log_time.str();
 #endif
     // Cleanup
@@ -1022,7 +1018,7 @@ public:
   // TESTING NEW ALGO
   void traverse_and_compute_ANDs_new(int num_cmps, uint8_t *seg_res_eql, uint8_t *seg_res_cmp) {
 
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // double time_start = emp::time::get_wall_time();
     // get current time using std::chrono::system_clock
     auto start = std::chrono::system_clock::now();
@@ -1035,7 +1031,7 @@ public:
     log_time << ": num_cmps = " << num_cmps;
     log_time << std::endl;
 #endif
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     int _w1 = 2;
     std::stringstream log_ss;
     std::string f_tag1 = "tANDsT";
@@ -1048,7 +1044,7 @@ public:
       << ", num_triples_corr = " << std::setw(_w1) << num_triples_corr
       << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     int _w2 = 10;
     std::stringstream log_comm;
     uint64_t comm_start = io->counter;
@@ -1070,7 +1066,7 @@ public:
 //     triple_gen->generate(party, &trips_seg, _16KKOT_to_4OT);
 // #endif
     
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> trip_gen_time = end - (start + total_time);
@@ -1079,7 +1075,7 @@ public:
     log_time << f_tag << " | Triple GET : " << trip_gen_time.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     log_ss << f_tag1 << " | " << party_str 
       << " | SEG"
       << " | triples generate: trips_seg"
@@ -1089,7 +1085,7 @@ public:
       << ", packed = " << std::setw(_w1) << trips_seg.packed
       << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     uint64_t comm_trips = io->counter - (comm_start + comm_total);
     comm_total += comm_trips;
     log_comm << "P" << party << " COMM";
@@ -1100,7 +1096,7 @@ public:
     for(int i = 0; i < n_trips; i++){
       uint64_t n_cmps_8 = num_cmps >> 3;
 
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     log_ss << f_tag1 << " | " << party_str 
       << " | SEG"
       << " | main loop iteration:"
@@ -1118,14 +1114,14 @@ public:
                 seg_res_eql + ((i + 1) * num_cmps),
                 (trips_seg.ai) + i * n_cmps_8,
                 (trips_seg.bi) + i * n_cmps_8, num_cmps);
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     log_ss << f_tag1 << " | " << party_str 
       << " | SEG"
       << " | AND_step_1 completed"
       << ": i = " << std::setw(_w1) << i 
       << std::endl;
 #endif     
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     log_ss << f_tag1 << " | " << party_str 
       << " | starting comm"
       << ", i = " << std::setw(_w1) << i
@@ -1146,7 +1142,7 @@ public:
         io->send_data(fi_, n_cmps_8);
       }
 
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     log_ss << f_tag1 << " | " << party_str 
       << " | finished comm"
       << std::endl;
@@ -1170,7 +1166,7 @@ public:
     for (int k = 0; k < num_cmps; k++)
       seg_res_cmp[k] = seg_res_cmp[k + n_trips * num_cmps] & 1;
 
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     // get running time of the entire function in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> total_time_ = end - start;
@@ -1178,26 +1174,26 @@ public:
     log_time << f_tag << " | Total      : " << total_time_.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     uint64_t comm_efeifi = io->counter - (comm_start + comm_total);
     comm_total += comm_efeifi;
     log_comm << "P" << party << " COMM";
     log_comm << ": efeifi = " << std::setw(_w2) << comm_efeifi;
     log_comm << std::endl;
 #endif
-#if PRINT_COMM
+#if MILL_PRINT_COMM
     log_comm << "P" << party << " COMM";
     log_comm << ": ANDNEW = " << std::setw(_w2) << comm_total;
     log_comm << std::endl;
     std::cout << log_comm.str();
 #endif
-#if PRINT_COMP
+#if MILL_PRINT_COMP
     log_ss << f_tag1 << " | " << party_str 
       << " | FINISHED!"
       << std::endl;
     std::cout << log_ss.str();
 #endif
-#if PRINT_TIME
+#if MILL_PRINT_TIME
     std::cout << log_time.str();
 #endif
   }
