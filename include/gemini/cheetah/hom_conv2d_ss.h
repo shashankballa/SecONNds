@@ -4,10 +4,10 @@
 #include <seal/secretkey.h>
 #include <seal/serializable.h>
 
+#include "gemini/cheetah/tensor.h"
 #include <optional>
 #include <vector>
 
-#include "gemini/cheetah/tensor.h"
 #include "gemini/cheetah/tensor_shape.h"
 
 // Forward
@@ -23,6 +23,8 @@ class Evaluator;
 namespace gemini {
 
 class TensorEncoder;
+
+// template <typename T> class Tensor;
 
 class HomConv2DSS {
  public:

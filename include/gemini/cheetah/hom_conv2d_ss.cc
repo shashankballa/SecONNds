@@ -1,19 +1,13 @@
 //  Authors: Wen-jie Lu on 2021/9/11.
 #include "gemini/cheetah/hom_conv2d_ss.h"
 
-#include <cuda_runtime.h>
-#include <cuda.h>
-// #include <troy/troy_cuda.cuh>
-#include <seal/seal.h>
-#include <seal/secretkey.h>
 #include <seal/util/polyarithsmallmod.h>
 #include <seal/util/rlwe.h>
-
 #include <functional>
-
+#include "gemini/cheetah/hom_conv2d_core.cuh"
 #include "gemini/cheetah/tensor_encoder.h"
-#include "gemini/core/logging.h"
-#include "gemini/core/util/ThreadPool.h"
+
+
 
 #define BFV_TRUNCATE_LARGE 1
 #define BFV_TRUNCATE_SMALL 1
@@ -31,7 +25,7 @@ namespace gemini {
     return *o;
   }
 
-  static Code LaunchWorks(
+  static Code LaunchWorksHE(
       ThreadPool &tpool, size_t num_works,
       std::function<Code(long wid, size_t start, size_t end)> program) {
     if (num_works == 0) return Code::OK;
@@ -521,7 +515,7 @@ namespace gemini {
       return Code::OK;
     };
 
-    return LaunchWorks(tpool, polys.size(), encrypt_program);
+    return LaunchWorksHE(tpool, polys.size(), encrypt_program);
   }
 
   Code HomConv2DSS::encodeImage(const Tensor<uint64_t> &img, const Meta &meta,
@@ -560,7 +554,7 @@ namespace gemini {
     };
 
     ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
-    return LaunchWorks(tpool, M, encode_program);
+    return LaunchWorksHE(tpool, M, encode_program);
   }
 
   Code HomConv2DSS::filtersToNtt(
@@ -590,7 +584,7 @@ namespace gemini {
     };
 
     ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
-    return LaunchWorks(tpool, M, to_ntt_program);
+    return LaunchWorksHE(tpool, M, to_ntt_program);
   }
 
   size_t HomConv2DSS::conv2DOneFilter(const std::vector<seal::Ciphertext> &image,
@@ -707,7 +701,7 @@ namespace gemini {
 
     if (meta.is_shared_input) {
       image.resize(img_share0.size(), seal::Ciphertext(tl_pool));
-      CHECK_ERR(LaunchWorks(tpool, image.size(), add_program), "add");
+      CHECK_ERR(LaunchWorksHE(tpool, image.size(), add_program), "add");
     } else {
       image = img_share0;
     }
@@ -724,7 +718,7 @@ namespace gemini {
       return Code::OK;
     };
     if(in_ntt) {
-      CHECK_ERR(LaunchWorks(tpool, image.size(), to_ntt_program), "to_ntt");
+      CHECK_ERR(LaunchWorksHE(tpool, image.size(), to_ntt_program), "to_ntt");
     }
 
     const size_t N = poly_degree();
@@ -746,7 +740,7 @@ namespace gemini {
       return Code::OK;
     };
 
-    CHECK_ERR(LaunchWorks(tpool, meta.n_filters, conv_program), "conv2D");
+    CHECK_ERR(LaunchWorksHE(tpool, meta.n_filters, conv_program), "conv2D");
 
     auto from_ntt_program = [&](long wid, size_t start, size_t end) {
       for (size_t i = start; i < end; ++i) {
@@ -761,7 +755,7 @@ namespace gemini {
     };
 
     if(out_ntt) {
-      CHECK_ERR(LaunchWorks(tpool, out_share0.size(), from_ntt_program), "from_ntt");
+      CHECK_ERR(LaunchWorksHE(tpool, out_share0.size(), from_ntt_program), "from_ntt");
     }
 
     out_share1.Reshape(out_shape);
@@ -775,7 +769,7 @@ namespace gemini {
         return Code::OK;
       };
 
-      CHECK_ERR(LaunchWorks(tpool, out_share0.size(), truncate_program),
+      CHECK_ERR(LaunchWorksHE(tpool, out_share0.size(), truncate_program),
                 "conv2D");
     }
 
@@ -864,7 +858,7 @@ namespace gemini {
     };
 
     ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
-    return LaunchWorks(tpool, meta.n_filters, mask_program);
+    return LaunchWorksHE(tpool, meta.n_filters, mask_program);
   }
 
   // In our Cheetah paper, we export the needed coefficients using the Extract
@@ -1010,7 +1004,7 @@ namespace gemini {
     };
 
     ThreadPool tpool(nthreads);
-    return LaunchWorks(tpool, meta.n_filters, decrypt_program);
+    return LaunchWorksHE(tpool, meta.n_filters, decrypt_program);
   }
 
   Code HomConv2DSS::postProcessInplace(seal::Plaintext &pt,

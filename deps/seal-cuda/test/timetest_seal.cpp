@@ -430,6 +430,99 @@ namespace troytest {
             printTimer(tim.gather(repeatCount));
         }
 
+        /*
+            Test the performance of transform_to_ntt and transform_to_ntt_inplace
+            args:
+                repeatCount: the number of times to repeat the test
+        */
+        void testToNtt(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            Ciphertext c2;
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("ToNtt-assign");
+            auto t2 = tim.registerTimer("ToNtt-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                // evaluator->square(c1, c2);
+                evaluator->transform_to_ntt(c1, c2);
+                tim.tock(t1);
+                c3 = c1;
+                tim.tick(t2);
+                evaluator->transform_to_ntt_inplace(c3);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+        }
+
+        /*
+            Test the performance of transform_from_ntt and transform_from_ntt_inplace
+            args:
+                repeatCount: the number of times to repeat the test
+        */
+        void testFromNtt(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            evaluator->transform_to_ntt_inplace(c1);
+            Ciphertext c2;
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("FromNTT-assign");
+            auto t2 = tim.registerTimer("FromNTT-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                // evaluator->square(c1, c2);
+                evaluator->transform_from_ntt(c1, c2);
+                tim.tock(t1);
+                c3 = c1;
+                tim.tick(t2);
+                evaluator->transform_from_ntt_inplace(c3);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+        }
+
+        void testMultiplyPlainNtt(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            auto p1 = randomPlaintext();
+            Plaintext p2;
+            Ciphertext c3, c4, c5;
+            auto t0 = tim.registerTimer("ToNttPlain-assign");
+            auto t1 = tim.registerTimer("ToNtt-assign");
+            auto t2 = tim.registerTimer("MultiplyPlainNTT-assign");
+            auto t3 = tim.registerTimer("FromNtt-assign");
+            auto t4 = tim.registerTimer("ToNttPlain-inplace");
+            auto t5 = tim.registerTimer("ToNtt-inplace");
+            auto t6 = tim.registerTimer("MultiplyPlainNTT-inplace");
+            auto t7 = tim.registerTimer("FromNtt-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t0);
+                evaluator->transform_to_ntt(p1, c1.parms_id(), p2);
+                tim.tock(t0);
+                tim.tick(t1);
+                evaluator->transform_to_ntt(c1, c3);
+                tim.tock(t1);
+                tim.tick(t2);
+                evaluator->multiply_plain(c3, p2, c4);
+                tim.tock(t2);
+                tim.tick(t3);
+                evaluator->transform_from_ntt(c4, c5);
+                tim.tock(t3);
+                c5 = c1;
+                p2 = p1;
+                tim.tick(t4);
+                evaluator->transform_to_ntt_inplace(p2, c1.parms_id());
+                tim.tock(t4);
+                tim.tick(t5);
+                evaluator->transform_to_ntt_inplace(c5);
+                tim.tock(t5);
+                tim.tick(t6);
+                evaluator->multiply_plain_inplace(c5, p2);
+                tim.tock(t6);
+                tim.tick(t7);
+                evaluator->transform_from_ntt_inplace(c5);
+                tim.tock(t7);
+            }
+            printTimer(tim.gather(repeatCount));
+        }
+
         void testAll() {
             this->testEncode();
             this->testEncrypt();
@@ -439,6 +532,9 @@ namespace troytest {
             this->testMultiplyPlain();
             this->testSquare();
             this->testRotateVector();
+            this->testToNtt();
+            this->testFromNtt();
+            this->testMultiplyPlainNtt();
         }
 
     };
@@ -446,15 +542,15 @@ namespace troytest {
 }
 
 int main() {
-    std::cout << "----- CKKS -----\n";
+    std::cout << "----- TimeTest SEAL CKKS -----\n";
     troytest::TimeTestCKKS test(8192, {60, 40, 60});
     test.testAll();
 
-    std::cout << "----- BFV -----\n";
+    std::cout << "----- TimeTest SEAL BFV -----\n";
     troytest::TimeTestBFVBGV test2(false, 8192, 59, {60, 60, 60});
     test2.testAll();
 
-    std::cout << "----- BGV -----\n";
+    std::cout << "----- TimeTest SEAL BGV -----\n";
     troytest::TimeTestBFVBGV test3(true, 8192, 20, {40, 40, 40});
     test3.testAll();
     return 0;

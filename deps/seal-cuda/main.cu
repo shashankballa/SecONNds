@@ -241,7 +241,6 @@ namespace troytest {
             printTimer(tim.gather(repeatCount));
         }
 
-
     };
 
     class TimeTestCKKS: public TimeTest {
@@ -663,6 +662,100 @@ namespace troytest {
             printTimer(tim.gather(repeatCount));
         }
 
+        /*
+            Test the performance of transformToNtt and transformToNttInplace
+            args:
+                repeatCount: the number of times to repeat the test
+        */
+        void testToNtt(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            Ciphertext c2;
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("ToNtt-assign");
+            auto t2 = tim.registerTimer("ToNtt-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                // evaluator->square(c1, c2);
+                evaluator->transformToNtt(c1, c2);
+                tim.tock(t1);
+                c3 = c1;
+                tim.tick(t2);
+                evaluator->transformToNttInplace(c3);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+        }
+
+        /*
+            Test the performance of transformFromNtt and transformFromNttInplace
+            args:
+                repeatCount: the number of times to repeat the test
+        */
+        void testFromNtt(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            evaluator->transformToNttInplace(c1);
+            Ciphertext c2;
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("FromNTT-assign");
+            auto t2 = tim.registerTimer("FromNTT-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                // evaluator->square(c1, c2);
+                evaluator->transformFromNtt(c1, c2);
+                tim.tock(t1);
+                c3 = c1;
+                tim.tick(t2);
+                evaluator->transformFromNttInplace(c3);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+        }
+
+        
+        void testMultiplyPlainNtt(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            auto p1 = randomPlaintext();
+            Plaintext p2;
+            Ciphertext c3, c4, c5;
+            auto t0 = tim.registerTimer("ToNttPlain-assign");
+            auto t1 = tim.registerTimer("ToNtt-assign");
+            auto t2 = tim.registerTimer("MultiplyPlainNTT-assign");
+            auto t3 = tim.registerTimer("FromNtt-assign");
+            auto t4 = tim.registerTimer("ToNttPlain-inplace");
+            auto t5 = tim.registerTimer("ToNtt-inplace");
+            auto t6 = tim.registerTimer("MultiplyPlainNTT-inplace");
+            auto t7 = tim.registerTimer("FromNtt-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t0);
+                evaluator->transformToNtt(p1, c1.parmsID(), p2);
+                tim.tock(t0);
+                tim.tick(t1);
+                evaluator->transformToNtt(c1, c3);
+                tim.tock(t1);
+                tim.tick(t2);
+                evaluator->multiplyPlain(c3, p2, c4);
+                tim.tock(t2);
+                tim.tick(t3);
+                evaluator->transformFromNtt(c4, c5);
+                tim.tock(t3);
+                c5 = c1;
+                p2 = p1;
+                tim.tick(t4);
+                evaluator->transformToNttInplace(p2, c1.parmsID());
+                tim.tock(t4);
+                tim.tick(t5);
+                evaluator->transformToNttInplace(c5);
+                tim.tock(t5);
+                tim.tick(t6);
+                evaluator->multiplyPlainInplace(c5, p2);
+                tim.tock(t6);
+                tim.tick(t7);
+                evaluator->transformFromNttInplace(c5);
+                tim.tock(t7);
+            }
+            printTimer(tim.gather(repeatCount));
+        }
+
         void testAll() {
             this->testAdd();
             this->testAddPlain();
@@ -670,6 +763,9 @@ namespace troytest {
             this->testMultiplyPlain();
             this->testSquare();
             this->testRotateVector();
+            this->testToNtt();
+            this->testFromNtt();
+            this->testMultiplyPlainNtt();
         }
 
     };

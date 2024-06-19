@@ -237,7 +237,7 @@ namespace troy {
 
             // Multiply operand1 and operand2.
             uint64_t carry = 0;
-            size_t operand1_index_max = min(operand1_uint64_count, result_uint64_count);
+            size_t operand1_index_max = (operand1_uint64_count < result_uint64_count ? operand1_uint64_count : result_uint64_count);
             for (size_t operand1_index = 0; operand1_index < operand1_index_max; operand1_index++)
             {
                 uint64_t temp_result[2];
