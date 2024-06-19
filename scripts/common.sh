@@ -41,6 +41,7 @@ function contains {
 WORK_DIR=`pwd`
 BUILD_DIR=$WORK_DIR/build
 DEPS_DIR=$WORK_DIR/deps
+LOGS_DIR=$WORK_DIR/logs
 mkdir -p $BUILD_DIR
 mkdir -p $DEPS_DIR
 

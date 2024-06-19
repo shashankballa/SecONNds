@@ -1765,9 +1765,7 @@ void StartComputation() {
     iknpOT->setup_recv();
     iknpOTRoleReversed->setup_send();
   }
-
-  std::cout << "After one-time setup, communication" << std::endl;
-  start_time = std::chrono::high_resolution_clock::now();
+  
   for (int i = 0; i < num_threads; i++) {
     auto temp = ioArr[i]->counter;
     comm_threads[i] = temp;
@@ -1782,6 +1780,7 @@ void StartComputation() {
   std::cout << "backend: " << backend << std::endl;
   std::cout << "-----------Syncronized - now starting execution-----------"
             << std::endl;
+  start_time = std::chrono::high_resolution_clock::now();
 }
 
 void EndComputation() {

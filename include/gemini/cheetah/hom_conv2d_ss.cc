@@ -564,28 +564,21 @@ namespace gemini {
   }
 
   Code HomConv2DSS::filtersToNtt(
-      const std::vector<std::vector<seal::Plaintext>> &encoded_filters,
-      std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt, 
+      std::vector<std::vector<seal::Plaintext>> &encoded_filters,
       size_t nthreads) const {
     
     ENSURE_OR_RETURN(context_ && evaluator_, Code::ERR_CONFIG);
 
     const size_t M = encoded_filters.size();
     const size_t N = encoded_filters.at(0).size();
-
-    encoded_filters_ntt.resize(M);
-    for (size_t i = 0; i < M; ++i) {
-      encoded_filters_ntt[i].resize(N);
-    }
     
     auto to_ntt_program = [&](long wid, size_t start, size_t end) {
       for (size_t i = start; i < end; ++i) {
         for (size_t j = 0; j < N; ++j) {
           try {
-            evaluator_->transform_to_ntt(
-              encoded_filters.at(i).at(j), 
-              context_->first_context_data()->parms_id(),
-              encoded_filters_ntt.at(i).at(j)
+            evaluator_->transform_to_ntt_inplace(
+              encoded_filters[i][j], 
+              context_->first_context_data()->parms_id()
             );
           } catch (std::logic_error e) {
             LOG(WARNING) << "SEAL ERROR: " << e.what();
@@ -604,7 +597,8 @@ namespace gemini {
                                       const std::vector<seal::Plaintext> &filter,
                                       const Meta &meta,
                                       seal::Ciphertext *out_buff,
-                                      size_t out_buff_sze) const {
+                                      size_t out_buff_sze,
+                                      bool fill_ntt) const {
     if (!evaluator_) {
       LOG(WARNING) << "conv2DOneFilter: evaluator is absent";
       return size_t(-1);
@@ -636,8 +630,14 @@ namespace gemini {
 
     for (size_t c = 0; c < accum_cnt; ++c) {
       // filter on the margin might be all-zero
-      if (filter[c].is_zero()) {
+      seal::Plaintext _filter = filter[c]; 
+      if (_filter.is_zero()) {
         continue;
+      }
+
+      if (fill_ntt) {
+        evaluator_->transform_to_ntt_inplace(_filter, 
+                                  context_->first_context_data()->parms_id());
       }
 
       for (size_t i = 0; i < out_size; ++i) {
@@ -647,10 +647,10 @@ namespace gemini {
         if (out_buff[o].size() > 0) {
           // TODO Use FMA. out_buf[o] += tensor[ii] * filter[c];
           auto cpy_ct{image.at(ii)};
-          evaluator_->multiply_plain_inplace(cpy_ct, filter.at(c));
+          evaluator_->multiply_plain_inplace(cpy_ct, _filter);
           evaluator_->add_inplace(out_buff[o], cpy_ct);
         } else {
-          evaluator_->multiply_plain(image.at(ii), filter.at(c), out_buff[o]);
+          evaluator_->multiply_plain(image.at(ii), _filter, out_buff[o]);
         }
       }
     }
@@ -663,7 +663,7 @@ namespace gemini {
       const std::vector<seal::Plaintext> &img_share1,
       const std::vector<std::vector<seal::Plaintext>> &filters, const Meta &meta,
       std::vector<seal::Ciphertext> &out_share0, Tensor<uint64_t> &out_share1,
-      size_t nthreads) const {
+      size_t nthreads, bool in_ntt, bool fil_ntt, bool out_ntt) const {
     if (filters.size() != meta.n_filters) {
       LOG(WARNING) << "conv2DSS: #filters " << filters.size()
                   << " != " << meta.n_filters << "\n";
@@ -690,100 +690,6 @@ namespace gemini {
 
     auto tl_pool =
         seal::MemoryManager::GetPool(seal::mm_prof_opt::mm_force_thread_local);
-
-    std::vector<seal::Ciphertext> image;
-    auto add_program = [&](long wid, size_t start, size_t end) {
-      for (size_t i = start; i < end; ++i) {
-        try {
-          evaluator_->add_plain(img_share0[i], img_share1[i], image[i]);
-        } catch (std::logic_error e) {
-          LOG(WARNING) << "SEAL ERROR: " << e.what();
-          return Code::ERR_INTERNAL;
-        }
-      }
-      return Code::OK;
-    };
-
-    ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
-    if (meta.is_shared_input) {
-      image.resize(img_share0.size(), seal::Ciphertext(tl_pool));
-      CHECK_ERR(LaunchWorks(tpool, image.size(), add_program), "add");
-    }
-
-    const size_t N = poly_degree();
-    ConvCoeffIndexCalculator indexer(N, meta.ishape, meta.fshape, meta.padding,
-                                    meta.stride);
-    const size_t n_one_channel = indexer.slice_size(1) * indexer.slice_size(2);
-    const size_t n_out_ct = meta.n_filters * n_one_channel;
-    out_share0.resize(n_out_ct);
-    auto conv_program = [&](long wid, size_t start, size_t end) {
-      for (size_t m = start; m < end; ++m) {
-        seal::Ciphertext *ct_start = &out_share0.at(m * n_one_channel);
-        size_t used = conv2DOneFilter(meta.is_shared_input ? image : img_share0,
-                                      filters[m], meta, ct_start, n_one_channel);
-        if (used == (size_t)-1 || used != n_one_channel) {
-          return Code::ERR_INTERNAL;
-        }
-      };
-
-      return Code::OK;
-    };
-
-    CHECK_ERR(LaunchWorks(tpool, meta.n_filters, conv_program), "conv2D");
-
-    out_share1.Reshape(out_shape);
-    addRandomMask(out_share0, out_share1, meta, nthreads);
-
-    if (scheme() == seal::scheme_type::bfv) {
-      auto truncate_program = [&](long wid, size_t start, size_t end) {
-        for (size_t cid = start; cid < end; ++cid) {
-          truncate_for_decryption(out_share0[cid], *evaluator_, *context_);
-        }
-        return Code::OK;
-      };
-
-      CHECK_ERR(LaunchWorks(tpool, out_share0.size(), truncate_program),
-                "conv2D");
-    }
-
-    // Post-processing for compressing out_ct volume.
-    removeUnusedCoeffs(out_share0, meta);
-    return Code::OK;
-  }
-
-  Code HomConv2DSS::conv2DSSNTT(
-      const std::vector<seal::Ciphertext> &img_share0,
-      const std::vector<seal::Plaintext> &img_share1,
-      const std::vector<std::vector<seal::Plaintext>> &filters_ntt, const Meta &meta,
-      std::vector<seal::Ciphertext> &out_share0, Tensor<uint64_t> &out_share1,
-      size_t nthreads) const {
-    if (filters_ntt.size() != meta.n_filters) {
-      LOG(WARNING) << "conv2DSSNTT: #filters " << filters_ntt.size()
-                  << " != " << meta.n_filters << "\n";
-      return Code::ERR_DIM_MISMATCH;
-    }
-
-    if (meta.is_shared_input && img_share0.size() != img_share1.size()) {
-      LOG(WARNING) << "conv2DSSNTT: #shares " << img_share0.size()
-                  << " != " << img_share1.size() << "\n";
-      return Code::ERR_DIM_MISMATCH;
-    }
-
-    ENSURE_OR_RETURN(filters_ntt.size() == meta.n_filters, Code::ERR_DIM_MISMATCH);
-    if (meta.is_shared_input) {
-      ENSURE_OR_RETURN(img_share0.size() == img_share1.size(),
-                      Code::ERR_DIM_MISMATCH);
-    }
-
-    TensorShape out_shape = GetConv2DOutShape(meta);
-    if (out_shape.num_elements() == 0) {
-      LOG(WARNING) << "conv2DSSNTT: empty out_shape";
-      return Code::ERR_CONFIG;
-    }
-
-    auto tl_pool =
-        seal::MemoryManager::GetPool(seal::mm_prof_opt::mm_force_thread_local);
-
     ThreadPool tpool(std::min(std::max(1UL, nthreads), kMaxThreads));
 
     std::vector<seal::Ciphertext> image;
@@ -798,6 +704,7 @@ namespace gemini {
       }
       return Code::OK;
     };
+
     if (meta.is_shared_input) {
       image.resize(img_share0.size(), seal::Ciphertext(tl_pool));
       CHECK_ERR(LaunchWorks(tpool, image.size(), add_program), "add");
@@ -816,7 +723,9 @@ namespace gemini {
       }
       return Code::OK;
     };
-    CHECK_ERR(LaunchWorks(tpool, image.size(), to_ntt_program), "to_ntt");
+    if(in_ntt) {
+      CHECK_ERR(LaunchWorks(tpool, image.size(), to_ntt_program), "to_ntt");
+    }
 
     const size_t N = poly_degree();
     ConvCoeffIndexCalculator indexer(N, meta.ishape, meta.fshape, meta.padding,
@@ -827,7 +736,8 @@ namespace gemini {
     auto conv_program = [&](long wid, size_t start, size_t end) {
       for (size_t m = start; m < end; ++m) {
         seal::Ciphertext *ct_start = &out_share0.at(m * n_one_channel);
-        size_t used = conv2DOneFilter(image, filters_ntt[m], meta, ct_start, n_one_channel);
+        size_t used = conv2DOneFilter(image, filters[m], meta, ct_start, 
+                                      n_one_channel, fil_ntt);
         if (used == (size_t)-1 || used != n_one_channel) {
           return Code::ERR_INTERNAL;
         }
@@ -849,8 +759,11 @@ namespace gemini {
       }
       return Code::OK;
     };
-    CHECK_ERR(LaunchWorks(tpool, out_share0.size(), from_ntt_program), "from_ntt");
-    
+
+    if(out_ntt) {
+      CHECK_ERR(LaunchWorks(tpool, out_share0.size(), from_ntt_program), "from_ntt");
+    }
+
     out_share1.Reshape(out_shape);
     addRandomMask(out_share0, out_share1, meta, nthreads);
 

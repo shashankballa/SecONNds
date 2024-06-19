@@ -26,17 +26,20 @@ class CheetahLinear {
   // HomConv
   void conv2d(const Tensor<uint64_t> &in_tensor,
               const std::vector<Tensor<uint64_t>> &filters,
-              const ConvMeta &meta, Tensor<uint64_t> &out_tensor) const;
+              const ConvMeta &meta, Tensor<uint64_t> &out_tensor, 
+              bool conv_ntt = false) const;
 
   // HomConv
   void conv2d_offline(const std::vector<Tensor<uint64_t>> &filters,
-                      const ConvMeta &meta, 
-                      std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt) const;
+              const ConvMeta &meta, 
+              std::vector<std::vector<seal::Plaintext>> &encoded_filters,
+              bool conv_ntt = true) const;
 
   // HomConv
   void conv2d_online(const Tensor<uint64_t> &in_tensor,
-              const std::vector<std::vector<seal::Plaintext>> &encoded_filters_ntt,
-              const ConvMeta &meta, Tensor<uint64_t> &out_tensor) const;
+              const std::vector<std::vector<seal::Plaintext>> &encoded_filters,
+              const ConvMeta &meta, Tensor<uint64_t> &out_tensor,
+              bool conv_ntt = true) const;
 
   // HomFC
   void fc(const Tensor<uint64_t> &input_matrix,
