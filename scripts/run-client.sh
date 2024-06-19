@@ -36,6 +36,6 @@ fi
 mkdir -p data
 mkdir -p logs
 
-echo -e "Running ${GREEN}build/bin/$2-cheetah${NC}, which might take a while...."
+echo -e "CLIENT: Running ${GREEN}$2${NC} with ${GREEN}$1${NC}..."
 cat pretrained/$2_input_scale12_pred*.inp | build/bin/$2-cheetah r=2 k=$FXP_SCALE ell=$SS_BITLEN nt=$NUM_THREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN > $LOGFILE
-echo -e "Computation done, check out the log file ${GREEN}$LOGFILE${NC}"
+echo -e "Done! Log saved to ${GREEN}$LOGFILE${NC}"
