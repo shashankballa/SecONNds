@@ -473,6 +473,10 @@ namespace troy
         context_data_map_.emplace(make_pair(parms.parmsID(), make_shared<const ContextData>(validate(parms))));
         key_parms_id_ = parms.parmsID();
 
+#if USE_CHEETAH
+        // Set first_parms_id_ to key_parms_id_.
+        first_parms_id_ = key_parms_id_;
+#else
         // Then create first_parms_id_ if the parameters are valid and there is
         // more than one modulus in coeff_modulus. This is equivalent to expanding
         // the chain by one step. Otherwise, we set first_parms_id_ to equal
@@ -486,7 +490,7 @@ namespace troy
             auto next_parms_id = createNextContextData(key_parms_id_);
             first_parms_id_ = (next_parms_id == parmsIDZero) ? key_parms_id_ : next_parms_id;
         }
-
+#endif
         // Set last_parms_id_ to point to first_parms_id_
         last_parms_id_ = first_parms_id_;
 

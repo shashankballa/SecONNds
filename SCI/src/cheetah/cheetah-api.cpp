@@ -2,6 +2,7 @@
 #include "cheetah/cheetah-api.h"
 
 #include <seal/seal.h>
+// #include <troy/troy_cuda.cuh>
 
 #include "gemini/cheetah/shape_inference.h"
 #include "gemini/cheetah/tensor_encoder.h"
@@ -77,6 +78,10 @@ CheetahLinear::CheetahLinear(int party, sci::NetIO *io, uint64_t base_mod,
     throw std::logic_error("CheetahLinear: base_mod out-of-bound [2, 2^45)");
   }
 
+#if CONV_USE_CUDA
+  conv2d_impl_.initCudaKernel();
+#endif
+
   const bool is_mod_2k = IsTwoPower(base_mod_);
 
   if (is_mod_2k) {
@@ -89,20 +94,23 @@ CheetahLinear::CheetahLinear(int party, sci::NetIO *io, uint64_t base_mod,
     // [0, odd) -> [-floor(odd/2), floor(odd/2)]
     positive_upper_ = (base_mod_ + 1) >> 1;
   }
+  using namespace seal;
 
   const uint64_t plain_mod = base_mod;  // [0, 2^k)
-
-  using namespace seal;
-  EncryptionParameters seal_parms(scheme_type::bfv);
-  seal_parms.set_n_special_primes(0);
-  // We are not exporting the pk/ct with more than 109-bit.
+  const int n_spl_prime = 0;
   std::vector<int> moduli_bits{60, 49};
+  const uint64_t polyn_mod = 4096;  // [0, 2^k)
 
-  seal_parms.set_poly_modulus_degree(4096);
-  seal_parms.set_coeff_modulus(CoeffModulus::Create(4096, moduli_bits));
+  const std::vector<Modulus> coeff_mod = CoeffModulus::Create(polyn_mod, moduli_bits);
+  scheme_type he_scheme = scheme_type::bfv;
+  sec_level_type sec_level = sec_level_type::tc128;
+  EncryptionParameters seal_parms(he_scheme);
+  // seal_parms.set_n_special_primes(n_spl_prime);
+  seal_parms.set_poly_modulus_degree(polyn_mod);
+  seal_parms.set_coeff_modulus(coeff_mod);
   seal_parms.set_plain_modulus(plain_mod);
   context_ =
-      std::make_shared<SEALContext>(seal_parms, true, sec_level_type::tc128);
+      std::make_shared<SEALContext>(seal_parms, true, sec_level);
 
   if (party == sci::BOB) {
     // Bob generate keys
@@ -178,7 +186,7 @@ void CheetahLinear::setUpForBN() {
   const size_t N = 4096;
   auto plain_crts = CoeffModulus::Create(N, crt_primes_bits);
   EncryptionParameters seal_parms(scheme_type::bfv);
-  seal_parms.set_n_special_primes(0);
+  // seal_parms.set_n_special_primes(0);
   // We are not exporting the pk/ct with more than 109-bit.
   std::vector<int> cipher_moduli_bits{60, 49};
   seal_parms.set_poly_modulus_degree(N);
@@ -514,7 +522,11 @@ void CheetahLinear::conv2d_offline(const std::vector<Tensor<uint64_t>> &filters,
     }
 
     if (conv_ntt){
+#if CONV_USE_CUDA
+      code = impl.filtersToNttCu(encoded_filters);
+#else
       code = impl.filtersToNtt(encoded_filters, nthreads_);
+#endif
       if (code != Code::OK) {
         throw std::runtime_error("CheetahLinear::conv2d filtersToNtt " +
                                 CodeMessage(code));

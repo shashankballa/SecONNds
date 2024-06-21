@@ -13,8 +13,11 @@
 #include <troy/troy_cuda.cuh>
 // #include <cuda.h>
 
-#define BFV_TRUNCATE_LARGE 1
-#define BFV_TRUNCATE_SMALL 1
+
+#define LOG_CUDA 1
+
+
+// troy::EvaluatorCuda *evaluator;
 
 namespace gemini {
 
@@ -111,6 +114,274 @@ namespace gemini {
     ThreadPool tpool(std::min(std::max(1UL, nthreads), maxThreadsHE));
     return LaunchWorks(tpool, M, to_ntt_program);
   }
+
+  inline bool isInitializedCuda() {
+    return troy::KernelProvider::isInitialized();
+  }
+
+  inline void initializeCuda() {
+#if LOG_CUDA
+    std::cout << "initializeCuda() called..."
+      << "\n" 
+      << "\t+ " << "isInitializedCuda() = " 
+      << std::boolalpha << isInitializedCuda()
+      << "\n"
+      ;
+#endif
+
+    if(!isInitializedCuda()) troy::KernelProvider::initialize();
+    else std::cout << "initializeCuda(): troy::KernelProvider already initialized!" << std::endl;
+    
+#if LOG_CUDA
+    std::cout << "initializeCuda() done!"
+      << "\n" 
+      << "\t+ " << "isInitializedCuda() = "
+      << std::boolalpha << isInitializedCuda()
+      << "\n"
+      ;
+#endif
+  }
+
+  inline void seal2cudaContext(const std::shared_ptr<seal::SEALContext> context,
+            troy::SEALContextCuda *&contextCu, 
+            std::vector<int> moduli_bits = {60, 49},
+            int n_spl_prime = 0) {
+#if LOG_CUDA
+    std::cout << "seal2cudaContext() called..."
+      << "\n"
+      ; 
+#endif
+    // recreate troy encryption parms from seal parms
+    const size_t polyn_mod = poly_degree(context);
+    const uint64_t plain_mod = plain_modulus(context);
+    const std::vector<troy::Modulus> coeff_mod = troy::CoeffModulus::Create(polyn_mod, moduli_bits);
+    troy::EncryptionParameters parmsTroy(troy::SchemeType::bfv);
+    parmsTroy.setPolyModulusDegree(polyn_mod);
+    parmsTroy.setCoeffModulus(coeff_mod);
+    parmsTroy.setPlainModulus(plain_mod);
+    contextCu = new troy::SEALContextCuda(parmsTroy, true, troy::SecurityLevel::tc128);
+#if LOG_CUDA
+    std::cout << "seal2cudaContext() done!" 
+      << "\n"
+      << "\t+ " << "polyn_mod = " << polyn_mod
+      << "\n"
+      << "\t+ " << "plain_mod = " << plain_mod 
+      << "\n"
+      << "\t+ " << "moduli_bits = " << moduli_bits[0] << ", " << moduli_bits[1] 
+      << "\n"
+      << "\t+ " << "n_spl_prime = " << n_spl_prime 
+      << "\n"
+      ;
+#endif
+  }
+
+  inline void setUpEvalCu(const std::shared_ptr<seal::SEALContext> context,
+            troy::SEALContextCuda *&contextCu,
+            troy::EvaluatorCuda *&evaluatorCu) {
+
+#if LOG_CUDA
+    std::cout << "setUpEvalCu() called..."
+      << "\n"
+      ;
+#endif
+
+    if(!isInitializedCuda()) initializeCuda();
+
+    // convert seal context to cuda context
+    seal2cudaContext(context, contextCu);
+
+    // initialize evaluator
+    evaluatorCu = new troy::EvaluatorCuda(*contextCu);
+
+#if LOG_CUDA
+    std::cout << "setUpEvalCu() done!"
+      << "\n"
+      ;
+#endif
+
+  }
+
+#if LOG_CUDA
+  // start a counter for the total bytes saved
+  size_t total_bytes_saved = 0;
+#endif
+
+  // function to convert seal plaintext to cuda plaintext
+  inline troy::PlaintextCuda seal2cudaPt(const seal::Plaintext &plain) {
+
+    troy::PlaintextCuda pt;
+
+    // save the data from seal plaintext to stream
+    std::stringstream ss;
+    plain.save(ss, seal::compr_mode_type::none);
+
+#if LOG_CUDA
+    total_bytes_saved += ss.str().size();
+#endif
+
+    // load the data from stream to cuda plaintext
+    pt.load(ss);
+
+    return pt;
+  }
+
+  inline std::vector<troy::PlaintextCuda> seal2cudaPt1D(const std::vector<seal::Plaintext> &plain1d) {
+
+    std::vector<troy::PlaintextCuda> pt1d;
+    pt1d.resize(plain1d.size());
+
+    for (size_t i = 0; i < plain1d.size(); ++i) {
+        pt1d[i] = seal2cudaPt(plain1d[i]);
+    }
+
+    return pt1d;
+  }
+
+  inline std::vector<std::vector<troy::PlaintextCuda>> seal2cudaPt2D(const std::vector<std::vector<seal::Plaintext>> &plain2d) {
+
+#if LOG_CUDA
+    total_bytes_saved = 0;
+    std::cout << "seal2cudaPt2D() called..." 
+      << "\n" 
+      ;
+#endif
+
+    std::vector<std::vector<troy::PlaintextCuda>> pt2d;
+    pt2d.resize(plain2d.size());
+
+    for (size_t i = 0; i < plain2d.size(); ++i) {
+        pt2d[i] = seal2cudaPt1D(plain2d[i]);
+    }
+
+#if LOG_CUDA
+    std::cout << "seal2cudaPt2D() done!" 
+      << "\n" 
+      << "\t+ " << "total_bytes_saved = " << total_bytes_saved
+      << "\n"
+      ;
+#endif
+
+    return pt2d;
+  }
+
+  // function to convert cuda plaintext to seal plaintext
+  inline seal::Plaintext cuda2sealPt(
+      const troy::PlaintextCuda &plain, 
+      const std::shared_ptr<seal::SEALContext> context) {
+
+    seal::Plaintext pt;
+
+    // save the data from cuda plaintext to stream
+    std::stringstream ss;
+    plain.save(ss);
+
+#if LOG_CUDA
+    total_bytes_saved += ss.str().size();
+#endif
+
+    // load the data from stream to seal plaintext
+    // pt.load(*context, ss);
+
+    return pt;
+  }
+
+  inline std::vector<seal::Plaintext> 
+    cuda2sealPt1D(
+      const std::vector<troy::PlaintextCuda> &plain1d, 
+      const std::shared_ptr<seal::SEALContext> context) {
+
+    std::vector<seal::Plaintext> pt1d;
+    pt1d.resize(plain1d.size());
+
+    for (size_t i = 0; i < plain1d.size(); ++i) {
+        pt1d[i] = cuda2sealPt(plain1d[i], context);
+    }
+
+    return pt1d;
+  }
+
+  inline std::vector<std::vector<seal::Plaintext>> 
+    cuda2sealPt2D(
+      const std::vector<std::vector<troy::PlaintextCuda>> &plain2d, 
+      const std::shared_ptr<seal::SEALContext> context) {
+
+#if LOG_CUDA
+    total_bytes_saved = 0;
+    std::cout << "cuda2sealPt2D() called..." 
+      << "\n" 
+      << "\t+ " << "sizeof(parms_id_type) = " << sizeof(seal::parms_id_type)
+      << "\n"
+      << "\t+ " << "sizeof(ParmsID) = " << sizeof(troy::ParmsID)
+      << "\n"
+      ;
+#endif
+
+    std::vector<std::vector<seal::Plaintext>> pt2d;
+    pt2d.resize(plain2d.size());
+
+    for (size_t i = 0; i < plain2d.size(); ++i) {
+        pt2d[i] = cuda2sealPt1D(plain2d[i], context);
+    }
+
+#if LOG_CUDA
+    std::cout << "cuda2sealPt2D() done!" 
+      << "\n" 
+      << "\t+ " << "total_bytes_saved = " << total_bytes_saved
+      << "\n"
+      ;
+#endif
+
+    return pt2d;
+  }
+
+    void filToNttCu(
+      const troy::SEALContextCuda *contextCu,
+      const troy::EvaluatorCuda *evaluatorCu,
+      std::vector<std::vector<troy::PlaintextCuda>> &filPtCu) {
+
+      const size_t M = filPtCu.size();
+      const size_t N = filPtCu.at(0).size();
+      
+      for (size_t i = 0; i < M; ++i) {
+          for (size_t j = 0; j < N; ++j) {
+              evaluatorCu->transformToNttInplace(
+                  filPtCu[i][j], 
+                  contextCu->firstContextData()->parmsID()
+              );
+          }
+      }
+  }
+
+  void filToNttCuSealWrap(
+    const std::shared_ptr<seal::SEALContext> context,
+    std::vector<std::vector<seal::Plaintext>> &encoded_filters) {
+      
+#if LOG_CUDA
+    std::cout << "filToNttCuSealWrap() called..." 
+    << "\n"
+    ;
+#endif
+
+    troy::SEALContextCuda *contextCu;
+    troy::EvaluatorCuda *evaluatorCu;
+
+#if LOG_CUDA
+    std::cout 
+      << "\t+ " << "contextCu and evaluatorCu initialized"
+      << "\n"
+      ;
+#endif
+
+    setUpEvalCu(context, contextCu, evaluatorCu);
+
+    // convert seal plaintext to cuda plaintext
+    std::vector<std::vector<troy::PlaintextCuda>> filPtCu = seal2cudaPt2D(encoded_filters);
+
+    filToNttCu(contextCu, evaluatorCu, filPtCu);
+
+    encoded_filters = cuda2sealPt2D(filPtCu, context);
+  }
+
 
   size_t conv2DOneFilter(
       const std::shared_ptr<seal::SEALContext> context,
@@ -311,6 +582,6 @@ namespace gemini {
     removeUnusedCoeffs(out_share0, meta);
 */
 
-    // return Code::OK;
+    return Code::OK;
   }
 }  // namespace gemini

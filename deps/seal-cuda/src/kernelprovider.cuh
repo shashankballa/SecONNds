@@ -15,6 +15,12 @@ namespace troy {
                 throw std::invalid_argument("KernelProvider not initialized.");
         }
 
+        // returns a boolean indicating whether the device was initialized
+        static bool isInitialized() {
+            if (initialized) return true;
+            return false;
+        }
+
         static void initialize() {
             cudaSetDevice(0);
             initialized = true;

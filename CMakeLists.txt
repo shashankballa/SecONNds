@@ -33,7 +33,7 @@ link_directories(${CUDA_LIBRARY_DIRS})
 add_library(gemini SHARED)
 include_directories(include)
 add_subdirectory(include)
-target_link_libraries(gemini SEAL::seal Eigen3::Eigen Threads::Threads ${CUDA_LIBRARIES})
+target_link_libraries(gemini SEAL::seal Eigen3::Eigen Threads::Threads Troy::troy ${CUDA_LIBRARIES})
 
 if (USE_APPROX_RESHARE)
   target_compile_definitions(gemini PUBLIC USE_APPROX_RESHARE=1)

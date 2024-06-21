@@ -10,6 +10,8 @@
 
 #include "gemini/cheetah/tensor_shape.h"
 
+#define CONV_USE_CUDA 1
+
 // Forward
 namespace seal {
 class SEALContext;
@@ -20,6 +22,13 @@ class Ciphertext;
 class Evaluator;
 }  // namespace seal
 
+
+// Forward troyn
+namespace troy {
+class SEALContextCuda;
+class EvaluatorCuda;
+}  // namespace troyn
+
 namespace gemini {
 
 class TensorEncoder;
@@ -28,11 +37,16 @@ class TensorEncoder;
 
 class HomConv2DSS {
  public:
+ 
+// #if CONV_USE_CUDA
+//   static constexpr size_t kMaxThreads = 1;
+// #else
 #ifdef HOM_CONV2D_SS_MAX_THREADS
   static constexpr size_t kMaxThreads = HOM_CONV2D_SS_MAX_THREADS;
 #else
   static constexpr size_t kMaxThreads = 16;
 #endif
+// #endif
 
   struct Meta {
     TensorShape ishape;
@@ -87,6 +101,12 @@ class HomConv2DSS {
   Code idealFunctionality(const Tensor<uint64_t> &in_tensor,
                           const std::vector<Tensor<uint64_t>> &filters,
                           const Meta &meta, Tensor<uint64_t> &out_tensor) const;
+                          
+#if CONV_USE_CUDA
+  Code filtersToNttCu(std::vector<std::vector<seal::Plaintext>> &encoded_filters) const;
+  void initCudaKernel();
+  bool isInitCuda() const;
+#endif
 
  protected:
   size_t conv2DOneFilter(const std::vector<seal::Ciphertext> &enc_tensor,
@@ -115,8 +135,13 @@ class HomConv2DSS {
   std::shared_ptr<seal::Evaluator> evaluator_{nullptr};
   std::shared_ptr<seal::Encryptor> encryptor_{nullptr};
   std::shared_ptr<seal::PublicKey> pk_{nullptr};
-
   std::optional<seal::SecretKey> sk_{std::nullopt};
+
+#if CONV_USE_CUDA
+  troy::SEALContextCuda *contextCu_;
+  troy::EvaluatorCuda *evaluatorCu_;
+#endif
+
 };
 
 };      // namespace gemini

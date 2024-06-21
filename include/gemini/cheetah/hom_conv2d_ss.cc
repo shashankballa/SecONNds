@@ -488,6 +488,16 @@ namespace gemini {
 
     tencoder_ = std::make_shared<TensorEncoder>(*context_);
     evaluator_ = std::make_shared<seal::Evaluator>(*context_);
+
+#if CONV_USE_CUDA
+    std::cout << "HomConv2DSS::setUp() with CONV_USE_CUDA" 
+      << "\n"
+      << "\t+ " << "isInitCuda() = " << std::boolalpha << isInitCuda()
+      << "\n"
+      ;
+    setUpEvalCu(context_, contextCu_, evaluatorCu_);
+#endif
+
     return Code::OK;
   }
 
@@ -1076,5 +1086,51 @@ namespace gemini {
     }
     return Code::OK;
   }
+  
+#if CONV_USE_CUDA
+
+  void HomConv2DSS::initCudaKernel() {
+    initializeCuda();
+  }
+
+  bool HomConv2DSS::isInitCuda() const {
+    return isInitializedCuda();
+  }
+
+  Code HomConv2DSS::filtersToNttCu(
+      std::vector<std::vector<seal::Plaintext>> &encoded_filters) const {
+
+    ENSURE_OR_RETURN(isInitCuda(), Code::ERR_CONFIG);
+    // filToNttCuSealWrap(context_, encoded_filters);
+    // return Code::OK;
+      
+#if LOG_CUDA
+    std::cout << "filtersToNttCu() called..." 
+    << "\n"
+    ;
+#endif
+
+    std::vector<std::vector<troy::PlaintextCuda>> filPtCu = seal2cudaPt2D(encoded_filters);
+
+    std::vector<std::vector<seal::Plaintext>> filPt = cuda2sealPt2D(filPtCu, context_);
+
+    return filtersToNtt(encoded_filters, 1);
+  }
+
+
+  // void filToNttCuSealWrap(
+  //   const std::shared_ptr<seal::SEALContext> context,
+  //   std::vector<std::vector<seal::Plaintext>> &encoded_filters) {
+
+  //   setUpEvalCu(context, contextCu, evaluatorCu);
+
+  //   // convert seal plaintext to cuda plaintext
+  //   std::vector<std::vector<troy::PlaintextCuda>> filPtCu = seal2cudaPt2D(encoded_filters);
+
+  //   filToNttCu(contextCu, evaluatorCu, filPtCu);
+
+  //   encoded_filters = cuda2sealPt2D(filPtCu, context);
+  // }
+#endif
 
 }  // namespace gemini
