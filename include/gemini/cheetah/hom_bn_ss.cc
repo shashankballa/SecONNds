@@ -574,14 +574,14 @@ Code HomBNSS::initPtx(seal::Plaintext &pt, seal::parms_id_type pid) const {
 Code HomBNSS::vec2PolyBFV(const uint64_t *vec, size_t len, seal::Plaintext &pt,
                           bool is_to_ntt) const {
   if (scheme() != seal::scheme_type::bfv) {
-    LOG(FATAL) << "A2HBFV: invalid scheme";
+    LOG(FATAL) << "vec2PolyBFV: invalid scheme";
   }
 
   if (is_to_ntt) {
-    LOG(WARNING) << "A2H: demand is_to_ntt = false for scheme bfv";
+    LOG(WARNING) << "vec2PolyBFV: demand is_to_ntt = false for scheme bfv";
   }
 
-  CHECK_ERR(initPtx(pt), "A2H: InitPtx");
+  CHECK_ERR(initPtx(pt), "vec2PolyBFV: InitPtx");
   ENSURE_OR_RETURN(vec != nullptr, Code::ERR_NULL_POINTER);
   ENSURE_OR_RETURN(len > 0 && len <= poly_degree(), Code::ERR_OUT_BOUND);
 
@@ -769,7 +769,7 @@ Code HomBNSS::bn_direct(const std::vector<seal::Ciphertext> &tensor_share0,
 
   std::vector<seal::Plaintext> rnd;
   auto mask_prog = [&](long wid, size_t start, size_t end) {
-    RLWECt zero;
+    seal::Ciphertext zero;
     for (size_t cid = start; cid < end; ++cid) {
       direct_evaluator_->mod_switch_to_inplace(
           out_share0[cid], direct_context_->last_parms_id());

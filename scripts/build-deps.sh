@@ -31,7 +31,7 @@ repos=(
   "https://github.com/libigl/eigen.git|$DEPS_DIR/eigen|1f05f51"
   "https://github.com/facebook/zstd.git|$DEPS_DIR/zstd|master"
   "https://github.com/intel/hexl.git|$DEPS_DIR/hexl|343acab"
-  "https://github.com/microsoft/SEAL.git|$DEPS_DIR/SEAL|3a05feb"
+  "https://github.com/microsoft/SEAL.git|$DEPS_DIR/SEAL|a0fc0b7"
 )
 
 # Clone or update each repository
@@ -93,7 +93,7 @@ make -j8
 make install
 cd ..
 
-for deps in eigen3 emp-ot emp-tool hexl SEAL-4.1 troy
+for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0 troy
 do
   if [ ! -d $BUILD_DIR/include/$deps ] 
   then

@@ -105,7 +105,7 @@ struct FilterIndexer : public ConvIndexer {
   long row_nskip_, offset_, begin_;
 };
 
-TensorEncoder::TensorEncoder(const RunTime &rt) : rt_(rt) {}
+TensorEncoder::TensorEncoder(const seal::SEALContext &rt) : rt_(rt) {}
 
 template <class TT>
 void print_tensor(TT const &tensor) {
@@ -125,7 +125,7 @@ Code TensorEncoder::EncodeFilter(const U64Tensor &filter,
                                  const TensorShape &img_shape,
                                  const Padding &padding, const size_t stride,
                                  const bool is_ntt_form,
-                                 std::vector<RLWEPt> &out) const {
+                                 std::vector<seal::Plaintext> &out) const {
   TensorShape fshape = filter.shape();
   ENSURE_OR_RETURN(img_shape.dims() == 3 && fshape.dims() == 3, Code::ERR_DIM_MISMATCH);
   if (filter.width() * filter.height() > poly_degree()) {
@@ -180,7 +180,7 @@ Code TensorEncoder::EncodeImageShare(Role role, const U64Tensor &img_tensor,
                                      const Padding &padding,
                                      const size_t stride,
                                      const bool is_ntt_form,
-                                     std::vector<RLWEPt> &out) const {
+                                     std::vector<seal::Plaintext> &out) const {
   ENSURE_OR_RETURN(img_tensor.dims() == 3 && filter_shape.dims() == 3,
                    Code::ERR_DIM_MISMATCH);
 
@@ -275,7 +275,7 @@ Code TensorEncoder::Encode(TensorShape ishape, TensorShape fshape,
   return Code::OK;
 }
 
-Code TensorEncoder::InitPtx(RLWEPt &pt, seal::parms_id_type pid) const {
+Code TensorEncoder::InitPtx(seal::Plaintext &pt, seal::parms_id_type pid) const {
 
   if (scheme() != seal::scheme_type::ckks) {
     // BFV or BGV
@@ -300,17 +300,17 @@ Code TensorEncoder::InitPtx(RLWEPt &pt, seal::parms_id_type pid) const {
   return Code::OK;
 }
 
-Code TensorEncoder::A2HBFV(const U64 *vec, size_t len, RLWEPt &pt,
+Code TensorEncoder::A2HBFV(const U64 *vec, size_t len, seal::Plaintext &pt,
                            const Role role, bool is_to_ntt) const {
   if (scheme() != seal::scheme_type::bfv) {
     LOG(FATAL) << "A2HBFV: invalid scheme";
   }
 
   if (is_to_ntt) {
-    LOG(WARNING) << "A2H: demand is_to_ntt = false for scheme bfv";
+    LOG(WARNING) << "A2HBFV: demand is_to_ntt = false for scheme bfv";
   }
 
-  CHECK_ERR(InitPtx(pt), "A2H: InitPtx");
+  CHECK_ERR(InitPtx(pt), "A2HBFV: InitPtx");
   ENSURE_OR_RETURN(vec != nullptr, Code::ERR_NULL_POINTER);
   ENSURE_OR_RETURN(len > 0 && len <= poly_degree(), Code::ERR_OUT_BOUND);
 
@@ -320,7 +320,7 @@ Code TensorEncoder::A2HBFV(const U64 *vec, size_t len, RLWEPt &pt,
   return Code::OK;
 }
 
-Code TensorEncoder::A2H(const U64 *vec, size_t len, RLWEPt &pt, const Role role,
+Code TensorEncoder::A2H(const U64 *vec, size_t len, seal::Plaintext &pt, const Role role,
                         bool is_to_ntt) const {
   switch (scheme()) {
     case seal::scheme_type::bfv:

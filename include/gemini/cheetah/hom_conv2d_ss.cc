@@ -828,7 +828,7 @@ namespace gemini {
 
     mask_tensor.Reshape(GetConv2DOutShape(meta));
     auto mask_program = [&](long wid, size_t start, size_t end) {
-      RLWEPt mask;
+      seal::Plaintext mask;
       TensorShape slice_shape;
       std::vector<size_t> targets;
       std::vector<U64> coeffs(poly_degree());
@@ -965,7 +965,7 @@ namespace gemini {
     const bool need_ntt_form_ct = scheme() == seal::scheme_type::ckks;
     seal::Decryptor decryptor(*context_, *sk_);
     auto decrypt_program = [&](long wid, size_t start, size_t end) {
-      RLWEPt pt;
+      seal::Plaintext pt;
       TensorShape slice_shape;
       std::vector<size_t> indices;
       std::vector<U64> coeffs(N);
@@ -982,7 +982,7 @@ namespace gemini {
             if (need_ntt_form_ct == enc_tensor[cid].is_ntt_form()) {
               decryptor.decrypt(enc_tensor[cid], pt);
             } else {
-              RLWECt cpy{enc_tensor[cid]};
+              seal::Ciphertext cpy{enc_tensor[cid]};
               if (need_ntt_form_ct) {
                 evaluator_->transform_to_ntt_inplace(cpy);
               } else {

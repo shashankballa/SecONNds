@@ -26,11 +26,11 @@ namespace troy {
             uint64_t coeff_count64 = static_cast<uint64_t>(coeff_count_);
             stream.write(reinterpret_cast<const char *>(&coeff_count64), sizeof(uint64_t));
             stream.write(reinterpret_cast<const char *>(&scale_), sizeof(double));
-            // data_.save(stream, compr_mode_type::none);
-            auto r = data_.toHost();
-            uint64_t dataSize = r.size();
-            savet(stream, &dataSize);
-            stream.write(reinterpret_cast<char*>(r.begin()), sizeof(pt_coeff_type) * r.size());
+            auto data__ = data_.toHost();
+            size_t dataSize = data__.size();
+            // savet(stream, &dataSize);
+            stream.write(reinterpret_cast<const char *>(&dataSize), sizeof(size_t));
+            stream.write(reinterpret_cast<char*>(data__.begin()), sizeof(pt_coeff_type) * data__.size());
         }
         catch (const std::ios_base::failure &)
         {

@@ -13,6 +13,11 @@ int num_threads = 4;
 int32_t bitlength = 64;
 int32_t kScale = 12;
 
+int _snn = 0;
+bool use_seconnds = false;
+int _ntt = 0;
+bool conv_ntt = false;
+
 void MatAddBroadCast2(int64_t s1, int64_t s2, uint64_t *A, uint64_t *B,
                       uint64_t *outArr) {
   for (uint64_t i1 = (int32_t)0; i1 < s1; i1++) {
@@ -2269,7 +2274,13 @@ int main(int argc, char **argv) {
   amap.arg("nt", num_threads, "Number of Threads");
   amap.arg("ell", bitlength, "Uniform Bitwidth");
   amap.arg("k", kScale, "scaling factor");
+  amap.arg("snn", _snn, "Use SecONNds");
+  amap.arg("ntt", _ntt, "Perform NTT mults in convolutions");
+
   amap.parse(argc, argv);
+
+  use_seconnds = (_snn == 1);
+  conv_ntt = (_ntt == 1);
 
   assert(party == SERVER || party == CLIENT);
 

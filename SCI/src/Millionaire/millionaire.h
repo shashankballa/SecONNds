@@ -54,11 +54,7 @@ public:
     this->party = party;
     this->io = io;
     this->otpack = otpack;
-    this->triple_gen = new TripleGenerator<IO>(party, io, otpack
-#if USE_NEW
-    , true
-#endif
-    );
+    this->triple_gen = new TripleGenerator<IO>(party, io, otpack);
     del_trip_gen = true;
     configure(bitlength, radix_base);
   }

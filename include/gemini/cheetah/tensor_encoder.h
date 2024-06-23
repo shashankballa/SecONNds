@@ -22,18 +22,18 @@ class TensorEncoder {
     none,
   };
 
-  explicit TensorEncoder(const RunTime &rt);
+  explicit TensorEncoder(const seal::SEALContext &rt);
 
   ~TensorEncoder() {}
 
   Code EncodeImageShare(Role role, const U64Tensor &img_tensor,
                         const TensorShape &filter_shape, const Padding &padding,
                         size_t stride, bool is_ntt,
-                        std::vector<RLWEPt> &out) const;
+                        std::vector<seal::Plaintext> &out) const;
 
   Code EncodeFilter(const U64Tensor &filter, const TensorShape &image_shape,
                     const Padding &padding, size_t stride, bool is_ntt,
-                    std::vector<RLWEPt> &out) const;
+                    std::vector<seal::Plaintext> &out) const;
 
  private:
   template <class TensorType, class Indexer>
@@ -41,11 +41,11 @@ class TensorEncoder {
               const TensorType &img_or_filter, const Indexer &indexer,
               U64 *out_poly, size_t out_max_size) const;
 
-  Code A2HBFV(const U64 *vec, size_t len, RLWEPt &pt, const Role role, bool is_ntt) const;
+  Code A2HBFV(const U64 *vec, size_t len, seal::Plaintext &pt, const Role role, bool is_ntt) const;
 
-  Code A2H(const U64 *vec, size_t len, RLWEPt &pt, const Role role, bool is_ntt) const;
+  Code A2H(const U64 *vec, size_t len, seal::Plaintext &pt, const Role role, bool is_ntt) const;
 
-  Code InitPtx(RLWEPt &pt, seal::parms_id_type pid = seal::parms_id_zero) const;
+  Code InitPtx(seal::Plaintext &pt, seal::parms_id_type pid = seal::parms_id_zero) const;
 
   inline size_t poly_degree() const {
     return rt_.first_context_data()->parms().poly_modulus_degree();
@@ -67,7 +67,7 @@ class TensorEncoder {
     return rt_.first_context_data()->parms().scheme();
   }
 
-  const RunTime &rt_;
+  const seal::SEALContext &rt_;
 };
 
 class ConvCoeffIndexCalculator {

@@ -1,6 +1,6 @@
 . scripts/common.sh
 
-for deps in eigen3 emp-ot emp-tool hexl SEAL-4.1
+for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0
 do
   if [ ! -d $BUILD_DIR/include/$deps ] 
   then

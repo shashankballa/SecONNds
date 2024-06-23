@@ -105,7 +105,7 @@ CheetahLinear::CheetahLinear(int party, sci::NetIO *io, uint64_t base_mod,
   scheme_type he_scheme = scheme_type::bfv;
   sec_level_type sec_level = sec_level_type::tc128;
   EncryptionParameters seal_parms(he_scheme);
-  // seal_parms.set_n_special_primes(n_spl_prime);
+  seal_parms.set_n_special_primes(n_spl_prime);
   seal_parms.set_poly_modulus_degree(polyn_mod);
   seal_parms.set_coeff_modulus(coeff_mod);
   seal_parms.set_plain_modulus(plain_mod);
@@ -186,7 +186,7 @@ void CheetahLinear::setUpForBN() {
   const size_t N = 4096;
   auto plain_crts = CoeffModulus::Create(N, crt_primes_bits);
   EncryptionParameters seal_parms(scheme_type::bfv);
-  // seal_parms.set_n_special_primes(0);
+  seal_parms.set_n_special_primes(0);
   // We are not exporting the pk/ct with more than 109-bit.
   std::vector<int> cipher_moduli_bits{60, 49};
   seal_parms.set_poly_modulus_degree(N);

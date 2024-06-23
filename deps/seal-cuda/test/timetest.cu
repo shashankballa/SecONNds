@@ -13,6 +13,82 @@ using std::complex;
 
 namespace troytest {
     
+    template<typename T> 
+    vector<T> vectorAdd(const vector<T> a, const vector<T> b) {
+        assert(a.size() == b.size());
+        vector<T> ret; ret.reserve(a.size());
+        for (size_t i = 0; i < a.size(); i++) ret.push_back(a[i] + b[i]);
+        return ret;
+    }
+
+    template<typename T> 
+    vector<T> vectorMultiply(const vector<T> a, const vector<T> b) {
+        assert(a.size() == b.size());
+        vector<T> ret; ret.reserve(a.size());
+        for (size_t i = 0; i < a.size(); i++) ret.push_back(a[i] * b[i]);
+        return ret;
+    }
+
+    template<typename T> 
+    vector<T> vectorSub(const vector<T> a, const vector<T> b) {
+        assert(a.size() == b.size());
+        vector<T> ret; ret.reserve(a.size());
+        for (size_t i = 0; i < a.size(); i++) ret.push_back(a[i] - b[i]);
+        return ret;
+    }
+
+    template<typename T> 
+    vector<T> vectorNegate(const vector<T> a) {
+        vector<T> ret; ret.reserve(a.size());
+        for (size_t i = 0; i < a.size(); i++) ret.push_back(-a[i]);
+        return ret;
+    }
+
+    template<typename T>
+    vector<T> vectorRotate(const vector<T>& a, size_t n) {
+        vector<T> ret; ret.reserve(a.size());
+        ret.insert(ret.end(), a.begin() + n, a.end());
+        ret.insert(ret.end(), a.begin(), a.begin() + n);
+    }
+
+    template<typename T> 
+    inline bool is_equal(const vector<T>& a, const vector<T>& b, double eps = 1e-6) {
+        if (a.size() != b.size()) return false;
+        for (size_t i = 0; i < a.size(); i++) {
+            if (std::abs(a[i] - b[i]) > eps) return false;
+        }
+        return true;
+    }
+
+    template<typename T> 
+    inline bool is_zero(const vector<T>& a, double eps = 1e-6) {
+        for (size_t i = 0; i < a.size(); i++) {
+            if (std::abs(a[i]) > eps) return false;
+        }
+        return true;
+    }
+
+    template<typename T>
+    void printVector(const vector<T>& r, bool full = false) {
+        std::cout << "[";
+        for (size_t i = 0; i < r.size(); i++) {
+            if (r.size() > 8 && !full && i == 4) {
+                std::cout << " ...";
+                i = r.size() - 4;
+            }
+            if (i!=0) std::cout << ", ";
+            std::cout << std::setprecision(3) << std::fixed << (double) r[i];
+        }
+        std::cout << "]" << std::endl;
+    }
+
+    inline std::string pass_str(bool pass) {
+        std::stringstream ss;
+        // color red if failed, green if passed
+        ss << (pass ? "\033[1;32m" : "\033[1;31m") << (pass ? "PASS" : "FAIL") << "\033[0m";
+        return ss.str();
+    }
+
     class Timer {
     public:
         std::vector<timeval> times;
@@ -281,9 +357,9 @@ namespace troytest {
             Ciphertext c3, c4;
             Ciphertext c5;
             auto t1 = tim.registerTimer("Multiply-assign");
-            auto t2 = tim.registerTimer("Relinearize-assign");
+            auto t2 = tim.registerTimer("Rescale-assign");
             auto t3 = tim.registerTimer("Multiply-inplace");
-            auto t4 = tim.registerTimer("Relinearize-inplace");
+            auto t4 = tim.registerTimer("Rescale-inplace");
             for (int t = 0; t < repeatCount; t++) {
                 tim.tick(t1);
                 evaluator->multiply(c1, c2, c3);
@@ -345,7 +421,7 @@ namespace troytest {
 
         TimeTestBFVBGV(bool bgv, size_t polyModulusDegree, uint64_t plainModulusBitSize, vector<int> qs, int dataBound = 1<<6) {
             KernelProvider::initialize();
-            slotCount = polyModulusDegree / 2;
+            slotCount = polyModulusDegree;
             this->dataBound = dataBound;
             this->delta = delta;
             EncryptionParameters parms(bgv ? SchemeType::bgv : SchemeType::bfv);
@@ -369,7 +445,7 @@ namespace troytest {
         }
         
         static vector<int64_t> randomVector(size_t count, int data_bound) {
-            vector<int64_t> input(count, 0.0);
+            vector<int64_t> input(count, 0);
             for (size_t i = 0; i < count; i++)
             {
                 input[i] = rand() % data_bound;
@@ -389,13 +465,71 @@ namespace troytest {
             return std::move(ret);
         }
 
+        vector<int64_t> decode(const Plaintext& p) {
+            vector<int64_t> r;
+            encoder->decode(p, r);
+            return r;
+        }
+
+        vector<int64_t> decrypt(const Ciphertext& c) {
+            Ciphertext c2 = c;
+            if (c.isNttForm()) {
+                evaluator->transformFromNttInplace(c2);
+            }
+            Plaintext p;
+            decryptor->decrypt(c2, p);
+            return decode(p);
+        }
+
+        void testSaveLoad(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            auto t1 = tim.registerTimer("Save Ciphertext");
+            auto t2 = tim.registerTimer("Load Ciphertext");
+            Ciphertext c2;
+            for (int t = 0; t < repeatCount; t++) {
+                std::stringstream ss;
+                tim.tick(t1);
+                c1.save(ss);
+                tim.tock(t1);
+                tim.tick(t2);
+                c2.load(ss);
+                tim.tock(t2);
+            }
+            auto p3 = randomPlaintext();
+            auto t3 = tim.registerTimer("Save Plaintext");
+            auto t4 = tim.registerTimer("Load Plaintext");
+            Plaintext p4;
+            for (int t = 0; t < repeatCount; t++) {
+                std::stringstream ss;
+                tim.tick(t3);
+                p3.save(ss);
+                tim.tock(t3);
+                tim.tick(t4);
+                p4.load(ss);
+                tim.tock(t4);
+            }
+            printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3, m4;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            m3 = decode(p3);
+            m4 = decode(p4);
+            bool pass = is_equal(m1, m2);
+            std::cout << pass_str(pass) << " | Save/Load Ciphertext" << std::endl;
+            pass = is_equal(m3, m4);
+            std::cout << pass_str(pass) << " | Save/Load Plaintext" << std::endl;
+        }
+
         void testEncode(int repeatCount = 1000) {
             auto m1 = randomVector(slotCount, dataBound);
-            auto m2 = randomVector(slotCount, dataBound);
-            Plaintext p1;
+            // print m1
+            std::cout << "m1: size=" << m1.size() << ", data="; printVector(m1);
+            vector<int64_t> m2;
             auto t1 = tim.registerTimer("Encode");
             auto t2 = tim.registerTimer("Decode");
             for (int t = 0; t < repeatCount; t++) {
+                Plaintext p1;
                 tim.tick(t1);
                 encoder->encode(m1, p1);
                 tim.tock(t1);
@@ -404,7 +538,118 @@ namespace troytest {
                 tim.tock(t2);
             }
             printTimer(tim.gather(repeatCount));
+
+            // print m2
+            std::cout << "m2: size=" << m2.size() << ", data="; printVector(m2);
+
+            bool pass = is_equal(m1, m2);
+            std::cout << pass_str(pass) << " | Encode/Decode" << std::endl;
         }
+  
+        void testAdd(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            auto c2 = randomCiphertext();
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("Add-assign");
+            auto t2 = tim.registerTimer("Add-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                evaluator->add(c1, c2, c3);
+                tim.tock(t1);
+                tim.tick(t2);
+                evaluator->addInplace(c3, c1);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            m3 = decrypt(c3);
+
+            bool pass = is_equal(m3, vectorAdd(vectorAdd(m1, m2), m1));
+            std::cout << pass_str(pass) << " | Add" << std::endl;
+        }
+
+        void testAddPlain(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            auto p2 = randomPlaintext();
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("AddPlain-assign");
+            auto t2 = tim.registerTimer("AddPlain-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                evaluator->addPlain(c1, p2, c3);
+                tim.tock(t1);
+                tim.tick(t2);
+                evaluator->addPlainInplace(c3, p2);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3;
+            m1 = decrypt(c1);
+            m2 = decode(p2);
+            m3 = decrypt(c3);
+
+            bool pass = is_equal(m3, vectorAdd(vectorAdd(m1, m2), m2));
+            std::cout << pass_str(pass) << " | AddPlain" << std::endl;
+        }
+
+        void testMultiplyPlain(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            auto p2 = randomPlaintext();
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("MultiplyPlain-assign");
+            auto t2 = tim.registerTimer("MultiplyPlain-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                evaluator->multiplyPlain(c1, p2, c3);
+                tim.tock(t1);
+                tim.tick(t2);
+                evaluator->multiplyPlainInplace(c3, p2);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3;
+            m1 = decrypt(c1);
+            m2 = decode(p2);
+            m3 = decrypt(c3);
+
+            bool pass = is_equal(m3, vectorMultiply(vectorMultiply(m1, m2), m2));
+            std::cout << pass_str(pass) << " | MultiplyPlain" << std::endl;
+        }
+
+        void testSquare(int repeatCount = 1000) {
+            auto c1 = randomCiphertext();
+            Ciphertext c2;
+            Ciphertext c3;
+            auto t1 = tim.registerTimer("Square-assign");
+            auto t2 = tim.registerTimer("Square-inplace");
+            for (int t = 0; t < repeatCount; t++) {
+                tim.tick(t1);
+                evaluator->square(c1, c2);
+                tim.tock(t1);
+                c3 = c1;
+                tim.tick(t2);
+                evaluator->squareInplace(c3);
+                tim.tock(t2);
+            }
+            printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            m3 = decrypt(c3);
+
+            auto m1_2 = vectorMultiply(m1, m1);
+            bool pass = is_equal(m2, m1_2);
+            std::cout << pass_str(pass) << " | Square" << std::endl;
+            pass = is_equal(m3, m1_2);
+            std::cout << pass_str(pass) << " | SquareInplace" << std::endl;
+        }
+
 
         void testMultiplyRescale(int repeatCount = 100) {
             auto c1 = randomCiphertext();
@@ -412,9 +657,11 @@ namespace troytest {
             Ciphertext c3, c4;
             Ciphertext c5;
             auto t1 = tim.registerTimer("Multiply-assign");
-            auto t2 = tim.registerTimer("Relinearize-assign");
+            auto t2 = tim.registerTimer("ModSwitch-assign");
+            auto t2_ = tim.registerTimer("Relinearize-assign");
             auto t3 = tim.registerTimer("Multiply-inplace");
-            auto t4 = tim.registerTimer("Relinearize-inplace");
+            auto t4 = tim.registerTimer("ModSwitch-inplace");
+            auto t4_ = tim.registerTimer("Relinearize-inplace");
             for (int t = 0; t < repeatCount; t++) {
                 tim.tick(t1);
                 evaluator->multiply(c1, c2, c3);
@@ -431,6 +678,20 @@ namespace troytest {
                 tim.tock(t4);
             }
             printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3, m4, m5;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            m3 = decrypt(c3);
+            m4 = decrypt(c4);
+            m5 = decrypt(c5);
+
+            bool pass = is_equal(m3, vectorMultiply(m1, m2));
+            std::cout << pass_str(pass) << " | Multiply" << std::endl;
+            pass = is_equal(m4, m3);
+            std::cout << pass_str(pass) << " | ModSwitch" << std::endl;
+            pass = is_equal(m5, m3);
+            std::cout << pass_str(pass) << " | Inplace" << std::endl;
         }
 
         void testRotateVector(int repeatCount = 100) {
@@ -447,6 +708,12 @@ namespace troytest {
                 tim.tock(t2);
             }
             printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            bool pass = is_equal(m1, m2);
+            std::cout << pass_str(pass) << " | rotateRows" << std::endl;
         }
         
         /*
@@ -471,6 +738,15 @@ namespace troytest {
                 tim.tock(t2);
             }
             printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m3;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            m3 = decrypt(c3);
+            bool pass = is_equal(m2, m1);
+            std::cout << pass_str(pass) << " | ToNTT" << std::endl;
+            pass = is_equal(m3, m1);
+            std::cout << pass_str(pass) << " | ToNTTInplace" << std::endl;
         }
 
         /*
@@ -496,13 +772,21 @@ namespace troytest {
                 tim.tock(t2);
             }
             printTimer(tim.gather(repeatCount));
-        }
 
+            vector<int64_t> m1, m2, m3;
+            m1 = decrypt(c1);
+            m2 = decrypt(c2);
+            m3 = decrypt(c3);
+            bool pass = is_equal(m2, m1);
+            std::cout << pass_str(pass) << " | FromNTT" << std::endl;
+            pass = is_equal(m3, m1);
+            std::cout << pass_str(pass) << " | FromNTTInplace" << std::endl;
+        }
 
         void testMultiplyPlainNtt(int repeatCount = 1000) {
             auto c1 = randomCiphertext();
-            auto p1 = randomPlaintext();
-            Plaintext p2;
+            auto p2 = randomPlaintext();
+            Plaintext p2_ntt;
             Ciphertext c3, c4, c5;
             auto t0 = tim.registerTimer("ToNttPlain-assign");
             auto t1 = tim.registerTimer("ToNtt-assign");
@@ -514,36 +798,44 @@ namespace troytest {
             auto t7 = tim.registerTimer("FromNtt-inplace");
             for (int t = 0; t < repeatCount; t++) {
                 tim.tick(t0);
-                evaluator->transformToNtt(p1, c1.parmsID(), p2);
+                evaluator->transformToNtt(p2, c1.parmsID(), p2_ntt);
                 tim.tock(t0);
                 tim.tick(t1);
                 evaluator->transformToNtt(c1, c3);
                 tim.tock(t1);
                 tim.tick(t2);
-                evaluator->multiplyPlain(c3, p2, c4);
+                evaluator->multiplyPlain(c3, p2_ntt, c4);
                 tim.tock(t2);
                 tim.tick(t3);
                 evaluator->transformFromNtt(c4, c5);
                 tim.tock(t3);
                 c5 = c1;
-                p2 = p1;
+                p2_ntt = p2;
                 tim.tick(t4);
-                evaluator->transformToNttInplace(p2, c1.parmsID());
+                evaluator->transformToNttInplace(p2_ntt, c1.parmsID());
                 tim.tock(t4);
                 tim.tick(t5);
                 evaluator->transformToNttInplace(c5);
                 tim.tock(t5);
                 tim.tick(t6);
-                evaluator->multiplyPlainInplace(c5, p2);
+                evaluator->multiplyPlainInplace(c5, p2_ntt);
                 tim.tock(t6);
                 tim.tick(t7);
                 evaluator->transformFromNttInplace(c5);
                 tim.tock(t7);
             }
             printTimer(tim.gather(repeatCount));
+
+            vector<int64_t> m1, m2, m5;
+            m1 = decrypt(c1);
+            m2 = decode(p2);
+            m5 = decrypt(c5);
+            bool pass = is_equal(m5, vectorMultiply(m1, m2));
+            std::cout << pass_str(pass) << " | MultiplyPlainNTT" << std::endl;
         }
 
         void testAll() {
+            this->testSaveLoad();
             this->testEncode();
             this->testEncrypt();
             this->testAdd();

@@ -29,10 +29,10 @@ SOFTWARE.
 #define LOG_LAYERWISE
 #define VERIFY_LAYERWISE
 
-#define LOG_LAYERWISE
-#define VERIFY_LAYERWISE
+#if USE_CHEETAH
 #undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation
 // #undef LOG_LAYERWISE // undefine this to turn OFF the log
+#endif
 
 #define TRIPGEN_PRINT_TIME 1
 #define TRIPGEN_PRINT_COMP 0
@@ -1664,11 +1664,11 @@ void StartComputation() {
     << std::endl;
 
   relu = new ReLUFieldProtocol<sci::NetIO, intType>(
-      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack);
+      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen);
   maxpool = new MaxPoolProtocol<sci::NetIO, intType>(
-      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, relu);
+      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, relu);
   argmax = new ArgMaxProtocol<sci::NetIO, intType>(
-      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, relu);
+      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, relu);
   he_fc = new FCField(party, io);
   he_prod = new ElemWiseProdField(party, io);
   assertFieldRun();
@@ -1713,17 +1713,17 @@ void StartComputation() {
     if (i & 1) {
       reluArr[i] = new ReLUFieldProtocol<sci::NetIO, intType>(
           3 - party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i]);
+          otpackArr[i], tripleGenArr[i]);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
           3 - party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i], reluArr[i]);
+          otpackArr[i], tripleGenArr[i], reluArr[i]);
     } else {
       reluArr[i] = new ReLUFieldProtocol<sci::NetIO, intType>(
           party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i]);
+          otpackArr[i], tripleGenArr[i]);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
           party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i], reluArr[i]);
+          otpackArr[i], tripleGenArr[i], reluArr[i]);
     }
   }
 #endif

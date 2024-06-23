@@ -494,29 +494,37 @@ namespace troytest {
             auto t7 = tim.registerTimer("FromNtt-inplace");
             for (int t = 0; t < repeatCount; t++) {
                 tim.tick(t0);
+                // evaluator->transformToNtt(p1, c1.parmsID(), p2);
                 evaluator->transform_to_ntt(p1, c1.parms_id(), p2);
                 tim.tock(t0);
                 tim.tick(t1);
+                // evaluator->transformToNtt(c1, c3);
                 evaluator->transform_to_ntt(c1, c3);
                 tim.tock(t1);
                 tim.tick(t2);
+                // evaluator->multiplyPlain(c3, p2, c4);
                 evaluator->multiply_plain(c3, p2, c4);
                 tim.tock(t2);
                 tim.tick(t3);
+                // evaluator->transformFromNtt(c4, c5);
                 evaluator->transform_from_ntt(c4, c5);
                 tim.tock(t3);
                 c5 = c1;
                 p2 = p1;
                 tim.tick(t4);
+                // evaluator->transformToNttInplace(p2, c1.parmsID());
                 evaluator->transform_to_ntt_inplace(p2, c1.parms_id());
                 tim.tock(t4);
                 tim.tick(t5);
+                // evaluator->transformToNttInplace(c5);
                 evaluator->transform_to_ntt_inplace(c5);
                 tim.tock(t5);
                 tim.tick(t6);
+                // evaluator->multiplyPlainInplace(c5, p2);
                 evaluator->multiply_plain_inplace(c5, p2);
                 tim.tock(t6);
                 tim.tick(t7);
+                // evaluator->transformFromNttInplace(c5);
                 evaluator->transform_from_ntt_inplace(c5);
                 tim.tock(t7);
             }

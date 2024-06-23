@@ -23,10 +23,6 @@ using F64 = double;
 using U64 = uint64_t;
 using I64 = int64_t;
 
-using RunTime = seal::SEALContext;
-using RLWECt = seal::Ciphertext;
-using RLWEPt = seal::Plaintext;
-
 enum class Code {
   OK,
   ERR_CONFIG,

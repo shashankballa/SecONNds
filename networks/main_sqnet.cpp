@@ -9,14 +9,15 @@ using namespace std;
 
 int party = 0;
 int port = 32000;
-int _snn = 0;
-bool use_seconnds = false;
-int _ntt = 0;
-bool conv_ntt = false;
 string address = "127.0.0.1";
 int num_threads = 8;
 int32_t bitlength = 32;
 int32_t kScale = 12;
+
+int _snn = 0;
+bool use_seconnds = false;
+int _ntt = 0;
+bool conv_ntt = false;
 
 void MatAddBroadCast2(int64_t s1, int64_t s2, uint64_t *A, uint64_t *B,
                       uint64_t *outArr) {

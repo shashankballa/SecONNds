@@ -13,7 +13,7 @@ endif()
 cmake_minimum_required(VERSION 3.16)
 message(STATUS "Using CMake version ${CMAKE_VERSION}")
 
-find_package(SEAL 4.1 REQUIRED)
+find_package(SEAL 4.0 REQUIRED)
 
 add_subdirectory(src)
 
