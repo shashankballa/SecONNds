@@ -100,20 +100,19 @@ public:
   void compare(uint8_t *res, uint64_t *data, int num_cmps, int bitlength,
                bool greater_than = true, bool equality = false,
                int radix_base = MILL_PARAM){
-#if USE_NEW
-    compare_new(res, data, num_cmps, bitlength, greater_than, equality, radix_base);
-#else
-    compare_old(res, data, num_cmps, bitlength, greater_than, equality, radix_base);
-#endif
+    if(this->triple_gen->isBufferEnabled()){
+      compare_new(res, data, num_cmps, bitlength, greater_than, equality, radix_base);
+    } else{
+      compare_old(res, data, num_cmps, bitlength, greater_than, equality, radix_base);
+    }
   }
   void traverse_and_compute_ANDs(int num_cmps, uint8_t *leaf_res_eq,
                                  uint8_t *leaf_res_cmp){
-#if USE_NEW
-    traverse_and_compute_ANDs_new(num_cmps, leaf_res_eq, leaf_res_cmp);
-#else
-    traverse_and_compute_ANDs_old(num_cmps, leaf_res_eq, leaf_res_cmp);
-#endif
-
+    if(this->triple_gen->isBufferEnabled()){
+      traverse_and_compute_ANDs_new(num_cmps, leaf_res_eq, leaf_res_cmp);
+    } else{
+      traverse_and_compute_ANDs_old(num_cmps, leaf_res_eq, leaf_res_cmp);
+    }
   }
 
 
@@ -704,13 +703,6 @@ public:
     Triple triples_cmp(bitlength*num_cmps, true);
     triple_gen->get(party, &triples_cmp);
 
-//     // Generate required Bit-Triples
-// #if USE_CHEETAH
-//     triple_gen->generate(party, &triples_cmp, _2ROT);
-// #else
-//     triple_gen->generate(party, &triples_cmp, _16KKOT_to_4OT);
-// #endif
-
 #if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
     end = std::chrono::system_clock::now();
@@ -1054,13 +1046,6 @@ public:
     int n_trips = num_digits - 1;
     Triple trips_seg(n_trips * num_cmps, true);
     triple_gen->get(party, &trips_seg);
-
-//     // Generate required Bit-Triples
-// #if USE_CHEETAH
-//     triple_gen->generate(party, &trips_seg, _2ROT);
-// #else
-//     triple_gen->generate(party, &trips_seg, _16KKOT_to_4OT);
-// #endif
     
 #if MILL_PRINT_TIME
     // get running time of leaf OTs in ms

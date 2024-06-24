@@ -35,7 +35,7 @@ class OTPack {
   T *ios[1];
 
   OTPack(T *io, int party, bool do_setup = true) {
-    std::cout << "using silent ot pack" << std::endl;
+    // std::cout << "using silent ot pack" << std::endl;
 
     this->party = party;
     // this->do_setup = do_setup;

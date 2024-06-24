@@ -13,6 +13,7 @@ int num_threads = 4;
 int32_t bitlength = 64;
 int32_t kScale = 12;
 
+int num_trips = 1 << 32;
 int _snn = 0;
 bool use_seconnds = false;
 int _ntt = 0;
@@ -2276,6 +2277,7 @@ int main(int argc, char **argv) {
   amap.arg("k", kScale, "scaling factor");
   amap.arg("snn", _snn, "Use SecONNds");
   amap.arg("ntt", _ntt, "Perform NTT mults in convolutions");
+  amap.arg("ntrips", num_trips, "Number of triples to generate");
 
   amap.parse(argc, argv);
 
@@ -3105,6 +3107,95 @@ int main(int argc, char **argv) {
     Arr1DIdxRowM(tmp52, (int32_t)1000, i0) =
         (party == SERVER) ? __tmp_in_tmp52 : 0;
   }
+
+
+  if(use_seconnds){
+    ConnectAndSetUp();
+    /* Conv Offline
+    if(party == SERVER){
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
+                    (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)2, (int32_t)2, tmp1, tmp1_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
+                    (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp3, tmp3_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                    (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp5, tmp5_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                    (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp7, tmp7_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
+                    (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp9, tmp9_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+                    (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp11, tmp11_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+                    (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp13, tmp13_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
+                    (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp15, tmp15_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                    (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp17, tmp17_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                    (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp19, tmp19_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
+                    (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp21, tmp21_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+                    (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp23, tmp23_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+                    (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp25, tmp25_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
+                    (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp27, tmp27_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                    (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp29, tmp29_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                    (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp31, tmp31_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                    (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp33, tmp33_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+                    (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp35, tmp35_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+                    (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp37, tmp37_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+                    (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp39, tmp39_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                    (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp41, tmp41_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                    (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp43, tmp43_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                    (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp45, tmp45_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+                    (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp47, tmp47_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+                    (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
+                    (int32_t)1, (int32_t)1, (int32_t)1, tmp49, tmp49_pts);
+      Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+                    (int32_t)1, (int32_t)1000, (int32_t)0, (int32_t)0, (int32_t)0,
+                    (int32_t)0, (int32_t)1, (int32_t)1, tmp51, tmp51_pts);
+    }
+    */
+    GenerateTriples(num_trips);
+  }
+
   StartComputation();
 
   uint64_t *tmp53 =

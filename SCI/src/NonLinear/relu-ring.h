@@ -193,10 +193,10 @@ public:
         }
       }
 
-      if (do_trunc) {
-        printf("Mill dotrunc %d on %d bits using b = %d\n", do_trunc,
-               this_l - 1, this->b);
-      }
+      // if (do_trunc) {
+      //   printf("Mill dotrunc %d on %d bits using b = %d\n", do_trunc,
+      //          this_l - 1, this->b);
+      // }
 
       this->millionaire->compare(wrap, array64, num_cmps, this_l - 1, true,
                                  false, this->b);

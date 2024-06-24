@@ -55,3 +55,8 @@ FXP_SCALE=12
 SS_BITLEN=37
 # number of threads (should <= 4 for the SCI)
 NUM_THREADS=16
+
+# Default number of triples for buffer
+NTRIPS_2_SQNET=15991328
+NTRIPS_P_SQNET=5342112
+

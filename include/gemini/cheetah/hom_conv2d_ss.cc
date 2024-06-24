@@ -4,8 +4,19 @@
 #include <seal/util/polyarithsmallmod.h>
 #include <seal/util/rlwe.h>
 #include <functional>
-#include "gemini/cheetah/hom_conv2d_core.cuh"
 #include "gemini/cheetah/tensor_encoder.h"
+
+#if CONV_USE_CUDA
+#include "gemini/cheetah/hom_conv2d_core.cuh"
+#else
+#include <seal/seal.h>
+#include <seal/secretkey.h>
+
+#include "gemini/core/logging.h"
+#include "gemini/core/types.h"
+#include "gemini/core/common.h"
+#include "gemini/core/util/ThreadPool.h"
+#endif
 
 
 

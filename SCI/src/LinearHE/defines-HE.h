@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include <cstdint>
 #include <cmath>
-// #define HE_DEBUG
+#define HE_DEBUG
 
 extern uint64_t prime_mod;
 extern int32_t bitlength;

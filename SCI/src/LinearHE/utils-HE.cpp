@@ -104,9 +104,9 @@ void generate_new_keys(int party, NetIO *io, int slot_count,
     stringstream is_sk;
     SecretKey sec_key;
     is_sk.write(key_share_sk, sk_size);
-    sec_key.load(context_, is_sk);
+    sec_key.load(*context_, is_sk);
     delete[] key_share_sk;
-    decryptor_ = new Decryptor(context_, sec_key);
+    decryptor_ = new Decryptor(*context_, sec_key);
 #endif
   }
 

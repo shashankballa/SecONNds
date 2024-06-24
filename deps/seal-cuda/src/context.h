@@ -7,7 +7,7 @@
 #include <memory>
 #include <unordered_map>
 
-#define USE_CHEETAH 1
+#define _USE_CHEETAH 0
 
 namespace troy {
 

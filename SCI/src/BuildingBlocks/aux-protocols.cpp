@@ -316,7 +316,8 @@ void AuxProtocols::AND(uint8_t *x, uint8_t *y, uint8_t *z, int32_t size) {
 
   // assert((size % 8) == 0);
   Triple triples_std(size, true);
-  this->mill->triple_gen->generate(party, &triples_std, _16KKOT_to_4OT);
+  // this->mill->triple_gen->generate(party, &triples_std, _16KKOT_to_4OT);
+  this->mill->triple_gen->get(party, &triples_std);
 
   uint8_t *ei = new uint8_t[(size) / 8];
   uint8_t *fi = new uint8_t[(size) / 8];

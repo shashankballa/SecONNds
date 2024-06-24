@@ -296,7 +296,8 @@ public:
     Triple triples_corr((num_triples)*num_cmps, true, num_cmps);
 
     // Generate required Bit-Triples
-    triple_gen->generate(party, &triples_corr, _8KKOT);
+    // triple_gen->generate(party, &triples_corr, _8KKOT);
+    triple_gen->get(party, &triples_corr);
 
     // Combine leaf OT results in a bottom-up fashion
     int counter_triples_used = 0, old_counter_triples_used = 0;

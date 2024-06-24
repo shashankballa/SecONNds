@@ -276,7 +276,8 @@ public:
     Triple triples_std((num_triples)*num_eqs, true);
 
     // Generate required Bit-Triples
-    triple_gen->generate(party, &triples_std, _16KKOT_to_4OT);
+    // triple_gen->generate(party, &triples_std, _16KKOT_to_4OT);
+    triple_gen->get(party, &triples_std);
 
     // Combine leaf OT results in a bottom-up fashion
     int counter_triples_used = 0, old_counter_triples_used = 0;

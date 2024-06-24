@@ -473,7 +473,7 @@ namespace troy
         context_data_map_.emplace(make_pair(parms.parmsID(), make_shared<const ContextData>(validate(parms))));
         key_parms_id_ = parms.parmsID();
 
-#if USE_CHEETAH
+#if _USE_CHEETAH
         // Set first_parms_id_ to key_parms_id_.
         first_parms_id_ = key_parms_id_;
 #else

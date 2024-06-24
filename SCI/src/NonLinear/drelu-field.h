@@ -103,12 +103,12 @@ class DReLUFieldProtocol {
     uint8_t *leaf_res_eq;   // num_digits * num_cmps
 
     // To save number of rounds in WAN over slight increase in communication
-#if defined(WAN_EXEC) || USE_CHEETAH
+// #if defined(WAN_EXEC) || USE_CHEETAH
     Triple triples_std((num_triples)*num_cmps, true);
-#else
-    Triple triples_corr(num_triples_corr * num_cmps, true, num_cmps);
-    Triple triples_std(num_triples_std * num_cmps, true);
-#endif
+// #else
+//     Triple triples_corr(num_triples_corr * num_cmps, true, num_cmps);
+//     Triple triples_std(num_triples_std * num_cmps, true);
+// #endif
     digits = new uint8_t[num_digits * num_cmps];
     leaf_res_cmp = new uint8_t[num_digits * num_cmps];
     leaf_res_eq = new uint8_t[num_digits * num_cmps];

@@ -22,10 +22,10 @@ SOFTWARE.
 #ifndef OT_PACK_H__
 #define OT_PACK_H__
 
-#if USE_CHEETAH
+// #if USE_CHEETAH
 #include "OT/cheetah-ot_pack.h"
-#else
-#include "OT/cf2-ot_pack.h"
-#endif
+// #else
+// #include "OT/cf2-ot_pack.h"
+// #endif
 
 #endif  // OT_PACK_H__

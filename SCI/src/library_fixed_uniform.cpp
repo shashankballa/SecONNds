@@ -1411,7 +1411,6 @@ void ScaleUp(int32_t size, intType *arr, int32_t sf) {
   }
 }
 
-#if USE_NEW
 void funcTripleGenThread(int tid, bool enableBuffer, int64_t buffSize, int64_t chunkSize) {
   tripleGenArr[tid] = new TripleGenerator(((tid & 1) ? 3 - party : party), 
                                           ioArr[tid], otpackArr[tid], 
@@ -1434,96 +1433,82 @@ void funcTripleGenWrapper(bool enableBuffer, int64_t buffSize, int64_t chunkSize
   funcTripleGenThread(0, enableBuffer, buffSize, chunkSize);
 #endif
 }
-#endif
 
 void TripleGen(bool enableBuffer, int64_t buffSize, int64_t chunkSize){
-  printf("Generating triples ...\n");
 
-#if USE_NEW
 #if TRIPGEN_PRINT_COMM || TRIPGEN_PRINT_TIME
-std::string f_tag = "NEW | 3Gen";
+  std::string f_tag = "TripleGen";
 #endif
 #if TRIPGEN_PRINT_COMM
-int _wcomm = 10;
-std::stringstream log_comm;
-uint64_t start_comm = 0;
+  int _wcomm = 10;
+  std::stringstream log_comm;
+  uint64_t start_comm = 0;
 #if defined(MULTITHREADED_NONLIN) || defined(MULTITHREADED_TRUNC)
-for (int i = 0; i < num_threads; i++) start_comm += ioArr[i]->counter;
+  for (int i = 0; i < num_threads; i++) start_comm += ioArr[i]->counter;
 #else
-start_comm = ioArr[0]->counter;
+  start_comm = ioArr[0]->counter;
 #endif
-uint64_t total_comm = 0;
-log_comm << "P" << party << " COMM | ";
-log_comm << f_tag;
-log_comm << ": enableBuffer = " << std::boolalpha << enableBuffer;
-log_comm << ", buffSize = " << buffSize;
-log_comm << ", chunkSize = " << chunkSize;
-log_comm << std::endl;
+  uint64_t total_comm = 0;
+  log_comm << "P" << party << " COMM | ";
+  log_comm << f_tag;
+  log_comm << ": enableBuffer = " << std::boolalpha << enableBuffer;
+  log_comm << ", buffSize = " << buffSize;
+  log_comm << ", chunkSize = " << chunkSize;
+  log_comm << std::endl;
 #endif
 #if TRIPGEN_PRINT_TIME
-int _wtime = 10;
-std::stringstream log_time;
-auto start = std::chrono::system_clock::now();
-auto end   = std::chrono::system_clock::now();
-std::chrono::duration<double> total_time = end - start;
-log_time << "P" << party << " TIME | ";
-log_time << f_tag;
-log_time << ": enableBuffer = " << std::boolalpha << enableBuffer;
-log_time << ", buffSize = " << buffSize;
-log_time << ", chunkSize = " << chunkSize;
-log_time << std::endl;
+  int _wtime = 10;
+  std::stringstream log_time;
+  auto start = std::chrono::system_clock::now();
+  auto end   = std::chrono::system_clock::now();
+  std::chrono::duration<double> total_time = end - start;
+  log_time << "P" << party << " TIME | ";
+  log_time << f_tag;
+  log_time << ": enableBuffer = " << std::boolalpha << enableBuffer;
+  log_time << ", buffSize = " << buffSize;
+  log_time << ", chunkSize = " << chunkSize;
+  log_time << std::endl;
 #endif
 
   funcTripleGenWrapper(enableBuffer, buffSize, chunkSize);
   tripleGen = tripleGenArr[0];
 
 #if TRIPGEN_PRINT_TIME
-end = std::chrono::system_clock::now();
-std::chrono::duration<double> refill_time = end - (start + total_time);
-total_time += refill_time;
-log_time << "P" << party << " TIME | ";
-log_time << f_tag;
-log_time << ": refill = " << std::setw(_wtime) << refill_time.count() * 1000;
-log_time << " ms";
-log_time << std::endl;
+  end = std::chrono::system_clock::now();
+  std::chrono::duration<double> refill_time = end - (start + total_time);
+  total_time += refill_time;
+  log_time << "P" << party << " TIME | ";
+  log_time << f_tag;
+  log_time << ": refill = " << std::setw(_wtime) << refill_time.count() * 1000;
+  log_time << " ms";
+  log_time << std::endl;
 #endif
 #if TRIPGEN_PRINT_COMM
-uint64_t refill_comm = 0;
+  uint64_t refill_comm = 0;
 #if defined(MULTITHREADED_NONLIN) || defined(MULTITHREADED_TRUNC)
-for (int i = 0; i < num_threads; i++) refill_comm += ioArr[i]->counter;
+  for (int i = 0; i < num_threads; i++) refill_comm += ioArr[i]->counter;
 #else
-refill_comm = ioArr[0]->counter;
+  refill_comm = ioArr[0]->counter;
 #endif
-refill_comm = refill_comm - (start_comm + total_comm);
-total_comm += refill_comm;
-log_comm << "P" << party << " COMM | ";
-log_comm << f_tag;
-log_comm << ": refill = " << std::setw(_wcomm) << refill_comm;
-log_comm << " bytes";
-log_comm << std::endl;
+  refill_comm = refill_comm - (start_comm + total_comm);
+  total_comm += refill_comm;
+  log_comm << "P" << party << " COMM | ";
+  log_comm << f_tag;
+  log_comm << ": refill = " << std::setw(_wcomm) << refill_comm;
+  log_comm << " bytes";
+  log_comm << std::endl;
 #endif
 #if TRIPGEN_PRINT_COMM
-std::cout << log_comm.str();
+  std::cout << log_comm.str();
 #endif
 #if TRIPGEN_PRINT_TIME
-std::cout << log_time.str();
-#endif
-#else
-  for (int i = 0; i < num_threads; i++) {
-    if (i & 1) {
-      tripleGenArr[i] = new TripleGenerator(3 - party, ioArr[i], otpackArr[i]);
-    } else {
-      tripleGenArr[i] = new TripleGenerator(party, ioArr[i], otpackArr[i]);
-    }
-  }
-  tripleGen = tripleGenArr[0];
+  std::cout << log_time.str();
 #endif
 }
 
 void ConnectAndSetUp(){
   assert(bitlength < 64 && bitlength > 0);
   assert(num_threads <= MAX_THREADS);
-  std::string backend;
 
   std::cout << "ConnectAndSetUp() called with"
             << " bitlength = " << bitlength
@@ -1531,7 +1516,6 @@ void ConnectAndSetUp(){
             << std::endl;
 
 #ifdef SCI_HE
-  backend = "PrimeField";
   auto kv = sci::default_prime_mod.find(bitlength);
   if (kv == sci::default_prime_mod.end()) {
     bitlength = 41;
@@ -1543,13 +1527,6 @@ void ConnectAndSetUp(){
   prime_mod = (bitlength == 64 ? 0ULL : 1ULL << bitlength);
   moduloMask = prime_mod - 1;
   moduloMidPt = prime_mod / 2;
-  backend = "Ring";
-#endif
-
-#if USE_CHEETAH
-  backend += "-SilentOT";
-#else
-  backend += "-OT";
 #endif
 
   checkIfUsingEigen();
@@ -1580,21 +1557,21 @@ void ConnectAndSetUp(){
   prg128Instance = new sci::PRG128();
 
 #if USE_CHEETAH
-  backend += "-Cheetah";
   int n_gemini_thrds = num_threads;
   cheetah_linear = new gemini::CheetahLinear(party, io, prime_mod, n_gemini_thrds);
 #elif defined(SCI_HE)
-  backend += "-SCI_HE";
   he_conv = new ConvField(party, io);
-#elif defined(SCI_OT)
-  backend += "-SCI_OT";
 #endif
   doneConnectAndSetUp = true;
 }
 
-void GenerateTriples(int log_num_triples){
-  bool enableBuffer = log_num_triples >= 3;
-  int64_t buffer_size = 1ULL << (log_num_triples - (int64_t) std::ceil(std::log2(num_threads)));
+void GenerateTriples(int num_triples){
+  // printf("Generating triples ...\n");
+  std::cout << "GenerateTriples() called with num_triples = " << num_triples 
+    << ", num_threads = " << num_threads
+    << std::endl;
+  bool enableBuffer = num_triples >= 3;
+  int64_t buffer_size = num_triples;
   buffer_size = enableBuffer ? buffer_size : 0;
   TripleGen(enableBuffer, buffer_size, buffer_size);
   doneGenerateTriples = true;
@@ -1617,11 +1594,11 @@ void StartComputation() {
 #elif SCI_OT
   backend = "Ring";
 #endif
-#if USE_CHEETAH
+// #if USE_CHEETAH
   backend += "-SilentOT";
-#else
-  backend += "-OT";
-#endif
+// #else
+//   backend += "-OT";
+// #endif
 #if USE_CHEETAH
   backend += "-Cheetah";
 #elif defined(SCI_HE)
@@ -1634,7 +1611,7 @@ void StartComputation() {
   std::cout 
     << "SCI_OT"
     << ": initializing "
-    << "tripleGen, "
+    // << "tripleGen, "
     // << "mult, "
     // << "truncation, "
     // << "multUniform, "
@@ -1676,9 +1653,9 @@ void StartComputation() {
 
 #if defined MULTITHREADED_NONLIN && defined SCI_OT
   std::cout 
-    << "MULTITHREADED_NONLIN && SCI_OT"
-    << ": num_threads = " << num_threads
-    << ", initializing tripleGenArr, reluArr, maxpoolArr, multArr, truncationArr"
+    << "MULTITHREADED_NONLIN && SCI_OT "
+    << "num_threads = " << num_threads
+    << ": initializing reluArr, maxpoolArr, multArr, truncationArr"
     << std::endl;
 
   for (int i = 0; i < num_threads; i++) {
@@ -1794,7 +1771,7 @@ void EndComputation() {
   for (int i = 0; i < num_threads; i++) {
     auto temp = ioArr[i]->counter;
     std::cout << "Thread i = " << i << ", total data sent = " << temp
-              << ", 3Gen Buffer pointer = " << tripleGenArr[i]->buffPtr
+              << ", 3Gen Buffer pointer = " << tripleGenArr[i]->getBufferPointer()
               << std::endl;
     totalComm += (temp - comm_threads[i]);
   }
