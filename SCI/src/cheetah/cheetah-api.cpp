@@ -486,8 +486,13 @@ void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
     recv_encrypted_vector(io_, *context_, ct_buff, false);
 
     std::vector<seal::Ciphertext> out_ct;
+#if CONV_USE_CUDA
+    auto code = impl.conv2DSSCu(ct_buff, encoded_share, encoded_filters, meta,
+                      out_ct, out_tensor, nthreads_, conv_ntt, conv_ntt, conv_ntt);
+#else
     auto code = impl.conv2DSS(ct_buff, encoded_share, encoded_filters, meta,
                       out_ct, out_tensor, nthreads_, conv_ntt, conv_ntt, conv_ntt);
+#endif
     if (code != Code::OK) {
       throw std::runtime_error("CheetahLinear::conv2d conv2DSS: " +
                                CodeMessage(code));

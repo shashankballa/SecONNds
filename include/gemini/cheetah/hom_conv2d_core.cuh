@@ -22,7 +22,7 @@
 namespace gemini {
 
   size_t maxThreadsHE = 16;
-  struct MetaHE {
+  struct MetaCu {
     size_t n_filters;
     size_t stride;
     bool is_shared_input;
@@ -126,7 +126,7 @@ namespace gemini {
       << "\t+ " << "isInitializedCuda() = " 
       << std::boolalpha << isInitializedCuda()
       << "\n"
-      ;
+    ;
 #endif
 
     if(!isInitializedCuda()) troy::KernelProvider::initialize();
@@ -138,7 +138,7 @@ namespace gemini {
       << "\t+ " << "isInitializedCuda() = "
       << std::boolalpha << isInitializedCuda()
       << "\n"
-      ;
+    ;
 #endif
   }
 
@@ -149,7 +149,7 @@ namespace gemini {
 #if LOG_CUDA
     std::cout << "seal2cudaContext() called..."
       << "\n"
-      ; 
+    ; 
 #endif
     // recreate troy encryption parms from seal parms
     const size_t polyn_mod = poly_degree(context);
@@ -171,7 +171,7 @@ namespace gemini {
       << "\n"
       << "\t+ " << "n_spl_prime = " << n_spl_prime 
       << "\n"
-      ;
+    ;
 #endif
   }
 
@@ -182,7 +182,7 @@ namespace gemini {
 #if LOG_CUDA
     std::cout << "setUpEvalCu() called..."
       << "\n"
-      ;
+    ;
 #endif
 
     if(!isInitializedCuda()) initializeCuda();
@@ -196,7 +196,7 @@ namespace gemini {
 #if LOG_CUDA
     std::cout << "setUpEvalCu() done!"
       << "\n"
-      ;
+    ;
 #endif
 
   }
@@ -213,7 +213,7 @@ namespace gemini {
 
     // save the data from seal plaintext to stream
     std::stringstream ss;
-    plain.save(ss, seal::compr_mode_type::none);
+    plain.save_wo_header(ss);
 
 #if LOG_CUDA
     total_bytes_saved += ss.str().size();
@@ -243,7 +243,7 @@ namespace gemini {
     total_bytes_saved = 0;
     std::cout << "seal2cudaPt2D() called..." 
       << "\n" 
-      ;
+    ;
 #endif
 
     std::vector<std::vector<troy::PlaintextCuda>> pt2d;
@@ -258,7 +258,7 @@ namespace gemini {
       << "\n" 
       << "\t+ " << "total_bytes_saved = " << total_bytes_saved
       << "\n"
-      ;
+    ;
 #endif
 
     return pt2d;
@@ -266,8 +266,7 @@ namespace gemini {
 
   // function to convert cuda plaintext to seal plaintext
   inline seal::Plaintext cuda2sealPt(
-      const troy::PlaintextCuda &plain, 
-      const std::shared_ptr<seal::SEALContext> context) {
+      const troy::PlaintextCuda &plain) {
 
     seal::Plaintext pt;
 
@@ -280,21 +279,20 @@ namespace gemini {
 #endif
 
     // load the data from stream to seal plaintext
-    // pt.load(*context, ss);
-
+    pt.load_wo_header(ss);
+    
     return pt;
   }
 
   inline std::vector<seal::Plaintext> 
     cuda2sealPt1D(
-      const std::vector<troy::PlaintextCuda> &plain1d, 
-      const std::shared_ptr<seal::SEALContext> context) {
+      const std::vector<troy::PlaintextCuda> &plain1d) {
 
     std::vector<seal::Plaintext> pt1d;
     pt1d.resize(plain1d.size());
 
     for (size_t i = 0; i < plain1d.size(); ++i) {
-        pt1d[i] = cuda2sealPt(plain1d[i], context);
+        pt1d[i] = cuda2sealPt(plain1d[i]);
     }
 
     return pt1d;
@@ -302,8 +300,7 @@ namespace gemini {
 
   inline std::vector<std::vector<seal::Plaintext>> 
     cuda2sealPt2D(
-      const std::vector<std::vector<troy::PlaintextCuda>> &plain2d, 
-      const std::shared_ptr<seal::SEALContext> context) {
+      const std::vector<std::vector<troy::PlaintextCuda>> &plain2d) {
 
 #if LOG_CUDA
     total_bytes_saved = 0;
@@ -313,14 +310,14 @@ namespace gemini {
       << "\n"
       << "\t+ " << "sizeof(ParmsID) = " << sizeof(troy::ParmsID)
       << "\n"
-      ;
+    ;
 #endif
 
     std::vector<std::vector<seal::Plaintext>> pt2d;
     pt2d.resize(plain2d.size());
 
     for (size_t i = 0; i < plain2d.size(); ++i) {
-        pt2d[i] = cuda2sealPt1D(plain2d[i], context);
+        pt2d[i] = cuda2sealPt1D(plain2d[i]);
     }
 
 #if LOG_CUDA
@@ -328,28 +325,146 @@ namespace gemini {
       << "\n" 
       << "\t+ " << "total_bytes_saved = " << total_bytes_saved
       << "\n"
-      ;
+    ;
 #endif
 
     return pt2d;
   }
 
-    void filToNttCu(
-      const troy::SEALContextCuda *contextCu,
-      const troy::EvaluatorCuda *evaluatorCu,
-      std::vector<std::vector<troy::PlaintextCuda>> &filPtCu) {
+  // Converts a seal ciphertext to a cuda ciphertext
+  inline troy::CiphertextCuda seal2cudaCt(const seal::Ciphertext &ct) {
 
-      const size_t M = filPtCu.size();
-      const size_t N = filPtCu.at(0).size();
-      
-      for (size_t i = 0; i < M; ++i) {
-          for (size_t j = 0; j < N; ++j) {
-              evaluatorCu->transformToNttInplace(
-                  filPtCu[i][j], 
-                  contextCu->firstContextData()->parmsID()
-              );
-          }
+    troy::CiphertextCuda ctCu;
+
+    // save the data from seal ciphertext to stream
+    std::stringstream ss;
+    ct.save_wo_header(ss);
+
+#if LOG_CUDA
+    total_bytes_saved += ss.str().size();
+#endif
+
+    // load the data from stream to cuda ciphertext
+    ctCu.load(ss);
+
+    return ctCu;
+  }
+
+  inline std::vector<troy::CiphertextCuda> seal2cudaCt1D(const std::vector<seal::Ciphertext> &ct1d) {
+
+    std::vector<troy::CiphertextCuda> ct1dCu;
+    ct1dCu.resize(ct1d.size());
+
+    for (size_t i = 0; i < ct1d.size(); ++i) {
+        ct1dCu[i] = seal2cudaCt(ct1d[i]);
+    }
+
+    return ct1dCu;
+  }
+
+  inline std::vector<std::vector<troy::CiphertextCuda>> seal2cudaCt2D(const std::vector<std::vector<seal::Ciphertext>> &ct2d) {
+
+#if LOG_CUDA
+    total_bytes_saved = 0;
+    std::cout << "seal2cudaCt2D() called..." 
+      << "\n" 
+    ;
+#endif
+
+    std::vector<std::vector<troy::CiphertextCuda>> ct2dCu;
+    ct2dCu.resize(ct2d.size());
+
+    for (size_t i = 0; i < ct2d.size(); ++i) {
+        ct2dCu[i] = seal2cudaCt1D(ct2d[i]);
+    }
+
+#if LOG_CUDA
+    std::cout << "seal2cudaCt2D() done!" 
+      << "\n" 
+      << "\t+ " << "total_bytes_saved = " << total_bytes_saved
+      << "\n"
+    ;
+#endif
+
+    return ct2dCu;
+  }
+
+  // Converts a cuda ciphertext to a seal ciphertext
+  inline seal::Ciphertext cuda2sealCt(const troy::CiphertextCuda &ct) {
+
+    seal::Ciphertext ctSeal;
+
+    // save the data from cuda ciphertext to stream
+    std::stringstream ss;
+    ct.save(ss);
+
+#if LOG_CUDA
+    total_bytes_saved += ss.str().size();
+#endif
+
+    // load the data from stream to seal ciphertext
+    ctSeal.load_wo_header(ss);
+
+    return ctSeal;
+  }
+
+  inline std::vector<seal::Ciphertext> cuda2sealCt1D(const std::vector<troy::CiphertextCuda> &ct1d) {
+
+    std::vector<seal::Ciphertext> ct1dSeal;
+    ct1dSeal.resize(ct1d.size());
+
+    for (size_t i = 0; i < ct1d.size(); ++i) {
+        ct1dSeal[i] = cuda2sealCt(ct1d[i]);
+    }
+
+    return ct1dSeal;
+  }
+
+  inline std::vector<std::vector<seal::Ciphertext>> cuda2sealCt2D(const std::vector<std::vector<troy::CiphertextCuda>> &ct2d) {
+
+#if LOG_CUDA
+    total_bytes_saved = 0;
+    std::cout << "cuda2sealCt2D() called..." 
+      << "\n" 
+    ;
+#endif
+
+    std::vector<std::vector<seal::Ciphertext>> ct2dSeal;
+    ct2dSeal.resize(ct2d.size());
+
+    for (size_t i = 0; i < ct2d.size(); ++i) {
+        ct2dSeal[i] = cuda2sealCt1D(ct2d[i]);
+    }
+
+#if LOG_CUDA
+    std::cout << "cuda2sealCt2D() done!" 
+      << "\n" 
+      << "\t+ " << "total_bytes_saved = " << total_bytes_saved
+      << "\n"
+    ;
+#endif
+  
+    return ct2dSeal;
+  } 
+
+
+
+  void filToNttCu(
+    const troy::SEALContextCuda *contextCu,
+    const troy::EvaluatorCuda *evaluatorCu,
+    std::vector<std::vector<troy::PlaintextCuda>> &filPtCu) {
+
+    const size_t M = filPtCu.size();
+    const size_t N = filPtCu.at(0).size();
+    
+    for (size_t i = 0; i < M; ++i) {
+      for (size_t j = 0; j < N; ++j) {
+        evaluatorCu->transformToNttInplace(
+          filPtCu[i][j], 
+          contextCu->firstContextData()->parmsID()
+        );
       }
+    }
   }
 
   void filToNttCuSealWrap(
@@ -379,16 +494,15 @@ namespace gemini {
 
     filToNttCu(contextCu, evaluatorCu, filPtCu);
 
-    encoded_filters = cuda2sealPt2D(filPtCu, context);
+    encoded_filters = cuda2sealPt2D(filPtCu);
   }
-
 
   size_t conv2DOneFilter(
       const std::shared_ptr<seal::SEALContext> context,
       const std::shared_ptr<seal::Evaluator> evaluator,
       const std::vector<seal::Ciphertext> &image,
       const std::vector<seal::Plaintext> &filter,
-      const MetaHE &meta,
+      const MetaCu &meta,
       seal::Ciphertext *out_buff,
       size_t out_buff_sze,
       bool fill_ntt) {
@@ -456,7 +570,7 @@ namespace gemini {
       const std::shared_ptr<seal::Evaluator> evaluator,
       const std::vector<seal::Ciphertext> &img_share0,
       const std::vector<seal::Plaintext> &img_share1,
-      const std::vector<std::vector<seal::Plaintext>> &filters, const MetaHE &meta,
+      const std::vector<std::vector<seal::Plaintext>> &filters, const MetaCu &meta,
       std::vector<seal::Ciphertext> &out_share0,
       size_t n_one_channel, size_t nthreads, bool in_ntt, bool fil_ntt, bool out_ntt) {
         
@@ -477,12 +591,6 @@ namespace gemini {
       ENSURE_OR_RETURN(img_share0.size() == img_share1.size(),
                       Code::ERR_DIM_MISMATCH);
     }
-
-    // TensorShape out_shape = GetConv2DOutShape(meta);
-    // if (out_shape.num_elements() == 0) {
-    //   LOG(WARNING) << "conv2DSS: empty out_shape";
-    //   return Code::ERR_CONFIG;
-    // }
 
     auto tl_pool =
         seal::MemoryManager::GetPool(seal::mm_prof_opt::mm_force_thread_local);
@@ -520,14 +628,10 @@ namespace gemini {
       }
       return Code::OK;
     };
+
     if(in_ntt) {
       CHECK_ERR(LaunchWorks(tpool, image.size(), to_ntt_program), "to_ntt");
     }
-
-    // const size_t N = poly_degree(context);
-    // ConvCoeffIndexCalculator indexer(N, meta.ishape, meta.fshape, meta.padding,
-    //                                 meta.stride);
-    // const size_t n_one_channel = indexer.slice_size(1) * indexer.slice_size(2);
     
     const size_t n_out_ct = meta.n_filters * n_one_channel;
     out_share0.resize(n_out_ct);
@@ -562,26 +666,88 @@ namespace gemini {
       CHECK_ERR(LaunchWorks(tpool, out_share0.size(), from_ntt_program), "from_ntt");
     }
 
-/* [TODO] move to new function for post-processing
-    out_share1.Reshape(out_shape);
-    addRandomMask(out_share0, out_share1, meta, nthreads);
+    return Code::OK;
+  }
 
-    if (scheme() == seal::scheme_type::bfv) {
-      auto truncate_program = [&](long wid, size_t start, size_t end) {
-        for (size_t cid = start; cid < end; ++cid) {
-          truncate_for_decryption(out_share0[cid], *evaluator_, *context_);
-        }
-        return Code::OK;
-      };
+  void conv2DOneFilter(
+      const troy::SEALContextCuda *contextCu,
+      const troy::EvaluatorCuda *evaluatorCu,
+      const std::vector<troy::CiphertextCuda> &image,
+      const std::vector<troy::PlaintextCuda> &filter,
+      troy::CiphertextCuda *out_buff,
+      size_t out_buff_sze,
+      bool fill_ntt) {
 
-      CHECK_ERR(LaunchWorks(tpool, out_share0.size(), truncate_program),
-                "conv2D");
+    const size_t out_size = image.size() / filter.size();
+
+    const size_t accum_cnt = filter.size();
+    for (size_t i = 0; i < out_size; ++i) {
+      out_buff[i].release();
     }
 
-    // Post-processing for compressing out_ct volume.
-    removeUnusedCoeffs(out_share0, meta);
-*/
+    for (size_t c = 0; c < accum_cnt; ++c) {
 
-    return Code::OK;
+      troy::PlaintextCuda _filter = filter[c]; 
+      if (_filter.isZero()) {
+        continue;
+      }
+
+      if (fill_ntt) {
+        evaluatorCu->transformToNttInplace(_filter, contextCu->firstContextData()->parmsID());
+      }
+
+      for (size_t i = 0; i < out_size; ++i) {
+        size_t ii = c * out_size + i;
+        size_t o = ii % out_size;
+
+        if (out_buff[o].size() > 0) {
+          auto cpy_ct{image.at(ii)};
+          evaluatorCu->multiplyPlainInplace(cpy_ct, _filter);
+          evaluatorCu->addInplace(out_buff[o], cpy_ct);
+        } else {
+          evaluatorCu->multiplyPlain(image.at(ii), _filter, out_buff[o]);
+        }
+      }
+    }
+  }
+
+  void conv2DCu(
+      const troy::SEALContextCuda *contextCu,
+      const troy::EvaluatorCuda *evaluatorCu,
+      const std::vector<troy::CiphertextCuda> &imgShare0,
+      const std::vector<troy::PlaintextCuda> &imgShare1,
+      const std::vector<std::vector<troy::PlaintextCuda>> &filPtCu,
+      const MetaCu &meta, 
+      std::vector<troy::CiphertextCuda> &outShare0, 
+      size_t n_one_channel, bool in_ntt, bool fil_ntt, bool out_ntt) {
+
+    std::vector<troy::CiphertextCuda> imageCu;
+    if (meta.is_shared_input) {
+      imageCu.resize(imgShare0.size());
+      for (size_t i = 0; i < imgShare0.size(); ++i) {
+        evaluatorCu->addPlain(imgShare0[i], imgShare1[i], imageCu[i]);
+      }
+    } else {
+      imageCu = imgShare0;
+    }
+
+    if (in_ntt) {
+      for (size_t i = 0; i < imageCu.size(); ++i) {
+        evaluatorCu->transformToNttInplace(imageCu[i]);
+      }
+    }
+
+    const size_t n_out_ct = meta.n_filters * n_one_channel;
+    outShare0.resize(n_out_ct);
+    for (size_t m = 0; m < meta.n_filters; ++m) {
+      troy::CiphertextCuda *ct_start = &outShare0.at(m * n_one_channel);
+      conv2DOneFilter(contextCu, evaluatorCu, imageCu, filPtCu[m], ct_start, n_one_channel, fil_ntt);
+    }
+
+    if (out_ntt) {
+      for (size_t i = 0; i < outShare0.size(); ++i) {
+        evaluatorCu->transformFromNttInplace(outShare0[i]);
+      }
+    }
   }
 }  // namespace gemini
