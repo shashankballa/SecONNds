@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 0039517..17ac79f 100644
+index 03d2b5da..3272ec02 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -223,7 +223,7 @@ if(SEAL_USE_INTEL_HEXL)
@@ -11,7 +11,7 @@ index 0039517..17ac79f 100644
          if (NOT TARGET HEXL::hexl)
              message(FATAL_ERROR "Intel HEXL: not found")
          endif()
-@@ -418,7 +418,7 @@ if(NOT BUILD_SHARED_LIBS)
+@@ -425,7 +425,7 @@ if(NOT BUILD_SHARED_LIBS)
              add_dependencies(seal HEXL::hexl)
              target_include_directories(seal PRIVATE
                  $<BUILD_INTERFACE:$<TARGET_PROPERTY:HEXL::hexl,INTERFACE_INCLUDE_DIRECTORIES>>)
@@ -20,9 +20,76 @@ index 0039517..17ac79f 100644
              get_target_property(HEXL_INTERFACE_LINK_OPTIONS HEXL::hexl INTERFACE_LINK_OPTIONS)
              if (NOT "${HEXL_INTERFACE_LINK_OPTIONS}" STREQUAL "HEXL_INTERFACE_LINK_OPTIONS-NOTFOUND")
                  target_link_libraries(seal INTERFACE ${HEXL_INTERFACE_LINK_OPTIONS})
-
+diff --git a/native/src/seal/ciphertext.cpp b/native/src/seal/ciphertext.cpp
+index 32de30f6..77872bd6 100644
+--- a/native/src/seal/ciphertext.cpp
++++ b/native/src/seal/ciphertext.cpp
+@@ -372,4 +372,49 @@ namespace seal
+ 
+         swap(*this, new_data);
+     }
++
++    template <typename T>
++    inline void _savet(std::ostream& stream, const T* obj) {
++        stream.write(reinterpret_cast<const char*>(obj), sizeof(T));
++    }
++    
++    template <typename T>
++    inline void _loadt(std::istream& stream, T* obj) {
++        stream.read(reinterpret_cast<char*>(obj), sizeof(T));
++    }
++
++    void Ciphertext::save_wo_header(std::ostream& stream) const {
++        _savet(stream, &parms_id_);
++        _savet(stream, &is_ntt_form_);
++        _savet(stream, &size_);
++        _savet(stream, &poly_modulus_degree_);
++        _savet(stream, &coeff_modulus_size_);
++        _savet(stream, &scale_);
++        _savet(stream, &correction_factor_);
++        uint64_t seed_ = 0;
++        _savet(stream, &seed_);
++        bool terms = false;
++        _savet(stream, &terms);
++        size_t dataSize = data_.size();
++        _savet(stream, &dataSize);
++        stream.write(reinterpret_cast<const char*>(data_.begin()), sizeof(Ciphertext::ct_coeff_type) * data_.size());
++    }
++
++    void Ciphertext::load_wo_header(std::istream& stream) {
++        uint64_t seed_ = 0;
++        _loadt(stream, &parms_id_);
++        _loadt(stream, &is_ntt_form_);
++        _loadt(stream, &size_);
++        _loadt(stream, &poly_modulus_degree_);
++        _loadt(stream, &coeff_modulus_size_);
++        _loadt(stream, &scale_);
++        _loadt(stream, &correction_factor_);
++        uint64_t seed; _loadt(stream, &seed);
++        bool terms; _loadt(stream, &terms);
++        if (terms) throw std::invalid_argument("Trying to load a termed ciphertext, but indices is not specified");
++        size_t dataSize;
++        _loadt(stream, &dataSize);
++        data_.resize(dataSize);
++        stream.read(reinterpret_cast<char*>(data_.begin()), dataSize * sizeof(Ciphertext::ct_coeff_type));
++    }
+ } // namespace seal
+diff --git a/native/src/seal/ciphertext.h b/native/src/seal/ciphertext.h
+index c1c56954..5ac9f479 100644
+--- a/native/src/seal/ciphertext.h
++++ b/native/src/seal/ciphertext.h
+@@ -681,6 +681,9 @@ namespace seal
+         */
+         struct CiphertextPrivateHelper;
+ 
++        void save_wo_header(std::ostream& stream) const;
++        void load_wo_header(std::istream& stream);
++
+     private:
+         void reserve_internal(
+             std::size_t size_capacity, std::size_t poly_modulus_degree, std::size_t coeff_modulus_size);
 diff --git a/native/src/seal/context.cpp b/native/src/seal/context.cpp
-index c14b2b9..6cb9307 100644
+index 887a1312..a0caf15d 100644
 --- a/native/src/seal/context.cpp
 +++ b/native/src/seal/context.cpp
 @@ -477,7 +477,8 @@ namespace seal
@@ -35,9 +102,8 @@ index c14b2b9..6cb9307 100644
          {
              first_parms_id_ = key_parms_id_;
          }
-
 diff --git a/native/src/seal/encryptionparams.cpp b/native/src/seal/encryptionparams.cpp
-index 923765b..a3bc308 100644
+index 31e07441..fd7caa76 100644
 --- a/native/src/seal/encryptionparams.cpp
 +++ b/native/src/seal/encryptionparams.cpp
 @@ -23,9 +23,11 @@ namespace seal
@@ -69,12 +135,11 @@ index 923765b..a3bc308 100644
          for (const auto &mod : coeff_modulus_)
          {
              *param_data_ptr++ = mod.value();
-
 diff --git a/native/src/seal/encryptionparams.h b/native/src/seal/encryptionparams.h
-index 09bbdbf..908635e 100644
+index 9e1fbe48..06943164 100644
 --- a/native/src/seal/encryptionparams.h
 +++ b/native/src/seal/encryptionparams.h
-@@ -205,6 +205,16 @@ namespace seal
+@@ -206,6 +206,16 @@ namespace seal
              compute_parms_id();
          }
  
@@ -91,8 +156,8 @@ index 09bbdbf..908635e 100644
          /**
          Sets the plaintext modulus parameter. The plaintext modulus is an integer
          modulus represented by the Modulus class. The plaintext modulus
-@@ -305,6 +315,14 @@ namespace seal
-             return random_generator_;
+@@ -314,6 +324,14 @@ namespace seal
+             return parms_id_;
          }
  
 +        /**
@@ -106,7 +171,7 @@ index 09bbdbf..908635e 100644
          /**
          Compares a given set of encryption parameters to the current set of
          encryption parameters. The comparison is performed by comparing the
-@@ -490,6 +508,8 @@ namespace seal
+@@ -493,6 +511,8 @@ namespace seal
  
          scheme_type scheme_;
  
@@ -115,13 +180,84 @@ index 09bbdbf..908635e 100644
          std::size_t poly_modulus_degree_ = 0;
  
          std::vector<Modulus> coeff_modulus_{};
-
+diff --git a/native/src/seal/plaintext.cpp b/native/src/seal/plaintext.cpp
+index 2f4f6a8c..e9a80498 100644
+--- a/native/src/seal/plaintext.cpp
++++ b/native/src/seal/plaintext.cpp
+@@ -300,4 +300,53 @@ namespace seal
+ 
+         swap(*this, new_data);
+     }
++
++    void Plaintext::save_wo_header(std::ostream &stream) const {
++        auto old_except_mask = stream.exceptions();
++        try {
++            stream.exceptions(ios_base::badbit | ios_base::failbit);
++            stream.write(reinterpret_cast<const char *>(&parms_id_), sizeof(parms_id_type));
++            uint64_t coeff_count64 = static_cast<uint64_t>(coeff_count_);
++            stream.write(reinterpret_cast<const char *>(&coeff_count64), sizeof(uint64_t));
++            stream.write(reinterpret_cast<const char *>(&scale_), sizeof(double));
++            size_t dataSize = data_.size();
++            stream.write(reinterpret_cast<const char *>(&dataSize), sizeof(size_t));
++            stream.write(reinterpret_cast<const char*>(data_.begin()), sizeof(pt_coeff_type) * data_.size());
++        } catch (const std::ios_base::failure &) {
++            stream.exceptions(old_except_mask);
++            throw std::runtime_error("I/O error");
++        } catch (...) {
++            stream.exceptions(old_except_mask);
++            throw;
++        }
++        stream.exceptions(old_except_mask);
++    }
++    void Plaintext::load_wo_header(std::istream& stream) { 
++        Plaintext new_data(data_.pool());
++        auto old_except_mask = stream.exceptions();
++        try {
++            stream.exceptions(ios_base::badbit | ios_base::failbit);
++            parms_id_type parms_id{};
++            stream.read(reinterpret_cast<char *>(&parms_id), sizeof(parms_id_type));
++            uint64_t coeff_count64 = 0;
++            stream.read(reinterpret_cast<char *>(&coeff_count64), sizeof(uint64_t));
++            double scale = 0;
++            stream.read(reinterpret_cast<char *>(&scale), sizeof(double));
++            new_data.parms_id_ = parms_id;
++            new_data.coeff_count_ = static_cast<size_t>(coeff_count64);
++            new_data.scale_ = scale;
++            size_t dataSize;
++            stream.read(reinterpret_cast<char *>(&dataSize), sizeof(size_t));
++            new_data.data_.resize(dataSize);
++            stream.read(reinterpret_cast<char*>(new_data.data_.begin()), sizeof(pt_coeff_type) * dataSize);
++        } catch (const ios_base::failure &) {
++            stream.exceptions(old_except_mask);
++            throw runtime_error("I/O error");
++        } catch (...) {
++            stream.exceptions(old_except_mask);
++            throw;
++        }
++        stream.exceptions(old_except_mask);
++        swap(*this, new_data);
++    }
+ } // namespace seal
+diff --git a/native/src/seal/plaintext.h b/native/src/seal/plaintext.h
+index e4dedd0a..604d6b27 100644
+--- a/native/src/seal/plaintext.h
++++ b/native/src/seal/plaintext.h
+@@ -788,6 +788,9 @@ namespace seal
+         */
+         struct PlaintextPrivateHelper;
+ 
++        void save_wo_header(std::ostream& stream) const;
++        void load_wo_header(std::istream& stream);
++
+     private:
+         void save_members(std::ostream &stream) const;
+ 
 diff --git a/native/src/seal/util/rns.cpp b/native/src/seal/util/rns.cpp
-index 35e72ff..77e9acd 100644
+index c561a443..bda9c928 100644
 --- a/native/src/seal/util/rns.cpp
 +++ b/native/src/seal/util/rns.cpp
-@@ -1039,12 +1039,13 @@ namespace seal
-
+@@ -1132,12 +1132,13 @@ namespace seal
+ 
          void RNSTool::decrypt_scale_and_round(ConstRNSIter input, CoeffIter destination, MemoryPoolHandle pool) const
          {
 +            size_t n = input.poly_modulus_degree();
@@ -135,9 +271,9 @@ index 35e72ff..77e9acd 100644
              {
                  throw invalid_argument("input is not valid for encryption parameters");
              }
-@@ -1061,13 +1062,13 @@ namespace seal
+@@ -1154,13 +1155,13 @@ namespace seal
              size_t base_t_gamma_size = base_t_gamma_->size();
-
+ 
              // Compute |gamma * t|_qi * ct(s)
 -            SEAL_ALLOCATE_GET_RNS_ITER(temp, coeff_count_, base_q_size, pool);
 +            SEAL_ALLOCATE_GET_RNS_ITER(temp, n, base_q_size, pool);
@@ -145,14 +281,14 @@ index 35e72ff..77e9acd 100644
 -                multiply_poly_scalar_coeffmod(get<0>(I), coeff_count_, get<1>(I), get<2>(I), get<3>(I));
 +                multiply_poly_scalar_coeffmod(get<0>(I), n, get<1>(I), get<2>(I), get<3>(I));
              });
-
+ 
              // Make another temp destination to get the poly in mod {t, gamma}
 -            SEAL_ALLOCATE_GET_RNS_ITER(temp_t_gamma, coeff_count_, base_t_gamma_size, pool);
 +            SEAL_ALLOCATE_GET_RNS_ITER(temp_t_gamma, n, base_t_gamma_size, pool);
-
+ 
              // Convert from q to {t, gamma}
              base_q_to_t_gamma_conv_->fast_convert_array(temp, temp_t_gamma, pool);
-@@ -1075,9 +1076,7 @@ namespace seal
+@@ -1168,9 +1169,7 @@ namespace seal
              // Multiply by -prod(q)^(-1) mod {t, gamma}
              SEAL_ITERATE(
                  iter(temp_t_gamma, neg_inv_q_mod_t_gamma_, base_t_gamma_->base(), temp_t_gamma), base_t_gamma_size,
@@ -160,11 +296,11 @@ index 35e72ff..77e9acd 100644
 -                    multiply_poly_scalar_coeffmod(get<0>(I), coeff_count_, get<1>(I), get<2>(I), get<3>(I));
 -                });
 +                [&](auto I) { multiply_poly_scalar_coeffmod(get<0>(I), n, get<1>(I), get<2>(I), get<3>(I)); });
-
+ 
              // Need to correct values in temp_t_gamma (gamma component only) which are
              // larger than floor(gamma/2)
-@@ -1085,7 +1084,7 @@ namespace seal
-
+@@ -1178,7 +1177,7 @@ namespace seal
+ 
              // Now compute the subtraction to remove error and perform final multiplication by
              // gamma inverse mod t
 -            SEAL_ITERATE(iter(temp_t_gamma[0], temp_t_gamma[1], destination), coeff_count_, [&](auto I) {
