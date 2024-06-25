@@ -853,16 +853,21 @@ namespace troytest {
 }
 
 int main() {
+
+    std::vector<int> qs = {60, 60, 60};
+    int plainModBits = 20;
+    int polyModDeg = 8192;
+
     std::cout << "----- TimeTest cuda CKKS -----\n";
-    troytest::TimeTestCKKS test(8192, {60, 40, 60});
+    troytest::TimeTestCKKS test(polyModDeg, qs);
     test.testAll();
 
     std::cout << "----- TimeTest cuda BFV -----\n";
-    troytest::TimeTestBFVBGV test2(false, 8192, 59, {60, 60, 60});
+    troytest::TimeTestBFVBGV test2(false, polyModDeg, plainModBits, qs);
     test2.testAll();
 
     std::cout << "----- TimeTest cuda BGV -----\n";
-    troytest::TimeTestBFVBGV test3(true, 8192, 20, {40, 40, 40});
+    troytest::TimeTestBFVBGV test3(true, polyModDeg, plainModBits, qs);
     test3.testAll();
     return 0;
 }
