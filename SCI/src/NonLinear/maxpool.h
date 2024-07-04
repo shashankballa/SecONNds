@@ -34,7 +34,7 @@ public:
   ReLUFieldProtocol<IO, type> *relu_field_oracle = nullptr;
   int party;
   int algeb_str;
-  int l, b;
+  int l, b; // l is the bitlength of the input, b is the radix base for Mill
   int num_cmps;
   uint64_t prime_mod;
   type mask_l;
@@ -105,6 +105,7 @@ public:
 
   void configure() {
     if (this->l != 32 && this->l != 64) {
+      // mask_l: extracts the l least significant bits
       mask_l = (type)((1ULL << l) - 1);
     } else if (this->l == 32) {
       mask_l = -1;
@@ -143,7 +144,11 @@ public:
         for (int r = 0; r < rows; r++) {
           compare_with[r] = max_temp[r] - inpArr[r * cols + c];
         }
-        relu_oracle->relu(max_temp, compare_with, rows);
+        relu_oracle->relu(max_temp, compare_with, rows
+#if USE_CHEETAH
+          , nullptr, false, false, /*approx*/ true
+#endif
+          );
         for (int r = 0; r < rows; r++) {
           max_temp[r] += inpArr[r * cols + c];
         }

@@ -733,14 +733,14 @@ public:
     if (party == sci::ALICE) {
       for (int i = 0; i < bitlength; i++) {
         for (int j = 0; j < num_cmps; j++) {
-          inp_bits_0[i*num_cmps+j] ^= (data_ext[j] >> i) & 1;
+          inp_bits_0[i*num_cmps+j] = (data_ext[j] >> i) & 1;
           if(!greater_than) inp_bits_0[i*num_cmps+j] ^= 1;
         }
       }
     } else { // party = sci::BOB
       for (int i = 0; i < bitlength; i++) {
         for (int j = 0; j < num_cmps; j++) {
-          inp_bits_1[i*num_cmps+j] ^= (data_ext[j] >> i) & 1;
+          inp_bits_1[i*num_cmps+j] = (data_ext[j] >> i) & 1;
           if(greater_than) inp_bits_1[i*num_cmps+j] ^= 1;
         }
       }

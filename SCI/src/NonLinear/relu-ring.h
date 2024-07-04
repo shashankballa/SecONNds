@@ -43,7 +43,7 @@ public:
   AuxProtocols *aux = nullptr;
   int party;
   int algeb_str;
-  int l, b;
+  int l, b;  // l is the bitlength of the input, b is the radix base for Mill
   int num_cmps;
   uint8_t two_small = 1 << 1;
   uint8_t zero_small = 0;
@@ -97,11 +97,11 @@ public:
     } else { // l = 64
       mask_l = -1ULL;
     }
-    if (sizeof(type) == sizeof(uint64_t)) {
-      msb_one = (1ULL << (this->l - 1));
-      relu_comparison_rhs_type = msb_one - 1ULL;
+    if (sizeof(type) == sizeof(uint64_t)) { // l > 32
+      msb_one = (1ULL << (this->l - 1)); // MSB position is l - 1 from right
+      relu_comparison_rhs_type = msb_one - 1ULL; // the rhs of the > comparison = max +ve number
       relu_comparison_rhs = relu_comparison_rhs_type;
-      cut_mask_type = relu_comparison_rhs_type;
+      cut_mask_type = relu_comparison_rhs_type; // the mask to extract the lower l - 1 bits
       cut_mask = cut_mask_type;
     } else {
       msb_one_type = (1 << (this->l - 1));
@@ -166,25 +166,38 @@ public:
       abort();
     }
     uint8_t *wrap = new uint8_t[num_cmps];
-
+    
+/* approx
+    // Ref: Kiwan Maeng and G. Edward Suh.
+    // "Approximating ReLU on a Reduced Ring for Efficient MPC-based Private Inference"
     if (approx) {
-      // clang-format off
-      // Ref: Kiwan Maeng and G. Edward Suh.
-      // "Approximating ReLU on a Reduced Ring for Efficient MPC-based Private Inference"
-      // clang-format on
       // NOTE(lwj): we don't drop too much for double width fixed-point.
+      // lo: the number of bits to drop
       int lo = do_trunc ? kScale * 3 / 2 : kScale;
+
+      // this_l: the number of bits to keep
       int this_l = bitlength - lo;
+
       // NOTE(lwj): we can also drop some high-order bits
+      // Drop the high-order bits to make the number of bits a multiple of the MILL Radix Base
       this_l -= ((this_l - 1) % this->b);
 
+      // original bitwidth: l =     lo       +   this_l     +  ((this_l - 1) % this->b)
+      //                        lsbs to drop   bits to keep        msbs to drop
+
+      // _mask: the mask to extract the lower this_l bits
       type _mask = (1 << this_l) - 1;
+
+      // _upper: the position of the MSB
       type _upper = 1 << (this_l - 1);
+
       // x0, x1 \in [0, 2^l)
       // x'0, x'1 \in [0, 2^k)
       for (int i = 0; i < num_relu; i++) {
+        // array64: [lo:lo+this_l] bits of share[i]
         array64[i] = static_cast<uint64_t>((share[i] >> lo) & _mask);
 
+        // msb_local_share: the lo+this_l-th bit of share[i]
         msb_local_share[i] =
             static_cast<uint8_t>((array64[i] >> (this_l - 1)) & 1);
 
@@ -226,8 +239,8 @@ public:
       io->flush();
       return;
     }
-    ///------------///
-
+*/
+    
     array_type = new type[num_relu];
     for (int i = 0; i < num_relu; i++) {
       msb_local_share[i] = (uint8_t)(share[i] >> (l - 1));

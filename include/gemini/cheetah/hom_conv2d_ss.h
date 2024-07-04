@@ -10,7 +10,7 @@
 
 #include "gemini/cheetah/tensor_shape.h"
 
-#define CONV_USE_CUDA 1
+#define CONV_USE_CUDA 0
 
 // Forward
 namespace seal {

@@ -52,6 +52,6 @@ macro (add_network_cheetah _name)
   target_compile_definitions(${_name}-cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1)
 endmacro()
 
-add_network_cheetah(resnet50)
 add_network_cheetah(sqnet)
-add_network_cheetah(densenet121)
+# add_network_cheetah(resnet50)
+# add_network_cheetah(densenet121)

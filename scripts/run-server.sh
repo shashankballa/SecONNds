@@ -36,12 +36,12 @@ if [ "$1" = "seconnds_p" ]; then
 fi
 
 if ! contains "cheetah SCI_HE seconnds_2 seconnds_p" $1; then
-  echo -e "Usage: run-client.sh ${RED}[cheetah|seconnds]${NC} [sqnet|resnet50|densenet121] [(optional) log-file tag]"
+  echo -e "Usage: run-client.sh ${RED}[SCI_HE|cheetah|seconnds_2|seconnds_p]${NC} [sqnet|resnet50|densenet121] [(optional) log-file tag]"
 exit 1
 fi
 
 if ! contains "sqnet resnet50 densenet121" $2; then
-  echo -e "Usage: run-client.sh [cheetah|seconnds] ${RED}[sqnet|resnet50|densenet121]${NC} [(optional) log-file tag]"
+  echo -e "Usage: run-client.sh [SCI_HE|cheetah|seconnds_2|seconnds_p] ${RED}[sqnet|resnet50|densenet121]${NC} [(optional) log-file tag]"
 exit 1
 fi
 

@@ -829,14 +829,17 @@ void Relu(int32_t size, intType *inArr, intType *outArr, int sf,
     }
 
 #if USE_CHEETAH == 0
+    printf("Truncating %d elements by %d bits using TruncRing\n", size, sf);
     funcTruncateTwoPowerRingWrapper(eightDivElemts, tempOutp, tempTruncOutp, sf,
                                     bitlength, true, msbShare);
 #else
+    printf("Truncating %d elements by %d bits using ReluTruncRing\n", size, sf);
     funcReLUTruncateTwoPowerRingWrapper(eightDivElemts, tempOutp, tempTruncOutp,
                                         sf, bitlength, true);
 #endif
 
 #else
+    printf("Truncating %d elements by %d bits using FieldDiv\n", size, sf);
     funcFieldDivWrapper<intType>(eightDivElemts, tempOutp, tempTruncOutp,
                                  1ULL << sf, msbShare);
 #endif
