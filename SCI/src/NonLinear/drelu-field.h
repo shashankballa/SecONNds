@@ -62,6 +62,7 @@ class DReLUFieldProtocol {
   DReLUFieldProtocol(int party, int bitlength, int log_radix_base,
                      uint64_t prime_mod, IO *io, sci::OTPack<IO> *otpack,
                      TripleGenerator<IO> *triplegen) {
+    if(triplegen->isBufferEnabled()) log_radix_base = 1;
     assert(log_radix_base <= 8);
     assert(bitlength <= 64);
     this->party = party;
@@ -97,6 +98,14 @@ class DReLUFieldProtocol {
   ~DReLUFieldProtocol() { delete millionaire; }
 
   void compute_drelu(uint8_t *drelu, uint64_t *share, int num_relu) {
+    if (triple_gen->isBufferEnabled()) {
+      compute_drelu_new(drelu, share, num_relu);
+    } else {
+      compute_drelu_old(drelu, share, num_relu);
+    }
+  }
+
+  void compute_drelu_old(uint8_t *drelu, uint64_t *share, int num_relu) {
     int num_cmps = 2 * num_relu;
     uint8_t *digits;        // num_digits * num_cmps
     uint8_t *leaf_res_cmp;  // num_digits * num_cmps
@@ -157,6 +166,7 @@ class DReLUFieldProtocol {
     }
 
     if (party == sci::ALICE) {
+
       uint8_t *
           *leaf_ot_messages;  // (num_digits * num_relu) X beta_pow (=2^beta)
       // Do the two relu_comparisons together in 1 leaf OT.
@@ -371,6 +381,164 @@ class DReLUFieldProtocol {
       }
       ot_messages[i] ^= drelu_mask;
     }
+  }
+
+
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//                                                                                                    //
+//                                            SecONNds                                                //
+//                                                                                                    //
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+
+
+  void compute_drelu_new(uint8_t *drelu, uint64_t *share, int num_relu) {
+    assert(beta == 1 && "SecONNds requires beta = 1");
+
+    int num_cmps = 2 * num_relu;
+    uint8_t *bit_res_cmp;  // l * num_cmps
+    uint8_t *bit_res_eql;   // l * num_cmps
+    bit_res_cmp = new uint8_t[l * num_cmps];
+    bit_res_eql = new uint8_t[l * num_cmps];
+
+    uint8_t *bits_rel0;        // l * num_relu
+    uint8_t *bits_rel1;        // l * num_relu
+    uint8_t *bit_rel0_cmp;  // l * num_cmps
+    uint8_t *bit_rel1_cmp;  // l * num_cmps
+    uint8_t *bit_rel0_eql;   // l * num_cmps
+    uint8_t *bit_rel1_eql;   // l * num_cmps
+    bits_rel0 = new uint8_t[l * num_relu];
+    bits_rel1 = new uint8_t[l * num_relu];
+    bit_rel0_cmp = new uint8_t[l * num_relu];
+    bit_rel1_cmp = new uint8_t[l * num_relu];
+    bit_rel0_eql = new uint8_t[l * num_relu];
+    bit_rel1_eql = new uint8_t[l * num_relu];
+
+    // Extract bits from data
+    if (party == sci::ALICE) {
+      for (int j = 0; j < num_relu; j++) {
+        uint64_t input_wrap_cmp = (p - 1 - share[j]) + p_2;
+        uint64_t input_drelu_cmp;
+        if (share[j] > p_2) {
+          input_drelu_cmp = 2 * p - 1 - share[j];
+        } else {
+          input_drelu_cmp = p - 1 - share[j];
+        }
+        for (int i = 0; i < l; i++) {  // Stored from LSB to MSB
+          if ((i == l - 1) &&
+              (r != 0)) {  // A partially full last digit
+            bits_rel0[i * num_relu + j] =
+                (uint8_t)(input_wrap_cmp >> i * beta) & mask_r;
+            bits_rel1[i * num_relu + j] =
+                (uint8_t)(input_drelu_cmp >> i * beta) & mask_r;
+          } else {
+            bits_rel0[i * num_relu + j] =
+                (uint8_t)(input_wrap_cmp >> i * beta) & mask_beta;
+            bits_rel1[i * num_relu + j] =
+                (uint8_t)(input_drelu_cmp >> i * beta) & mask_beta;
+          }
+        }
+      }
+    } else  {// party = sci::BOB
+      for (int j = 0; j < num_relu; j++) {
+        uint64_t input_cmp = p_2 + share[j];
+        for (int i = 0; i < l; i++) {  // Stored from LSB to MSB
+          if ((i == l - 1) &&
+              (r != 0)) {  // A partially full last digit
+            bits_rel0[i * num_relu + j] =
+                (uint8_t)(input_cmp >> i * beta) & mask_r;
+          } else {
+            bits_rel0[i * num_relu + j] =
+                (uint8_t)(input_cmp >> i * beta) & mask_beta;
+          }
+        }
+      }
+    }
+
+    // make secret shares of the input and share with the other party
+    bool greater_than = false;
+    uint64_t n_bits   = l * num_relu;
+    uint64_t n_cmps_8 = num_relu >> 3;
+    uint64_t n_bytes  = l * n_cmps_8;
+
+    uint8_t *inp_bits_rel0_0 = new uint8_t [n_bits];
+    uint8_t *inp_bits_rel1_0 = new uint8_t [n_bits];
+    uint8_t *inp_bits_rel0_1 = new uint8_t [n_bits];
+    uint8_t *inp_bits_rel1_1 = new uint8_t [n_bits];
+    std::fill_n(inp_bits_rel0_0, n_bits, 0);
+    std::fill_n(inp_bits_rel1_0, n_bits, 0);
+    std::fill_n(inp_bits_rel0_1, n_bits, 0);
+    std::fill_n(inp_bits_rel1_1, n_bits, 0);
+    
+    if (party == sci::ALICE) {
+      for (int i = 0; i < l; i++) {
+        for (int j = 0; j < num_relu; j++) {
+          inp_bits_rel0_0[i*num_relu+j] = bits_rel0[i*num_relu+j];
+          inp_bits_rel1_0[i*num_relu+j] = bits_rel1[i*num_relu+j];
+          if(!greater_than){
+            inp_bits_rel0_0[i*num_relu+j] ^= 1;
+            inp_bits_rel1_0[i*num_relu+j] ^= 1;
+          }
+        }
+      }
+    } else { // party = sci::BOB
+      for (int i = 0; i < l; i++) {
+        for (int j = 0; j < num_relu; j++) {
+          inp_bits_rel0_1[i*num_relu+j] = bits_rel0[i*num_relu+j];
+          if(greater_than) inp_bits_rel0_1[i*num_relu+j] ^= 1;
+        }
+      }
+    }
+
+    millionaire->compute_bit_eql_cmp(num_relu, l, inp_bits_rel0_0, inp_bits_rel0_1, bit_rel0_eql, bit_rel0_cmp);
+    millionaire->compute_bit_eql_cmp(num_relu, l, inp_bits_rel1_0, inp_bits_rel0_1, bit_rel1_eql, bit_rel1_cmp);
+
+    for (int j = 0; j < num_relu; j++) {
+      for (int i = 0; i < l; i++) {  // Stored from LSB to MSB
+        bit_res_eql[i * num_relu * 2 + j * 2 + 0] = bit_rel0_eql[i * num_relu + j];
+        bit_res_eql[i * num_relu * 2 + j * 2 + 1] = bit_rel1_eql[i * num_relu + j];
+        bit_res_cmp[i * num_relu * 2 + j * 2 + 0] = bit_rel0_cmp[i * num_relu + j];
+        bit_res_cmp[i * num_relu * 2 + j * 2 + 1] = bit_rel1_cmp[i * num_relu + j];
+      }
+    }
+
+    // Generate required Bit-Triples and traverse tree to compute the results of
+    // comparsions
+    millionaire->traverse_and_compute_ANDs(num_cmps, bit_res_eql, bit_res_cmp);
+
+    assert(num_relu % 8 == 0 && "Number of ReLUs should be a multiple of 8");
+
+    if (party == sci::ALICE) {
+      uint8_t **mux_ot_messages = new uint8_t *[num_relu];
+      for (int j = 0; j < num_relu; j++) {
+        mux_ot_messages[j] = new uint8_t[4];
+      }
+      triple_gen->prg->random_bool((bool *)drelu, num_relu);
+      for (int j = 0; j < num_relu; j++) {
+        // drelu[j] = 0;
+        bool neg_share = (share[j] > p_2);
+        set_mux_ot_messages(mux_ot_messages[j], bit_res_cmp + j * 2, drelu[j],
+                            neg_share);
+      }
+      otpack->kkot[1]->send(mux_ot_messages, num_relu, 1);
+      for (int j = 0; j < num_relu; j++) {
+        delete[] mux_ot_messages[j];
+      }
+      delete[] mux_ot_messages;
+    } else  // sci::BOB
+    {
+      uint8_t *mux_ot_selection = new uint8_t[num_relu];
+      for (int j = 0; j < num_relu; j++) {
+        mux_ot_selection[j] =
+            (bit_res_cmp[j * 2 + 1] << 1) | bit_res_cmp[j * 2];
+      }
+      otpack->kkot[1]->recv(drelu, mux_ot_selection, num_relu, 1);
+      delete[] mux_ot_selection;
+    }
+
+    delete[] bit_res_cmp;
+    delete[] bit_res_eql;
   }
 };
 #endif  // DRELU_FIELD_H__

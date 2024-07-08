@@ -86,6 +86,7 @@ public:
             new ReLURingProtocol<IO, type>(party, RING, io, l, b, otpack, triplegen);
       } else {
         this->relu_oracle = (ReLURingProtocol<IO, type> *)relu_obj;
+        this->relu_oracle->triple_gen = triplegen;
       }
     } else {
       if (relu_obj == nullptr) {
@@ -93,6 +94,7 @@ public:
             party, FIELD, io, l, b, this->prime_mod, otpack, triplegen);
       } else {
         this->relu_field_oracle = (ReLUFieldProtocol<IO, type> *)relu_obj;
+        this->relu_field_oracle->triple_gen = triplegen;
       }
     }
     configure();

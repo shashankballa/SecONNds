@@ -367,6 +367,8 @@ public:
     this->millionaire->compare(res, data, num_cmps, bitlength, greater_than,
                                equality, radix_base);
   }
+
+  bool isBufferEnabled(){ return triple_gen->isBufferEnabled();};
 };
 
 #endif // RELU_RING_H__
