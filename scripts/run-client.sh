@@ -50,9 +50,10 @@ mkdir -p data
 
 
 echo -e "CLIENT: Running ${GREEN}$2-$BASE_FWORK${NC} with ${GREEN}$1${NC}..."
+echo -e " "
 
 if [ "$3" = "no_log" ]; then
-  cat pretrained/$2_input_scale12_pred*.inp | build/bin/$2-$BASE_FWORK r=2 k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS
+  cat pretrained/$2_input_scale12_pred*.inp | build/bin/$2-$BASE_FWORK r=2 k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS csize=$CSIZE
 else
   mkdir -p $LOGS_DIR
   if [ -z "$3" ]; then
@@ -62,6 +63,7 @@ else
   fi
   echo -e "Date: $(date)" > $LOGFILE
   echo -e "CLIENT: Running $2-$BASE_FWORK with $1..." >> $LOGFILE
-  cat pretrained/$2_input_scale12_pred*.inp | build/bin/$2-$BASE_FWORK r=2 k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS >> $LOGFILE
+  echo -e " " >> $LOGFILE
+  cat pretrained/$2_input_scale12_pred*.inp | build/bin/$2-$BASE_FWORK r=2 k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS csize=$CSIZE >> $LOGFILE
   echo -e "Done! Log saved to ${GREEN}$LOGFILE${NC}"
 fi

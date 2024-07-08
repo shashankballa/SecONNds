@@ -12,7 +12,7 @@ if ! contains "sqnet resnet50 densenet121" $1; then
     exit 1
 fi
 
-bash scripts/run-server.sh SCI_HE $1 $2
-bash scripts/run-server.sh seconnds_p $1 $2
-bash scripts/run-server.sh cheetah $1 $2
 bash scripts/run-server.sh seconnds_2 $1 $2
+bash scripts/run-server.sh cheetah $1 $2
+bash scripts/run-server.sh seconnds_p $1 $2
+bash scripts/run-server.sh SCI_HE $1 $2

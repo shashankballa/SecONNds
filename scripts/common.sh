@@ -56,7 +56,10 @@ SS_BITLEN=37
 # number of threads (should <= 4 for the SCI)
 NUM_THREADS=16
 
+# Chunk size for triple generation
+CSIZE=32000
+
 # Default number of triples for buffer
-NTRIPS_2_SQNET=21073568
+NTRIPS_2_SQNET=21200624
 NTRIPS_P_SQNET=5342112
 

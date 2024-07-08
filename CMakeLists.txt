@@ -45,11 +45,21 @@ endif()
 add_subdirectory(SCI)
 include_directories(SCI/src/)
 
+# # Set a default value for RUN_TRIP_TRIALS if not provided
+# if (NOT DEFINED RUN_TRIP_TRIALS)
+#   set(RUN_TRIP_TRIALS ON)
+# endif()
+
 ## demo
 macro (add_network_cheetah _name)
   add_executable(${_name}-cheetah "networks/main_${_name}.cpp")
   target_link_libraries(${_name}-cheetah gemini SCI-Cheetah)
-  target_compile_definitions(${_name}-cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1)
+  message(STATUS "Adding ${_name}-cheetah with RUN_TRIP_TRIALS=${RUN_TRIP_TRIALS}")
+  if (RUN_TRIP_TRIALS)
+    target_compile_definitions(${_name}-cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1 RUN_TRIP_TRIALS=1)
+  else()
+    target_compile_definitions(${_name}-cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1)
+  endif()
 endmacro()
 
 add_network_cheetah(sqnet)

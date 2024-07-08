@@ -25,6 +25,12 @@ SOFTWARE.
 #include "BuildingBlocks/truncation.h"
 #include "BuildingBlocks/value-extension.h"
 
+#define USE_NEW_WRAP 1
+#define WRAP_PRINT_COMP 0
+#if WRAP_PRINT_COMP
+#include <iomanip>
+#endif  // WRAP_PRINT_COMP
+
 using namespace sci;
 
 AuxProtocols::AuxProtocols(int party, sci::NetIO *io,
@@ -271,38 +277,280 @@ void AuxProtocols::msb0_to_wrap(uint64_t *x, uint8_t *wrap_x, int32_t size,
 void AuxProtocols::msb1_to_wrap(uint64_t *x, uint8_t *wrap_x, int32_t size,
                                 int32_t bw_x) {
   assert(bw_x <= 64);
+
+#if WRAP_PRINT_COMP
+  int print_num = 10;
+  print_num = std::min(print_num, size);
+  int _w1 = 2;
+  std::stringstream log_ss;
+  std::string f_tag1 = "msb1wrap";
+  std::string party_str = (party == sci::ALICE) ? "ALI" : "BOB";
+  log_ss << f_tag1 << " | " << party_str 
+    << " | staring with"
+    << ": size = " << std::setw(_w1) << size 
+    << ", bw_x = " << std::setw(_w1) << bw_x
+    << std::endl;
+#endif
+
+if(this->mill->triple_gen->isBufferEnabled()){ // SecONNds 
+  int32_t size8 = ceil(size / 8.0) * 8;
+
+  uint8_t *x0_msb = new uint8_t[size8];
+  uint8_t *x1_msb = new uint8_t[size8];
+  std::fill_n(x0_msb, size8, 0);
+  std::fill_n(x1_msb, size8, 0);
+
+  for (int i = 0; i < size; i++){
+    if (party == sci::ALICE) {
+      x0_msb[i] = (x[i] >> (bw_x - 1)) & 1;
+    } else { // party == sci::BOB
+      x1_msb[i] = (x[i] >> (bw_x - 1)) & 1;
+    }
+  }
+  
+#if WRAP_PRINT_COMP
+  uint8_t *x0_msb_ali = new uint8_t [size8];
+  if (party == sci::ALICE) {
+    io->send_data(x0_msb, size8);
+  } else { //party == sci::BOB
+    io->recv_data(x0_msb_ali, size8);
+  }
+
+  if (party == sci::ALICE){
+    log_ss << f_tag1 << " | " << party_str << " x0_msb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((x0_msb[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  } 
+  else { //party == sci::BOB
+    log_ss << f_tag1 << " | " << party_str << " | ALI x0_msb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((x0_msb_ali[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+    log_ss << f_tag1 << " | " << party_str << " | BOB x0_msb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((x0_msb[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  }
+  uint8_t *x1_msb_ali = new uint8_t [size8];
+  if (party == sci::ALICE){
+    io->send_data(x1_msb, size8);
+  } else { //party == sci::BOB
+    io->recv_data(x1_msb_ali, size8);
+  }
+
+  if (party == sci::ALICE){
+    log_ss << f_tag1 << " | " << party_str << " x1_msb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((x1_msb[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  } 
+  else { //party == sci::BOB
+    log_ss << f_tag1 << " | " << party_str << " | ALI x1_msb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((x1_msb_ali[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+    log_ss << f_tag1 << " | " << party_str << " | BOB x1_msb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((x1_msb[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  }
+#endif
+
+  Triple triples_cmp(size8, true);
+  mill->triple_gen->get(party, &triples_cmp);
+
+  uint64_t n_bytes = size8 >> 3;
+  uint8_t *ei = new uint8_t[n_bytes];
+  uint8_t *fi = new uint8_t[n_bytes];
+  mill->AND_step_1_new(ei, fi, x0_msb, x1_msb, triples_cmp.ai, triples_cmp.bi, size8);
+
+  // Communicate the computed ANDs
+  uint8_t *e  = new uint8_t[n_bytes];
+  uint8_t *f  = new uint8_t[n_bytes];
+  if (party == sci::ALICE) {
+    io->send_data(ei, n_bytes);
+    io->send_data(fi, n_bytes);
+    io->recv_data(e, n_bytes);
+    io->recv_data(f, n_bytes);
+  } else { // party = sci::BOB
+    io->recv_data(e, n_bytes);
+    io->recv_data(f, n_bytes);
+    io->send_data(ei, n_bytes);
+    io->send_data(fi, n_bytes);
+  }  
+
+  for (int i = 0; i < n_bytes; i++) {
+    e[i] ^= ei[i];
+    f[i] ^= fi[i];
+  }
+
+  // secret shares of less than results for each bit
+  uint8_t *wrap8 = new uint8_t[size8];
+
+  mill->AND_step_2_new(wrap8, e, f,
+    (triples_cmp.ai), (triples_cmp.bi), (triples_cmp.ci), size8);
+
+#if WRAP_PRINT_COMP
+  // get BOB's inp_bits_0 for debugging
+  uint8_t *wrap8_ali = new uint8_t [size8];
+  if (party == sci::ALICE){
+    io->send_data(wrap8, size8);
+  } else { //party == sci::BOB
+    io->recv_data(wrap8_ali, size8);
+  }
+
+  if (party == sci::ALICE){
+    log_ss << f_tag1 << " | " << party_str << " wrap8:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap8[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  } 
+  else { //party == sci::BOB
+    log_ss << f_tag1 << " | " << party_str << " | ALI wrap8:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap8_ali[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+    log_ss << f_tag1 << " | " << party_str << " | BOB wrap8:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap8[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  }
+
+#endif // WRAP_PRINT_COMP
+
+  memcpy(wrap_x, wrap8, size * sizeof(uint8_t));
+
+  delete[] x0_msb;
+  delete[] x1_msb;
+  delete[] ei;
+  delete[] fi;
+  delete[] e;
+  delete[] f;
+  delete[] wrap8;
+// end new algo ------ */
+} else {
+
+  uint8_t *msb_xb = new uint8_t[size];
+  for (int i = 0; i < size; i++) {
+    msb_xb[i] = (x[i] >> (bw_x - 1)) & 1;
+  }
+#if WRAP_PRINT_COMP
+  uint8_t *msb_xb_ali = new uint8_t [size];
+  if (party == sci::ALICE){
+    io->send_data(msb_xb, size);
+  } else { //party == sci::BOB
+    io->recv_data(msb_xb_ali, size);
+  }
+  if (party == sci::ALICE){
+    log_ss << f_tag1 << " | " << party_str << " msb_xb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((msb_xb[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  } else { //party == sci::BOB
+    log_ss << f_tag1 << " | " << party_str << " | ALI msb_xb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((msb_xb_ali[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+    log_ss << f_tag1 << " | " << party_str << " | BOB msb_xb:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((msb_xb[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  }
+#endif
+
   if (party == sci::ALICE) {
     PRG128 prg;
     prg.random_bool((bool *)wrap_x, size);
     uint8_t **spec = new uint8_t *[size];
     for (int i = 0; i < size; i++) {
       spec[i] = new uint8_t[2];
-      uint8_t msb_xb = (x[i] >> (bw_x - 1)) & 1;
       spec[i][0] = wrap_x[i];
-      spec[i][1] = wrap_x[i] ^ msb_xb;
+      spec[i][1] = wrap_x[i] ^ msb_xb[i];
     }
+
 #if USE_CHEETAH
     otpack->silent_ot->send_ot_cm_cc<uint8_t>(spec, size, 1);
 #else
-
     otpack->iknp_straight->send(spec, size, 1);
 #endif
 
     for (int i = 0; i < size; i++) delete[] spec[i];
     delete[] spec;
   } else {  // party == sci::BOB
-    uint8_t *msb_xb = new uint8_t[size];
-    for (int i = 0; i < size; i++) {
-      msb_xb[i] = (x[i] >> (bw_x - 1)) & 1;
-    }
+
 #if USE_CHEETAH
     otpack->silent_ot->recv_ot_cm_cc<uint8_t>(wrap_x, msb_xb, size, 1);
 #else
     otpack->iknp_straight->recv(wrap_x, msb_xb, size, 1);
 #endif
-
-    delete[] msb_xb;
   }
+
+#if WRAP_PRINT_COMP
+  uint8_t *wrap_x_ali = new uint8_t [size];
+  if (party == sci::ALICE){
+    io->send_data(wrap_x, size);
+  } else { //party == sci::BOB
+    io->recv_data(wrap_x_ali, size);
+  }
+
+  if (party == sci::ALICE){
+    log_ss << f_tag1 << " | " << party_str << " wrap_x:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap_x[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  } else { //party == sci::BOB
+    log_ss << f_tag1 << " | " << party_str << " | ALI wrap_x:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap_x_ali[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+    log_ss << f_tag1 << " | " << party_str << " | BOB wrap_x:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap_x[j]) & 1ULL) << " ";
+    log_ss << std::endl;
+  }
+#endif // WRAP_PRINT_COMP
+
+#if WRAP_PRINT_COMP
+
+  if (party == sci::BOB){
+    bool _pass = true;
+    uint8_t *wrap_x_recon;
+    wrap_x_recon = new uint8_t[size];
+    uint8_t *wrap8_recon;
+    wrap8_recon = new uint8_t[size];
+    for (int i = 0; i < size; i++) {
+      wrap_x_recon[i] = wrap_x[i] ^ wrap_x_ali[i];
+      wrap8_recon[i] = wrap8[i] ^ wrap8_ali[i];
+      if (wrap_x_recon[i] != wrap8_recon[i]){
+        _pass = false;
+        log_ss << f_tag1 << " | " << party_str << " | wrap verification failed at i = " << i 
+          << " wrap_x_recon = " << (uint64_t) wrap_x_recon[i] 
+          << " wrap8_recon = " << (uint64_t) wrap8_recon[i]
+        << std::endl;
+      }
+    }
+    log_ss << f_tag1 << " | " << party_str << " | wrap_x_recon:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap_x_recon[j]) & 1ULL) << " ";
+    log_ss << std::endl; 
+    log_ss << f_tag1 << " | " << party_str << " | wrap8_recon:" << std::endl;
+    for (int j = 0; j < print_num; j++)
+        log_ss << std::setw(12) << (uint64_t) ((wrap8_recon[j]) & 1ULL) << " ";
+    log_ss << std::endl;    
+  }
+#endif // WRAP_PRINT_COMP
+
+  delete[] msb_xb;
+
+#if WRAP_PRINT_COMP 
+  std::cout << log_ss.str();
+  delete[] msb_xb_ali;
+  delete[] wrap_x_ali;
+#endif // WRAP_PRINT_COMP
+
+}
+
 }
 
 void AuxProtocols::AND(uint8_t *x, uint8_t *y, uint8_t *z, int32_t size) {

@@ -1,4 +1,12 @@
 // Author: Zhichong Huang
+
+#define TRUNC_PRINT_TIME 0
+#define TRUNC_PRINT_COMM 0
+#if TRUNC_PRINT_TIME || TRUNC_PRINT_COMM
+#include <iomanip>
+#endif
+
+
 void Truncation::truncate(int32_t dim, uint64_t *inA, uint64_t *outB,
                           int32_t shift, int32_t bw, bool signed_arithmetic,
                           uint8_t *msb_x, bool apply_msb0_heuristic) {
@@ -165,6 +173,38 @@ void Truncation::truncate_msb0(
     int32_t bw,
     // signed truncation?
     bool signed_arithmetic) {
+
+#if TRUNC_PRINT_TIME || TRUNC_PRINT_COMM 
+    std::string f_tag = "Cheetah | Trunc";
+#endif  
+#if TRUNC_PRINT_TIME
+    auto start = std::chrono::system_clock::now();
+    auto end   = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time = end - start;
+    std::stringstream log_time;
+    log_time << "P" << party << " TIME | ";
+    log_time << f_tag;
+    log_time << ": dim = " << dim;
+    log_time << ", shift = " << shift;
+    log_time << ", bw = " << bw;
+    log_time << ", signed_arithmetic = " << std::boolalpha << signed_arithmetic;
+    log_time << std::endl;
+#endif
+#if TRUNC_PRINT_COMM
+    int _w2 = 10;
+    std::stringstream log_comm;
+    uint64_t comm_start = io->counter;
+    uint64_t comm_total = 0;
+    log_comm << "P" << party << " COMM | ";
+    log_comm << f_tag;
+    log_comm << ": dim = " << dim;
+    log_comm << ", shift = " << shift;
+    log_comm << ", bw = " << bw;
+    log_comm << ", signed_arithmetic = " << std::boolalpha << signed_arithmetic;
+    log_comm << std::endl;
+#endif
+
+
   if (shift == 0) {
     memcpy(outB, inA, sizeof(uint64_t) * dim);
     return;
@@ -194,9 +234,43 @@ void Truncation::truncate_msb0(
   else
     this->aux->msb0_to_wrap(inA, wrap_upper, dim, bw);
 
+#if TRUNC_PRINT_TIME
+    // get running time of leaf OTs in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> wrap_time = end - (start + total_time);
+    total_time += wrap_time;
+    log_time << "P" << party << " TIME | ";
+    log_time << f_tag << " | Wrap : " << wrap_time.count() * 1000;
+    log_time << " ms" << std::endl;
+#endif
+#if TRUNC_PRINT_COMM
+    uint64_t comm_wrap = io->counter - (comm_start + comm_total);
+    comm_total += comm_wrap;
+    log_comm << "P" << party << " COMM | ";
+    log_comm << f_tag << " | Wrap : " << std::setw(_w2) << comm_wrap;
+    log_comm << std::endl;
+#endif
+
   uint64_t *arith_wrap_upper = new uint64_t[dim];
   this->aux->B2A(wrap_upper, arith_wrap_upper, dim, shift);
   io->flush();
+
+#if TRUNC_PRINT_TIME
+    // get running time of leaf OTs in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> b2a_time = end - (start + total_time);
+    total_time += b2a_time;
+    log_time << "P" << party << " TIME | ";
+    log_time << f_tag << " | B2A  : " << b2a_time.count() * 1000;
+    log_time << " ms" << std::endl;
+#endif
+#if TRUNC_PRINT_COMM
+    uint64_t comm_b2a = io->counter - (comm_start + comm_total);
+    comm_total += comm_b2a;
+    log_comm << "P" << party << " COMM | ";
+    log_comm << f_tag << " | B2A  : " << std::setw(_w2) << comm_b2a;
+    log_comm << std::endl;
+#endif
 
   for (int i = 0; i < dim; i++) {
     outB[i] = (((inA[i] >> shift) & mask_upper) -
@@ -210,6 +284,24 @@ void Truncation::truncate_msb0(
       inA[i] = inA_orig[i];
     }
   }
+
+#if TRUNC_PRINT_TIME
+    // get running time of leaf OTs in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> full_time = end - start;
+    log_time << "P" << party << " TIME | ";
+    log_time << f_tag << " | Total: " << full_time.count() * 1000;
+    log_time << " ms" << std::endl;
+    std::cout << log_time.str();
+#endif
+#if TRUNC_PRINT_COMM
+    uint64_t comm_full = io->counter - comm_start;
+    log_comm << "P" << party << " COMM | ";
+    log_comm << f_tag << " | Total: " << std::setw(_w2) << comm_full;
+    log_comm << std::endl;
+    std::cout << log_comm.str();
+#endif
+
   delete[] inA_orig;
   delete[] wrap_upper;
   delete[] arith_wrap_upper;

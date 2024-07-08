@@ -1568,15 +1568,16 @@ void ConnectAndSetUp(){
   doneConnectAndSetUp = true;
 }
 
-void GenerateTriples(int num_triples){
+void GenerateTriples(int buffer_size, int chunk_size){
   // printf("Generating triples ...\n");
-  std::cout << "GenerateTriples() called with num_triples = " << num_triples 
+  std::cout << "GenerateTriples() called with buffer_size = " << buffer_size 
+    << ", chunk_size = " << chunk_size
     << ", num_threads = " << num_threads
     << std::endl;
-  bool enableBuffer = num_triples >= 3;
-  int64_t buffer_size = num_triples;
+  bool enableBuffer = buffer_size >= 3;
   buffer_size = enableBuffer ? buffer_size : 0;
-  TripleGen(enableBuffer, buffer_size, buffer_size);
+  chunk_size = chunk_size == 0 ? buffer_size : chunk_size;
+  TripleGen(enableBuffer, buffer_size, chunk_size);
   doneGenerateTriples = true;
 }
 

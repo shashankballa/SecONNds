@@ -14,6 +14,7 @@ int32_t bitlength = 64;
 int32_t kScale = 12;
 
 int num_trips = 1 << 32;
+int trips_csize = 1 << 10;
 int _snn = 0;
 bool use_seconnds = false;
 int _ntt = 0;
@@ -2278,6 +2279,7 @@ int main(int argc, char **argv) {
   amap.arg("snn", _snn, "Use SecONNds");
   amap.arg("ntt", _ntt, "Perform NTT mults in convolutions");
   amap.arg("ntrips", num_trips, "Number of triples to generate");
+  amap.arg("csize", trips_csize, "Chunk size for triple generation");
 
   amap.parse(argc, argv);
 
@@ -3193,7 +3195,7 @@ int main(int argc, char **argv) {
                     (int32_t)0, (int32_t)1, (int32_t)1, tmp51, tmp51_pts);
     }
     */
-    GenerateTriples(num_trips);
+    GenerateTriples(num_trips, trips_csize);
   }
 
   StartComputation();

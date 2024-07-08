@@ -131,7 +131,7 @@ void ScaleUp(int32_t size, intType *arr, int32_t sf);
 
 void ConnectAndSetUp();
 
-void GenerateTriples(int num_triples = 0);
+void GenerateTriples(int buffer_size = 0, int chunk_size = 0);
 
 void StartComputation();
 
