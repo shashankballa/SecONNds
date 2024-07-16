@@ -26,8 +26,8 @@ SOFTWARE.
 #include "functionalities_uniform.h"
 #include "library_fixed_common.h"
 
-#define LOG_LAYERWISE
-#define VERIFY_LAYERWISE
+// #define LOG_LAYERWISE
+// #define VERIFY_LAYERWISE
 
 #if USE_CHEETAH
 #undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation

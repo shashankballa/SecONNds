@@ -62,7 +62,7 @@ else
     LOGFILE="$LOGS_DIR/$3-$2-$1-server.log"
   fi
   echo "Date: $(date)" > $LOGFILE
-  echo -e "SERVER: Running $2-$BASE_FWORK with $1..." >> $LOGFILE
+  echo -e "SERVER: Running $2 with $1..." >> $LOGFILE
   echo -e " " >> $LOGFILE
   cat pretrained/$2_model_scale12.inp | build/bin/$2-$BASE_FWORK r=1 k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE>> $LOGFILE
   echo -e "Done! Log saved to ${GREEN}$LOGFILE${NC}"

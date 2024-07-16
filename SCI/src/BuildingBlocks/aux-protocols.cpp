@@ -25,7 +25,6 @@ SOFTWARE.
 #include "BuildingBlocks/truncation.h"
 #include "BuildingBlocks/value-extension.h"
 
-#define USE_NEW_WRAP 1
 #define WRAP_PRINT_COMP 0
 #if WRAP_PRINT_COMP
 #include <iomanip>
@@ -251,11 +250,11 @@ void AuxProtocols::msb0_to_wrap(uint64_t *x, uint8_t *wrap_x, int32_t size,
       spec[i][0] = wrap_x[i] ^ msb_xb;
       spec[i][1] = wrap_x[i] ^ 1;
     }
-#if USE_CHEETAH
+// #if USE_CHEETAH
     otpack->silent_ot->send_ot_cm_cc<uint8_t>(spec, size, 1);
-#else
-    otpack->iknp_straight->send(spec, size, 1);
-#endif
+// #else
+//     otpack->iknp_straight->send(spec, size, 1);
+// #endif
 
     for (int i = 0; i < size; i++) delete[] spec[i];
     delete[] spec;
@@ -264,11 +263,11 @@ void AuxProtocols::msb0_to_wrap(uint64_t *x, uint8_t *wrap_x, int32_t size,
     for (int i = 0; i < size; i++) {
       msb_xb[i] = (x[i] >> (bw_x - 1)) & 1;
     }
-#if USE_CHEETAH
+// #if USE_CHEETAH
     otpack->silent_ot->recv_ot_cm_cc<uint8_t>(wrap_x, msb_xb, size, 1);
-#else
-    otpack->iknp_straight->recv(wrap_x, msb_xb, size, 1);
-#endif
+// #else
+//     otpack->iknp_straight->recv(wrap_x, msb_xb, size, 1);
+// #endif
 
     delete[] msb_xb;
   }
@@ -469,21 +468,21 @@ if(this->mill->triple_gen->isBufferEnabled()){ // SecONNds
       spec[i][1] = wrap_x[i] ^ msb_xb[i];
     }
 
-#if USE_CHEETAH
+// #if USE_CHEETAH
     otpack->silent_ot->send_ot_cm_cc<uint8_t>(spec, size, 1);
-#else
-    otpack->iknp_straight->send(spec, size, 1);
-#endif
+// #else
+//     otpack->iknp_straight->send(spec, size, 1);
+// #endif
 
     for (int i = 0; i < size; i++) delete[] spec[i];
     delete[] spec;
   } else {  // party == sci::BOB
 
-#if USE_CHEETAH
+// #if USE_CHEETAH
     otpack->silent_ot->recv_ot_cm_cc<uint8_t>(wrap_x, msb_xb, size, 1);
-#else
-    otpack->iknp_straight->recv(wrap_x, msb_xb, size, 1);
-#endif
+// #else
+//     otpack->iknp_straight->recv(wrap_x, msb_xb, size, 1);
+// #endif
   }
 
 #if WRAP_PRINT_COMP

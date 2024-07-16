@@ -115,7 +115,6 @@ public:
     }
   }
 
-
   void compare_old(uint8_t *res, uint64_t *data, int num_cmps, int bitlength,
                bool greater_than = true, bool equality = false,
                int radix_base = MILL_PARAM) {
