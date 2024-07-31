@@ -24,7 +24,9 @@ SOFTWARE.
 
 #include <cstdint>
 #include <cmath>
-#define HE_DEBUG
+#include <vector>
+
+// #define HE_DEBUG
 
 extern uint64_t prime_mod;
 extern int32_t bitlength;
@@ -33,6 +35,12 @@ extern int32_t num_threads;
 const uint64_t POLY_MOD_DEGREE = 8192;
 const uint64_t POLY_MOD_DEGREE_LARGE = 65536;
 const int32_t SMUDGING_BITLEN = 100 - bitlength;
+
+// Default coefficient modulus for CryptFlow2
+inline std::vector<int> GET_COEFF_MOD_CF2() { return {60, 60, 60, 49}; }
+
+// Default coefficient modulus for HELiKs
+inline std::vector<int> GET_COEFF_MOD_HLK() { return {60, 23, 55}; }
 
 /* Helper function for rounding to the next power of 2
  * Credit:
