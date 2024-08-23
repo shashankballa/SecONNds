@@ -65,7 +65,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType strideW, intType *inputArr, intType *filterArr,
                    intType *outArr);
 
-void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -73,7 +73,7 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
                    signedIntType strideW, intType *inputArr, intType *filterArr,
                    intType *outArr);
 
-void Conv2DOfflineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DOfflineWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -81,7 +81,7 @@ void Conv2DOfflineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signe
                    signedIntType strideW, intType *filterArr,
                    std::vector<std::vector<seal::Plaintext>> &encoded_filters);
 
-void Conv2DOnlineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DOnlineWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,

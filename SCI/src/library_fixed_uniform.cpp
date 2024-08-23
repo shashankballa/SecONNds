@@ -500,7 +500,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
 #endif
 }
 
-void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -568,15 +568,17 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
                           newH, std::vector<std::vector<intType>>(
                                     newW, std::vector<intType>(CO, 0))));
 
-  if (conv_ntt){
-    he_conv->convolution(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                        zPadWLeft, zPadWRight, strideH, strideW, inputVec,
-                        filterVec, outputVec);
-  } else {
-    he_conv->convolution_heliks(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                        zPadWLeft, zPadWRight, strideH, strideW, inputVec,
-                        filterVec, outputVec);
-  }
+  // if (use_heliks){
+    he_conv->convolution(
+      use_heliks, 
+      N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+      zPadWLeft, zPadWRight, strideH, strideW, inputVec,
+      filterVec, outputVec);
+  // } else {
+  //   he_conv->convolution_heliks(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+  //                       zPadWLeft, zPadWRight, strideH, strideW, inputVec,
+  //                       filterVec, outputVec);
+  // }
 
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {
@@ -589,7 +591,7 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
     }
   }
 
-#endif
+#endif // SCI_HE
 
 #ifdef LOG_LAYERWISE
   auto temp = TIMER_TILL_NOW;
@@ -599,7 +601,7 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
   uint64_t curComm;
   FIND_ALL_IO_TILL_NOW(curComm);
   ConvCommSent += curComm;
-#endif
+#endif // LOG_LAYERWISE
 
 #ifdef VERIFY_LAYERWISE
 #ifdef SCI_HE
@@ -613,7 +615,7 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
       }
     }
   }
-#endif
+#endif // SCI_HE
   if (party == SERVER) {
     funcReconstruct2PCCons(nullptr, inputArr, N * H * W * CI);
     funcReconstruct2PCCons(nullptr, filterArr, FH * FW * CI * CO);
@@ -688,11 +690,20 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
     delete[] VfilterArr;
     delete[] VoutputArr;
   }
-#endif
+#endif // VERIFY_LAYERWISE
 }
 
+void Conv2DOfflineWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+                   signedIntType CI, signedIntType FH, signedIntType FW,
+                   signedIntType CO, signedIntType zPadHLeft,
+                   signedIntType zPadHRight, signedIntType zPadWLeft,
+                   signedIntType zPadWRight, signedIntType strideH,
+                   signedIntType strideW, intType *filterArr,
+                   std::vector<std::vector<seal::Plaintext>> &encoded_filters){
 
-#endif
+    }
+
+#endif // !USE_CHEETAH
 
 #ifdef SCI_OT
 void Conv2DGroup(int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH,

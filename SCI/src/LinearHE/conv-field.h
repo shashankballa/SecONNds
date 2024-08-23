@@ -126,8 +126,8 @@ struct ConvMetadata {
     // HE operation counts
     vector<int> counts;
 
-    vector<vector<vector<int>>> rot_amts;
-    map<int, vector<vector<int>>> rot_map;
+    vector<std::vector<std::vector<int>>> rot_amts;
+    map<int, vector<std::vector<int>>> rot_map;
 };
 
 /* Use casting to do two conditionals instead of one - check if a > 0 and a < b
@@ -182,7 +182,12 @@ class ConvField {
     public:
         int party;
         sci::NetIO *io;
-        seal::SEALContext *context[2];
+
+        // seal::SEALContext *context[2];
+
+        // make a vector of SEALContext pointers
+        std::vector<seal::SEALContext *> context;
+
         seal::Encryptor *encryptor[2];
         seal::Decryptor *decryptor[2];
         seal::Evaluator *evaluator[2];
@@ -203,7 +208,7 @@ class ConvField {
         void non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
                                 int32_t FW, int32_t CO, Image *image, Filters *filters,
                                 std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-                                bool verbose = false);
+                                bool verbose = true);
 
         void convolution(
             int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
@@ -214,7 +219,7 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
                 &filterArr,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = false);
+            bool verify_output = false, bool verbose = true);
 
         void verify(int H, int W, int CI, int CO, Image &image,
                     const Filters *filters,
@@ -230,13 +235,15 @@ class ConvField {
 //,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
 //,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
 
+        ConvField(int party, sci::NetIO *io, std::vector<int> CoeffModBits, int slot_count, 
+            bool verbose = true);
+
         void configure(bool verbose);
 
         void non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image, Filters *filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-            // vector<int> &counts,
-            bool verbose = false
+            bool verbose = true
             );
 
         void convolution_heliks(
@@ -248,7 +255,44 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
                 &filterArr,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = false);
+            bool verify_output = false, bool verbose = true);
+
+        void non_strided_conv_offline(
+            int32_t H, int32_t W, int32_t CI, int32_t FH,
+            int32_t FW, int32_t CO,
+            Filters *filters,
+            std::vector<seal::Ciphertext> &noise_ct,
+            std::vector<std::vector<uint64_t>>& secret_share_vec,
+            std::vector<std::vector<std::vector<seal::Plaintext>>> &encoded_filters,
+            bool verbose = true);
+
+        void non_strided_conv_online(
+            int32_t H, int32_t W, int32_t CI, int32_t FH,
+            int32_t FW, int32_t CO, Image *image,
+            std::vector<seal::Ciphertext> noise_ct,
+            std::vector<std::vector<uint64_t>> secret_share_vec,
+            std::vector<std::vector<std::vector<seal::Plaintext>>> encoded_filters,
+            std::vector<std::vector<std::vector<uint64_t>>> &outArr,
+            bool verbose = true);
+
+        void non_strided_conv(
+            bool use_heliks,
+            int32_t H, int32_t W, int32_t CI, int32_t FH,
+            int32_t FW, int32_t CO, Image *image, Filters *filters,
+            std::vector<std::vector<std::vector<uint64_t>>> &outArr,
+            bool verbose = true);
+
+        void convolution(
+            bool use_heliks,
+            int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
+            int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
+            int32_t zPadWRight, int32_t strideH, int32_t strideW,
+            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
+                &inputArr,
+            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
+                &filterArr,
+            std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
+            bool verify_output = false, bool verbose = true);
 };
 
 #endif

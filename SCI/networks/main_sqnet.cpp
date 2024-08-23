@@ -3254,9 +3254,18 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp53 =
       make_array<uint64_t>((int32_t)1, (int32_t)113, (int32_t)113, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
+#if USE_CHEETAH
+  kIsSharedInput = false;
+#endif
+
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
                 (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)2, (int32_t)2, tmp0, tmp1, tmp53);
+
+#if USE_CHEETAH
+  kIsSharedInput = true;
+#endif
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)3, (int32_t)64, tmp1);
   ClearMemSecret4((int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, tmp0);
 
@@ -3284,7 +3293,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp63 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, (int32_t)1,
                 (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp61, tmp3, tmp63);
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64, tmp61);
@@ -3306,7 +3316,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp71 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
                 (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp69, tmp5, tmp71);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)16, (int32_t)64, tmp5);
@@ -3327,7 +3338,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp78 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
                 (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp69, tmp7, tmp78);
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, tmp69);
@@ -3360,7 +3372,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp91 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, (int32_t)1,
                 (int32_t)1, (int32_t)16, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp87, tmp9, tmp91);
   ClearMemSecret4((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)128, tmp87);
@@ -3382,7 +3395,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp99 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)1,
                 (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp97, tmp11, tmp99);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)16, (int32_t)64, tmp11);
@@ -3403,7 +3417,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp106 =
       make_array<uint64_t>((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)56, (int32_t)56, (int32_t)16, (int32_t)3,
                 (int32_t)3, (int32_t)64, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp97, tmp13, tmp106);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)16, (int32_t)64, tmp13);
@@ -3444,7 +3459,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp121 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, (int32_t)1,
                 (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp119, tmp15, tmp121);
   ClearMemSecret4((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128, tmp119);
@@ -3466,7 +3482,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp129 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
                 (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp127, tmp17, tmp129);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)32, (int32_t)128, tmp17);
@@ -3487,7 +3504,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp136 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
                 (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp127, tmp19, tmp136);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)32, (int32_t)128, tmp19);
@@ -3520,7 +3538,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp149 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)256, (int32_t)1,
                 (int32_t)1, (int32_t)32, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp145, tmp21, tmp149);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)256, (int32_t)32, tmp21);
@@ -3542,7 +3561,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp157 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)1,
                 (int32_t)1, (int32_t)128, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp155, tmp23, tmp157);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)32, (int32_t)128, tmp23);
@@ -3563,7 +3583,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp164 =
       make_array<uint64_t>((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)128);
-  Conv2DWrapper((int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)27, (int32_t)27, (int32_t)32, (int32_t)3,
                 (int32_t)3, (int32_t)128, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp155, tmp25, tmp164);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)32, (int32_t)128, tmp25);
@@ -3604,7 +3625,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp179 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, (int32_t)1,
                 (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp177, tmp27, tmp179);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256, tmp177);
@@ -3626,7 +3648,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp187 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
                 (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp185, tmp29, tmp187);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)48, (int32_t)192, tmp29);
@@ -3647,7 +3670,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp194 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
                 (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp185, tmp31, tmp194);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, tmp185);
@@ -3680,7 +3704,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp207 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
                 (int32_t)1, (int32_t)48, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp203, tmp33, tmp207);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, tmp203);
@@ -3702,7 +3727,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp215 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)1,
                 (int32_t)1, (int32_t)192, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp213, tmp35, tmp215);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)48, (int32_t)192, tmp35);
@@ -3723,7 +3749,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp222 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)192);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, (int32_t)3,
                 (int32_t)3, (int32_t)192, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp213, tmp37, tmp222);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)48, tmp213);
@@ -3756,7 +3783,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp235 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, (int32_t)1,
                 (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp231, tmp39, tmp235);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)384, tmp231);
@@ -3778,7 +3806,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp243 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
                 (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp241, tmp41, tmp243);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)64, (int32_t)256, tmp41);
@@ -3799,7 +3828,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp250 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
                 (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp241, tmp43, tmp250);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)64, (int32_t)256, tmp43);
@@ -3832,7 +3862,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp263 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
                 (int32_t)1, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp259, tmp45, tmp263);
   ClearMemSecret4((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, tmp259);
@@ -3854,7 +3885,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp271 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)1,
                 (int32_t)1, (int32_t)256, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp269, tmp47, tmp271);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)64, (int32_t)256, tmp47);
@@ -3875,7 +3907,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp278 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)256);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)64, (int32_t)3,
                 (int32_t)3, (int32_t)256, (int32_t)1, (int32_t)1, (int32_t)1,
                 (int32_t)1, (int32_t)1, (int32_t)1, tmp269, tmp49, tmp278);
   ClearMemSecret4((int32_t)3, (int32_t)3, (int32_t)64, (int32_t)256, tmp49);
@@ -3908,7 +3941,8 @@ int main(int argc, char **argv) {
 
   uint64_t *tmp291 =
       make_array<uint64_t>((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)1000);
-  Conv2DWrapper((int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
+  Conv2DWrapper(conv_ntt, 
+                (int32_t)1, (int32_t)13, (int32_t)13, (int32_t)512, (int32_t)1,
                 (int32_t)1, (int32_t)1000, (int32_t)0, (int32_t)0, (int32_t)0,
                 (int32_t)0, (int32_t)1, (int32_t)1, tmp287, tmp51, tmp291);
   ClearMemSecret4((int32_t)1, (int32_t)1, (int32_t)512, (int32_t)1000, tmp51);
