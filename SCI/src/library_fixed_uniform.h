@@ -129,11 +129,11 @@ void ScaleDown(int32_t size, intType *inArr, int32_t sf);
 
 void ScaleUp(int32_t size, intType *arr, int32_t sf);
 
-void ConnectAndSetUp();
+void ConnectAndSetUp(bool use_heliks = false);
 
 void GenerateTriples(int buffer_size = 0, int chunk_size = 0);
 
-void StartComputation();
+void StartComputation(bool use_heliks = false);
 
 void EndComputation();
 

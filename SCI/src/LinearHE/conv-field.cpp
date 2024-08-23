@@ -460,21 +460,28 @@ ConvField::ConvField(int party, NetIO *io) {
   this->party = party;
   this->io = io;
 
-  context.resize(2);
+  int num_objs = 2;
 
-  this->slot_count = POLY_MOD_DEGREE;
-  generate_new_keys(party, io, slot_count, context[0], encryptor[0],
-                    decryptor[0], evaluator[0], encoder[0], gal_keys[0],
-                    zero[0]);
+  vector<size_t> poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
 
-  this->slot_count = POLY_MOD_DEGREE_LARGE;
-  generate_new_keys(party, io, slot_count, context[1], encryptor[1],
-                    decryptor[1], evaluator[1], encoder[1], gal_keys[1],
-                    zero[1]);
+  context.resize(num_objs);
+  encryptor.resize(num_objs);
+  decryptor.resize(num_objs);
+  evaluator.resize(num_objs);
+  encoder.resize(num_objs);
+  gal_keys.resize(num_objs);
+  zero.resize(num_objs);
+
+  for (size_t i = 0; i < num_objs; i++)
+  {
+    generate_new_keys(party, io, poly_modulus_degree[i], context[i], encryptor[i],
+                      decryptor[i], evaluator[i], encoder[i], gal_keys[i],
+                      zero[i]);
+  }
 }
 
 ConvField::~ConvField() {
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < context.size(); i++) {
     if (context[i]) {
       free_keys(party, encryptor[i], decryptor[i], evaluator[i], encoder[i],
                 gal_keys[i], zero[i]);
@@ -984,6 +991,39 @@ ConvField::ConvField(int party, sci::NetIO *io, vector<int> CoeffModBits, int sl
     encoder[1] = encoder[0];
     gal_keys[1] = gal_keys[0];
     zero[1] = zero[0];
+  }
+}
+
+ConvField::ConvField(int party, NetIO *io, bool use_heliks) {
+  this->party = party;
+  this->io = io;
+  int num_objs;
+  vector<size_t> poly_modulus_degree;
+  vector<vector<int>> coeff_modulus;
+
+  // if(!use_heliks){
+    num_objs = 2;
+    poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
+    coeff_modulus = vector<vector<int>> (2, GET_COEFF_MOD_CF2());
+  // } else {
+  //   num_objs = 3;
+  //   poly_modulus_degree = {POLY_MOD_DEGREE>>1, POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
+  //   coeff_modulus = {{40, 28, 40}, GET_COEFF_MOD_HLK(), GET_COEFF_MOD_HLK()};
+  // }
+
+  context.resize(num_objs);
+  encryptor.resize(num_objs);
+  decryptor.resize(num_objs);
+  evaluator.resize(num_objs);
+  encoder.resize(num_objs);
+  gal_keys.resize(num_objs);
+  zero.resize(num_objs);
+
+  for (size_t i = 0; i < num_objs; i++)
+  {
+    generate_new_keys(party, io, poly_modulus_degree[i], coeff_modulus[i], context[i], encryptor[i],
+                      decryptor[i], evaluator[i], encoder[i], gal_keys[i],
+                      zero[i]);
   }
 }
 
@@ -1919,6 +1959,39 @@ void ConvField::convolution_heliks(
   }
 }
 
+void ConvField::set_seal(
+    // bool use_heliks,
+    SEALContext *&context_, Encryptor *&encryptor_, Decryptor *&decryptor_,
+    Evaluator *&evaluator_, BatchEncoder *&encoder_, GaloisKeys *&gal_keys_,
+    Ciphertext *&zero_) {
+  
+  int seal_idx;
+  // if(!use_heliks){
+    if (this->slot_count == POLY_MOD_DEGREE) {
+      seal_idx = 0;
+    } else if (this->slot_count == POLY_MOD_DEGREE_LARGE) {
+      seal_idx = 1;
+    } else {
+      seal_idx = 2;
+    }
+    if (seal_idx < 2){
+      context_ = this->context[seal_idx];
+      encryptor_ = this->encryptor[seal_idx];
+      decryptor_ = this->decryptor[seal_idx];
+      evaluator_ = this->evaluator[seal_idx];
+      encoder_ = this->encoder[seal_idx];
+      gal_keys_ = this->gal_keys[seal_idx];
+      zero_ = this->zero[seal_idx];
+    } else {
+      // [TODO] generate new keys
+      // generate_new_keys(party, io, slot_count, context_, encryptor_, decryptor_,
+      //                   evaluator_, encoder_, gal_keys_, zero_, false);
+    }
+  // } else {
+
+  // }
+  }
+
 void ConvField::non_strided_conv_offline(
     int32_t H, int32_t W, int32_t CI, int32_t FH,
     int32_t FW, int32_t CO,
@@ -1956,26 +2029,7 @@ void ConvField::non_strided_conv_offline(
   GaloisKeys *gal_keys_;
   Ciphertext *zero_;
 
-  if (slot_count == POLY_MOD_DEGREE) {
-    context_ = this->context[0];
-    encryptor_ = this->encryptor[0];
-    decryptor_ = this->decryptor[0];
-    evaluator_ = this->evaluator[0];
-    encoder_ = this->encoder[0];
-    gal_keys_ = this->gal_keys[0];
-    zero_ = this->zero[0];
-  } else if (slot_count == POLY_MOD_DEGREE_LARGE) {
-    context_ = this->context[1];
-    encryptor_ = this->encryptor[1];
-    decryptor_ = this->decryptor[1];
-    evaluator_ = this->evaluator[1];
-    encoder_ = this->encoder[1];
-    gal_keys_ = this->gal_keys[1];
-    zero_ = this->zero[1];
-  } else {
-    generate_new_keys(party, io, slot_count, context_, encryptor_, decryptor_,
-                      evaluator_, encoder_, gal_keys_, zero_, verbose);
-  }
+  set_seal(context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
 
   if (party == ALICE){
     PRG128 prg;
@@ -2043,26 +2097,7 @@ void ConvField::non_strided_conv_online(
   GaloisKeys *gal_keys_;
   Ciphertext *zero_;
 
-  if (slot_count == POLY_MOD_DEGREE) {
-    context_ = this->context[0];
-    encryptor_ = this->encryptor[0];
-    decryptor_ = this->decryptor[0];
-    evaluator_ = this->evaluator[0];
-    encoder_ = this->encoder[0];
-    gal_keys_ = this->gal_keys[0];
-    zero_ = this->zero[0];
-  } else if (slot_count == POLY_MOD_DEGREE_LARGE) {
-    context_ = this->context[1];
-    encryptor_ = this->encryptor[1];
-    decryptor_ = this->decryptor[1];
-    evaluator_ = this->evaluator[1];
-    encoder_ = this->encoder[1];
-    gal_keys_ = this->gal_keys[1];
-    zero_ = this->zero[1];
-  } else {
-    generate_new_keys(party, io, slot_count, context_, encryptor_, decryptor_,
-                      evaluator_, encoder_, gal_keys_, zero_, verbose);
-  }
+  set_seal(context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
 
   if (party == BOB) {
     auto pt = preprocess_image_OP(*image, data);
@@ -2179,16 +2214,75 @@ void ConvField::non_strided_conv(
       noise_ct, secret_share_vec, encoded_filters, outArr, verbose);
 }
 
-// Alice privately holds `filterArr`.
-// The `inputArr' is secretly shared between Alice and Bob.
-// The underlying Arithmetic is `prime_mod`.
-void ConvField::convolution(
+
+void ConvField::convolution_offline(
+    bool use_heliks,
+    int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
+    int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
+    int32_t zPadWRight, int32_t strideH, int32_t strideW,
+    const vector<vector<vector<vector<uint64_t>>>> &filterArr,
+    vector<vector<vector<seal::Ciphertext>>> &noise_ct,
+    vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
+    vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
+    bool verbose) {
+
+  int paddedH = H + zPadHLeft + zPadHRight;
+  int paddedW = W + zPadWLeft + zPadWRight;
+  int limitH = FH + ((paddedH - FH) / strideH) * strideH;
+  int limitW = FW + ((paddedW - FW) / strideW) * strideW;
+
+  noise_ct.resize(strideH);
+  secret_share_vec.resize(strideH);
+  encoded_filters.resize(strideH);
+
+  if (party == ALICE) {
+    
+    for (int s_row = 0; s_row < strideH; s_row++) { 
+      noise_ct[s_row].resize(strideW);
+      secret_share_vec[s_row].resize(strideW);
+      encoded_filters[s_row].resize(strideW);
+      for (int s_col = 0; s_col < strideW; s_col++) {
+        int lH = ((limitH - s_row + strideH - 1) / strideH);
+        int lW = ((limitW - s_col + strideW - 1) / strideW);
+        int lFH = ((FH - s_row + strideH - 1) / strideH);
+        int lFW = ((FW - s_col + strideW - 1) / strideW);
+        Filters lFilters(CO);
+        for (int out_c = 0; out_c < CO; out_c++) {
+          Image tmp_img(CI);
+          for (int inp_c = 0; inp_c < CI; inp_c++) {
+            Channel tmp_chan(lFH, lFW);
+            for (int row = 0; row < lFH; row++) {
+              for (int col = 0; col < lFW; col++) {
+                int idxFH = row * strideH + s_row;
+                int idxFW = col * strideW + s_col;
+                tmp_chan(row, col) = neg_mod(
+                    filterArr[idxFH][idxFW][inp_c][out_c], (int64_t)prime_mod);
+              }
+            }
+            tmp_img[inp_c] = tmp_chan;
+          }
+          lFilters[out_c] = tmp_img;
+        }
+        if (lFH > 0 && lFW > 0) {
+          non_strided_conv_offline(lH, lW, CI, lFH, lFW, CO, &lFilters, 
+              noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
+              encoded_filters[s_row][s_col], verbose);
+        }
+      }
+    }
+  }
+}
+
+void ConvField::convolution_online(
     bool use_heliks,
     int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
     int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
     int32_t zPadWRight, int32_t strideH, int32_t strideW,
     const vector<vector<vector<vector<uint64_t>>>> &inputArr,
     const vector<vector<vector<vector<uint64_t>>>> &filterArr,
+    vector<vector<vector<seal::Ciphertext>>> &noise_ct,
+    vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
+    vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
     vector<vector<vector<vector<uint64_t>>>> &outArr, bool verify_output,
     bool verbose) {
 
@@ -2224,6 +2318,13 @@ void ConvField::convolution(
 
   if (party == BOB) {
 
+    vector<seal::Ciphertext> 
+        __noise_ct;
+    vector<vector<uint64_t>> 
+        __secret_share_vec;
+    vector<vector<vector<seal::Plaintext>>>
+        __encoded_filters;
+
     for (int s_row = 0; s_row < strideH; s_row++) {
       for (int s_col = 0; s_col < strideW; s_col++) {
         int lH = ((limitH - s_row + strideH - 1) / strideH);
@@ -2251,8 +2352,8 @@ void ConvField::convolution(
         }
         // Perform convolution for this stride
         if (lFH > 0 && lFW > 0) {
-          non_strided_conv(use_heliks, lH, lW, CI, lFH, lFW, CO, &lImage, nullptr,
-                           outArr[0], verbose);
+          non_strided_conv_online(lH, lW, CI, lFH, lFW, CO, &lImage, 
+              __noise_ct, __secret_share_vec, __encoded_filters, outArr[0], verbose);
         }
       }
     }
@@ -2291,28 +2392,11 @@ void ConvField::convolution(
         int lW = ((limitW - s_col + strideW - 1) / strideW);
         int lFH = ((FH - s_row + strideH - 1) / strideH);
         int lFW = ((FW - s_col + strideW - 1) / strideW);
-        Filters lFilters(CO);
-        // Allocate memory for filters of this stride
-        for (int out_c = 0; out_c < CO; out_c++) {
-          Image tmp_img(CI);
-          for (int inp_c = 0; inp_c < CI; inp_c++) {
-            Channel tmp_chan(lFH, lFW);
-            for (int row = 0; row < lFH; row++) {
-              for (int col = 0; col < lFW; col++) {
-                int idxFH = row * strideH + s_row;
-                int idxFW = col * strideW + s_col;
-                tmp_chan(row, col) = neg_mod(
-                    filterArr[idxFH][idxFW][inp_c][out_c], (int64_t)prime_mod);
-              }
-            }
-            tmp_img[inp_c] = tmp_chan;
-          }
-          lFilters[out_c] = tmp_img;
-        }
-        // Perform convolution for this stride
+
         if (lFH > 0 && lFW > 0) {
-          non_strided_conv(use_heliks, lH, lW, CI, lFH, lFW, CO, nullptr, &lFilters,
-                           outArr[0], verbose);
+          non_strided_conv_online(lH, lW, CI, lFH, lFW, CO, nullptr, 
+              noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
+              encoded_filters[s_row][s_col], outArr[0], verbose);
         }
       }
     }
@@ -2343,4 +2427,27 @@ void ConvField::convolution(
     
     if (verify_output) verify(H, W, CI, CO, image, &filters, outArr);
   }
+}
+
+void ConvField::convolution(
+    bool use_heliks,
+    int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
+    int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
+    int32_t zPadWRight, int32_t strideH, int32_t strideW,
+    const vector<vector<vector<vector<uint64_t>>>> &inputArr,
+    const vector<vector<vector<vector<uint64_t>>>> &filterArr,
+    vector<vector<vector<vector<uint64_t>>>> &outArr, bool verify_output,
+    bool verbose) {
+
+    vector<vector<vector<seal::Ciphertext>>> noise_ct;
+    vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
+    vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
+
+  convolution_offline(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+      zPadWLeft, zPadWRight, strideH, strideW, filterArr, noise_ct, 
+      secret_share_vec, encoded_filters, verbose);
+
+  convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+      zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr, noise_ct, 
+      secret_share_vec, encoded_filters, outArr, verify_output, verbose);
 }

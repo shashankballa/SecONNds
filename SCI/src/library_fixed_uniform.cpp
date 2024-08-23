@@ -1714,7 +1714,7 @@ void TripleGen(bool enableBuffer, int64_t buffSize, int64_t chunkSize){
 #endif
 }
 
-void ConnectAndSetUp(){
+void ConnectAndSetUp(bool use_heliks){
   assert(bitlength < 64 && bitlength > 0);
   assert(num_threads <= MAX_THREADS);
 
@@ -1768,7 +1768,7 @@ void ConnectAndSetUp(){
   int n_gemini_thrds = num_threads;
   cheetah_linear = new gemini::CheetahLinear(party, io, prime_mod, n_gemini_thrds);
 #elif defined(SCI_HE)
-  he_conv = new ConvField(party, io);
+  he_conv = new ConvField(party, io, use_heliks);
 #endif
   doneConnectAndSetUp = true;
 }
@@ -1786,10 +1786,10 @@ void GenerateTriples(int buffer_size, int chunk_size){
   doneGenerateTriples = true;
 }
 
-void StartComputation() {
+void StartComputation(bool use_heliks) {
 
   if (!doneConnectAndSetUp) {
-    ConnectAndSetUp();
+    ConnectAndSetUp(use_heliks);
   }
 
   if (!doneGenerateTriples) {

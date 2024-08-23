@@ -3143,7 +3143,7 @@ int main(int argc, char **argv) {
   tmp41_pts, tmp43_pts, tmp45_pts, tmp47_pts, tmp49_pts, 
   tmp51_pts;
 
-  ConnectAndSetUp();
+  ConnectAndSetUp(use_seconnds);
   /* if(use_seconnds && (party == SERVER)){
     Conv2DOfflineWrapper(conv_ntt, (int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
                   (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,
@@ -3245,7 +3245,7 @@ int main(int argc, char **argv) {
     std::cout << "Triples generated!" << std::endl;
   }
 
-  StartComputation();
+  StartComputation(use_seconnds);
 
   print_ss << "\n-> Private inputs loaded, starting Online...\n" << std::endl;
   std::cout << print_ss.str();

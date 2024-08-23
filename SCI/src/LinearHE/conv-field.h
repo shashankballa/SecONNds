@@ -184,16 +184,19 @@ class ConvField {
         sci::NetIO *io;
 
         // seal::SEALContext *context[2];
-
-        // make a vector of SEALContext pointers
         std::vector<seal::SEALContext *> context;
-
-        seal::Encryptor *encryptor[2];
-        seal::Decryptor *decryptor[2];
-        seal::Evaluator *evaluator[2];
-        seal::BatchEncoder *encoder[2];
-        seal::GaloisKeys *gal_keys[2];
-        seal::Ciphertext *zero[2];
+        // seal::Encryptor *encryptor[2];
+        std::vector<seal::Encryptor *> encryptor;
+        // seal::Decryptor *decryptor[2];
+        std::vector<seal::Decryptor *> decryptor;
+        // seal::Evaluator *evaluator[2];
+        std::vector<seal::Evaluator *> evaluator;
+        // seal::BatchEncoder *encoder[2];
+        std::vector<seal::BatchEncoder *> encoder;
+        // seal::GaloisKeys *gal_keys[2];
+        std::vector<seal::GaloisKeys *> gal_keys;
+        // seal::Ciphertext *zero[2];
+        std::vector<seal::Ciphertext *> zero;
         size_t slot_count;
         ConvMetadata data;
 
@@ -257,6 +260,14 @@ class ConvField {
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
             bool verify_output = false, bool verbose = true);
 
+        ConvField(int party, sci::NetIO *io, bool use_heliks);
+
+        void set_seal(
+            // bool use_heliks,
+            seal::SEALContext *&context_, seal::Encryptor *&encryptor_, seal::Decryptor *&decryptor_,
+            seal::Evaluator *&evaluator_, seal::BatchEncoder *&encoder_, seal::GaloisKeys *&gal_keys_,
+            seal::Ciphertext *&zero_);
+
         void non_strided_conv_offline(
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO,
@@ -281,6 +292,30 @@ class ConvField {
             int32_t FW, int32_t CO, Image *image, Filters *filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
             bool verbose = true);
+
+        void convolution_offline(
+            bool use_heliks,
+            int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
+            int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
+            int32_t zPadWRight, int32_t strideH, int32_t strideW,
+            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &filterArr,
+            std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
+            std::vector<std::vector<std::vector<std::vector<uint64_t>>>>& secret_share_vec,
+            std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
+            bool verbose);
+
+        void convolution_online(
+            bool use_heliks,
+            int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
+            int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
+            int32_t zPadWRight, int32_t strideH, int32_t strideW,
+            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &inputArr,
+            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &filterArr,
+            std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
+            std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &secret_share_vec,
+            std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
+            std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr, bool verify_output,
+            bool verbose);
 
         void convolution(
             bool use_heliks,
