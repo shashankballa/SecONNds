@@ -943,3 +943,938 @@ void ConvField::verify(int H, int W, int CI, int CO, Image &image,
     }
   }
 }
+
+
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//                                                                                                    //
+//                                            SecONNds                                                //
+//                                                                                                    //
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+
+
+void printConvMetaData(ConvMetadata data){
+  printf("ConvMetadata: \n");
+  printf("+ slot_count : %i, pack_num: %i \n", data.slot_count, data.pack_num);
+  printf("+ chans_per_half: %i \n", data.chans_per_half);
+  printf("+ inp_ct : %i, out_ct : %i \n", data.inp_ct, data.out_ct);
+  printf("+ image_h: %i, image_w: %i \n", data.image_h, data.image_w);
+  printf("+ image_size : %i \n", data.image_size);
+  printf("+ inp_chans  : %i \n", data.inp_chans);
+  printf("+ filter_h   : %i, filter_w: %i \n", data.filter_h, data.filter_w);
+  printf("+ filter_size: %i \n", data.filter_size);
+  printf("+ out_chans  : %i \n", data.out_chans);
+  printf("+ inp_halves : %i, out_halves: %i \n", data.inp_halves, data.out_halves);
+  printf("+ out_mod    : %i \n", data.out_mod);
+  printf("+ half_perms : %i, half_rots: %i \n", data.half_perms, data.half_rots);
+  printf("+ convs      : %i \n", data.convs);
+  printf("+ stride_h   : %i, stride_w: %i \n", data.stride_h, data.stride_w);
+  printf("+ output_h   : %i, output_w: %i \n", data.output_h, data.output_w);
+  printf("+ pad_t : %i, pad_b : %i \n", data.pad_t, data.pad_b);
+  printf("+ pad_r : %i, pad_l : %i \n", data.pad_r, data.pad_l);
+}
+
+void ConvField::configure(bool verbose) {
+  data.slot_count = this->slot_count;
+  // If using Output packing we pad image_size to the nearest power of 2
+  data.image_size = next_pow2(data.image_h * data.image_w);
+  data.filter_size = data.filter_h * data.filter_w;
+
+  assert(data.out_chans > 0 && data.inp_chans > 0);
+  // Doesn't currently support a channel being larger than a half ciphertext
+  assert(data.image_size <= (slot_count / 2));
+
+  data.pack_num = slot_count / 2;
+  data.chans_per_half = data.pack_num / data.image_size;
+  data.inp_ct = ceil((float)data.inp_chans / (2 * data.chans_per_half));
+  data.out_ct = ceil((float)data.out_chans / (2 * data.chans_per_half));
+
+  data.inp_halves = ceil((float)data.inp_chans / data.chans_per_half);
+  data.out_halves = ceil((float)data.out_chans / data.chans_per_half);
+
+  // The modulo is calculated per ciphertext instead of per half since we
+  // should never have the last out_half wrap around to the first in the
+  // same ciphertext
+  data.out_mod = data.out_ct * 2 * data.chans_per_half;
+
+  data.half_perms = (data.out_halves % 2 != 0 && data.out_halves > 1)
+                        ? data.out_halves + 1
+                        : data.out_halves;
+                        
+  data.half_rots =
+      (data.inp_halves > 1 || data.out_halves > 1)
+          ? data.chans_per_half
+          : max(data.chans_per_half, max(data.out_chans, data.inp_chans));
+
+  data.convs = data.half_perms * data.half_rots;
+  /*
+  data.convs = data.out_halves * data.chans_per_half;
+
+  data.convs = data.out_chans
+  */
+
+  data.output_h = 1 + (data.image_h + data.pad_t + data.pad_b - data.filter_h) /
+                          data.stride_h;
+  data.output_w = 1 + (data.image_w + data.pad_l + data.pad_r - data.filter_w) /
+                          data.stride_w;
+  if(verbose){
+    cout << "[ConvField] "; printConvMetaData(data);
+  }
+}
+
+// Encodes the given input image into a plaintexts
+vector<Plaintext> HE_encode_input(vector<vector<uint64_t>> &pt,
+                              ConvMetadata &data,
+                              BatchEncoder &batch_encoder) {
+  vector<Plaintext> pts(data.inp_ct);
+#pragma omp parallel for num_threads(num_threads) schedule(static)
+  for (size_t pt_idx = 0; pt_idx < data.inp_ct; pt_idx++) {
+    batch_encoder.encode(pt[pt_idx], pts[pt_idx]);
+  }
+  return pts;
+}
+
+vector<Ciphertext> HE_preprocess_noise_MR(const uint64_t *const *secret_share,
+                                       ConvMetadata &data,
+                                       Encryptor &encryptor,
+                                       BatchEncoder &batch_encoder,
+                                       Evaluator &evaluator) {
+  vector<Ciphertext> enc_noise = HE_preprocess_noise(secret_share, data, 
+                                        encryptor, batch_encoder, evaluator);
+
+  // Puncture the vector with 0s where an actual convolution result value lives
+#pragma omp parallel for num_threads(num_threads) schedule(static)
+  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+    evaluator.mod_switch_to_next_inplace(enc_noise[ct_idx]);
+  }
+  return enc_noise;
+}
+
+/* Same as HE_preprocess_filters_OP_MR but transforms the plaintexts to NTT
+ * before returning the results. */
+vector<vector<vector<Plaintext>>> HE_preprocess_filters_NTT_MR(
+    Filters &filters, ConvMetadata &data, BatchEncoder &batch_encoder
+    , Evaluator &evaluator
+    , parms_id_type parms_id
+    , vector<vector<vector<int>>> &rot_amts
+    , vector<map<int, vector<vector<int>>>> &rot_maps
+    ) {
+
+  // Mask is convolutions x cts per convolution x mask size
+  vector<vector<vector<Plaintext>>> encoded_masks(
+      data.convs, vector<vector<Plaintext>>(
+                      data.inp_ct, vector<Plaintext>(data.filter_size)));
+
+  vector<vector<vector<vector<uint64_t>>>> clear_masks(
+      data.convs, vector<vector<vector<uint64_t>>>(
+                      data.inp_ct, vector<vector<uint64_t>>(data.filter_size)));
+
+  // Since a half in a permutation may have a variable number of rotations we
+  // use this index to track where we are at in the masks tensor
+  // Build each half permutation as well as it's inward rotations
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
+  for (int perm = 0; perm < data.half_perms; perm += 2) {
+    for (int rot = 0; rot < data.half_rots; rot++) {
+      int conv_idx = perm * data.half_rots;
+      for (int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++) {
+        // The output channel the current ct starts from
+        // int out_base = (((perm/2) + ct_idx)*2*data.chans_per_half) %
+        // data.out_mod;
+        int out_base = (perm * data.chans_per_half) % data.out_mod;
+        // Generate all inward rotations of each half -- half_rots loop
+        for (int f = 0; f < data.filter_size; f++) {
+          vector<vector<uint64_t>> masks(2,
+                                         vector<uint64_t>(data.slot_count, 0));
+          for (int half_idx = 0; half_idx < 2; half_idx++) {
+            int inp_base = (2 * ct_idx + half_idx) * data.chans_per_half;
+            for (int chan = 0; chan < data.chans_per_half &&
+                               (chan + inp_base) < data.inp_chans;
+                 chan++) {
+              // Pull the value of this mask
+              int f_w = f % data.filter_w;
+              int f_h = f / data.filter_w;
+              // Set the coefficients of this channel for both
+              // permutations
+              uint64_t val, val2;
+              int out_idx, out_idx2;
+
+              int offset = neg_mod(chan - rot, (int64_t)data.chans_per_half);
+              if (half_idx) {
+                // If out_halves < 1 we may repeat within a
+                // ciphertext
+                // TODO: Add the log optimization for this case
+                if (data.out_halves > 1)
+                  out_idx = offset + out_base + data.chans_per_half;
+                else
+                  out_idx = offset + out_base;
+                out_idx2 = offset + out_base;
+              } else {
+                out_idx = offset + out_base;
+                out_idx2 = offset + out_base + data.chans_per_half;
+              }
+              val = (out_idx < data.out_chans)
+                        ? filters[out_idx][inp_base + chan](f_h, f_w)
+                        : 0;
+              val2 = (out_idx2 < data.out_chans)
+                         ? filters[out_idx2][inp_base + chan](f_h, f_w)
+                         : 0;
+              // Iterate through the whole image and figure out which
+              // values the filter value touches - this is the same
+              // as for input packing
+              for (int curr_h = 0; curr_h < data.image_h;
+                   curr_h += data.stride_h) {
+                for (int curr_w = 0; curr_w < data.image_w;
+                     curr_w += data.stride_w) {
+                  // curr_h and curr_w simulate the current top-left position of
+                  // the filter. This detects whether the filter would fit over
+                  // this section. If it's out-of-bounds we set the mask index
+                  // to 0
+                  bool zero = ((curr_w + f_w) < data.pad_l) ||
+                              ((curr_w + f_w) >= (data.image_w + data.pad_l)) ||
+                              ((curr_h + f_h) < data.pad_t) ||
+                              ((curr_h + f_h) >= (data.image_h + data.pad_l));
+                  // Calculate which half of ciphertext the output channel
+                  // falls in and the offest from that half,
+                  int idx = half_idx * data.pack_num + chan * data.image_size +
+                            curr_h * data.image_w + curr_w;
+                  // Add both values to appropiate permutations
+                  masks[0][idx] = zero ? 0 : val;
+                  if (data.half_perms > 1) {
+                    masks[1][idx] = zero ? 0 : val2;
+                  }
+                }
+              }
+            }
+          }
+
+          clear_masks[conv_idx + rot][ct_idx][f] = masks[0];
+
+          if (data.half_perms > 1) {
+            clear_masks[conv_idx + data.half_rots + rot][ct_idx][f] = masks[1];
+          }
+        }
+      }
+    }
+  }
+  
+  int pad_h = data.pad_t + data.pad_b;
+  int pad_w = data.pad_l + data.pad_r;
+
+  // This tells us how many filters fit on a single row of the padded image
+  int f_per_row = data.image_w + pad_w - data.filter_w + 1;
+
+  // This offset calculates rotations needed to bring filter from top left
+  // corner of image to the top left corner of padded image
+  int offset = f_per_row * data.pad_t + data.pad_l;
+
+  vector<vector<vector<vector<uint64_t>>>> clear_masks_rot(
+      data.convs, vector<vector<vector<uint64_t>>>(
+                      data.inp_ct, vector<vector<uint64_t>>(data.filter_size)));
+
+  rot_amts = vector<vector<vector<int>>> (data.convs, vector<vector<int>>(
+                                data.inp_ct, vector<int>(data.filter_size)));
+  
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    for(int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++){
+      for(int f = 0; f< data.filter_size; f++){
+
+        int f_row = f / data.filter_w;
+        int f_col = f % data.filter_w;
+        int row_offset = f_row * data.image_w - offset;
+        int rot_amt = row_offset + f_col;
+        int idx = f_row * data.filter_w + f_col;
+
+        rot_amts.at(conv_idx).at(ct_idx).at(idx) = rot_amt;
+
+        vector<uint64_t> _mask = clear_masks[conv_idx][ct_idx][idx];
+        
+        vector<vector<uint64_t>> _mask_rot = {slice1D(_mask, 0, data.slot_count/2 - 1),
+                                              slice1D(_mask, data.slot_count/2,   0  )};
+
+       clear_masks_rot[conv_idx][ct_idx][idx] = rowEncode2D(rotate2D(_mask_rot, 0, -rot_amt));
+      }
+    }
+  }
+  
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    for(int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++){
+      for(int f = 0; f< data.filter_size; f++){
+        batch_encoder.encode(
+                clear_masks_rot[conv_idx][ct_idx][f],
+                encoded_masks[conv_idx][ct_idx][f]);
+        // if(!encoded_masks[conv_idx][ct_idx][f].is_zero()){
+          evaluator.transform_to_ntt_inplace(
+            encoded_masks[conv_idx][ct_idx][f], parms_id);
+        // }
+      }
+    }
+  }
+
+  rot_maps = vector<map<int, vector<vector<int>>>>(data.convs);
+
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    for(int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++){
+      for(int f = 0; f< data.filter_size; f++){
+        if(!encoded_masks[conv_idx][ct_idx][f].is_zero()){
+          int rot_amt = rot_amts.at(conv_idx).at(ct_idx).at(f);
+          rot_maps[conv_idx][rot_amt].push_back(vector<int>{conv_idx, ct_idx, f});
+        }
+      }
+    }
+  }
+  return encoded_masks;
+}
+
+vector<Ciphertext> input_to_ntt(vector<Ciphertext> &input,
+                              Evaluator &evaluator){
+  vector<Ciphertext> input_ntt(input.size());
+  for(int ct_idx = 0; ct_idx < input.size(); ct_idx++){
+    evaluator.transform_to_ntt(input.at(ct_idx), input_ntt.at(ct_idx));
+  }
+  return input_ntt;
+}
+
+// HELiKs algorithm
+vector<Ciphertext> HE_conv_heliks(  vector<Ciphertext> &input
+                                  , vector<vector<vector<Plaintext>>> &masks
+                                  , GaloisKeys *gal_keys
+                                  , Evaluator &evaluator
+                                  , ConvMetadata &data
+                                  // , vector<vector<vector<int>>> rot_amts
+                                  ) {
+  int num_mul{}, num_add{}, num_mod{}, num_rot{}, num_ntt{}, num_int{};
+
+  Plaintext mask;
+  vector<Ciphertext> result(data.convs);
+
+  // cout << "HE_conv_heliks" << endl;
+  
+  // This tells us how many filters fit on a single row of the padded image
+  int f_per_row = data.image_w + (data.pad_l + data.pad_r) - data.filter_w + 1;
+
+  // This offset calculates rotations needed to bring filter from top left
+  // corner of image to the top left corner of padded image
+  int offset = f_per_row * data.pad_t + data.pad_l;
+
+  // int curr_rot{}, prev_rot{}, delta{};
+  // bool all_correct = true;
+
+#pragma omp parallel for num_threads(num_threads) schedule(static)
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    
+    int in_idx = 0, fil_idx = data.filter_size - 1;
+
+    // delta = -1*((data.filter_h - 1) * data.image_w - offset + data.filter_w - 1);
+    // curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
+    // if ((prev_rot - curr_rot) != delta){
+    //   printf(
+    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
+    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
+    //   all_correct = false;
+    // }
+    // prev_rot = curr_rot;
+    
+    Ciphertext conv;
+    evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], conv);
+    num_mul++;
+
+    for(int in_idx = 1; in_idx < data.inp_ct; in_idx++){
+      
+    //   delta = 0;
+    //   curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
+    //   if ((prev_rot - curr_rot) != delta){
+    //     printf(
+    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
+    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
+    //     all_correct = false;
+    //   }
+    //   prev_rot = curr_rot;
+      
+      Ciphertext partial_i;
+      evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial_i);
+      num_mul++;
+
+      evaluator.add_inplace(conv, partial_i);
+      num_add++;
+    }
+
+    evaluator.transform_from_ntt_inplace(conv);
+    num_int++;
+    evaluator.mod_switch_to_next_inplace(conv);
+    num_mod++;
+
+    for(int fil_idx = (data.filter_size - 2); fil_idx >= 0; fil_idx--){
+
+      int rot_steps = ((fil_idx % data.filter_w) == (data.filter_w - 1)) ? data.output_w : 1;
+      
+      evaluator.rotate_rows_inplace(conv, rot_steps, *gal_keys);
+      num_rot++;
+
+    //   delta = rot_steps;
+    //   curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
+    //   if ((prev_rot - curr_rot) != delta){
+    //     printf(
+    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
+    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
+    //     all_correct = false;
+    //   }
+    //   prev_rot = curr_rot;
+
+      Ciphertext partial;
+      evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial);
+      num_mul++;
+
+      for(int in_idx = 1; in_idx < data.inp_ct; in_idx++){
+        
+    //     delta = 0;
+    //     curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
+    //     if ((prev_rot - curr_rot) != delta){
+    //       printf(
+    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
+    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
+    //       all_correct = false;
+    //     }
+    //     prev_rot = curr_rot;
+        
+        Ciphertext partial_i;
+        evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial_i);
+        num_mul++;
+        
+        evaluator.add_inplace(partial, partial_i);
+        num_add++;
+      }
+      
+      evaluator.transform_from_ntt_inplace(partial);
+      num_int++;
+      evaluator.mod_switch_to_next_inplace(partial);
+      num_mod++;
+      evaluator.add_inplace(conv, partial);
+      num_add++;
+    }
+
+    result[conv_idx] = conv;
+  }
+
+  data.counts[0] += num_mul;
+  data.counts[1] += num_add;
+  data.counts[2] += num_mod;
+  data.counts[3] += num_rot;
+  // if(data.print_times)
+  // if(data.print_cnts) printf("[HE_conv_OP_MR] num_mul: %3i, num_add: %3i, num_mod: %3i, num_rot: %3i \n", num_mul, num_add, num_mod, num_rot);
+  if(data.print_cnts){
+    cout << "[HE_conv_heliks] HE operation counts:" << endl;
+    cout << "+ num_mul: " << num_mul << endl;
+    cout << "+ num_add: " << num_add << endl;
+    cout << "+ num_mod: " << num_mod << endl;
+    cout << "+ num_rot: " << num_rot << endl;
+  }
+  return result;
+}
+
+vector<Ciphertext> HE_output_rotations_MR(vector<Ciphertext> &convs,
+                                       ConvMetadata &data,
+                                       Evaluator &evaluator,
+                                       GaloisKeys &gal_keys, Ciphertext &zero,
+                                       vector<Ciphertext> &enc_noise
+                                       
+                                       ) {
+  int num_mul{}, num_add{}, num_mod{}, num_rot{};
+
+  vector<bool> out_idx_flags (data.out_ct, false);
+
+  vector<Ciphertext> partials(data.half_perms);
+  Ciphertext zero_next_level = zero;
+  evaluator.mod_switch_to_next_inplace(zero_next_level); num_mod++;
+  // Init the result vector to all 0
+  vector<Ciphertext> result(data.out_ct);
+  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+    result[ct_idx] = zero_next_level;
+  }
+
+  // For each half perm, add up all the inside channels of each half
+  // half_perms = 2co/cn
+#pragma omp parallel for num_threads(num_threads) schedule(static)
+  for (int perm = 0; perm < data.half_perms; perm += 2) {
+    partials[perm] = zero_next_level;
+    if (data.half_perms > 1) partials[perm + 1] = zero_next_level;
+    // The output channel the current ct starts from
+    // half_rots = cn/2
+    int total_rots = data.half_rots;
+    for (int in_rot = 0; in_rot < total_rots; in_rot++) {
+      int conv_idx = perm * data.half_rots + in_rot;
+      int rot_amt;
+      rot_amt =
+          -neg_mod(-in_rot, (int64_t)data.chans_per_half) * data.image_size;
+
+      if (rot_amt != 0){
+        evaluator.rotate_rows_inplace(convs[conv_idx], rot_amt, gal_keys); num_rot++; 
+        // cout << "1. perm:" << perm << ", in_rot: " << in_rot  << ", convs idx: " << conv_idx  << ", rot_amt: " << rot_amt << endl;
+      }
+      if(in_rot == 0) {
+        partials[perm] = convs[conv_idx];
+      } else {
+        evaluator.add_inplace(partials[perm], convs[conv_idx]); num_add++;
+      }
+      // evaluator.add_inplace(partials[perm], convs[conv_idx]); num_add++;
+      // Do the same for the column swap if it exists
+      if (data.half_perms > 1) {
+        if (rot_amt != 0){
+          evaluator.rotate_rows_inplace(convs[conv_idx + data.half_rots], rot_amt,
+                                      gal_keys); num_rot++; 
+          // cout << "2. perm:" << perm << ", in_rot: " << in_rot  << ", convs idx: " << conv_idx + data.half_rots << ", rot_amt: " << rot_amt << endl;
+        }
+        if (in_rot == 0) {
+          partials[perm + 1] = convs[conv_idx + data.half_rots];
+        } else {
+          evaluator.add_inplace(partials[perm + 1],
+                                convs[conv_idx + data.half_rots]); num_add++;
+        }
+        // evaluator.add_inplace(partials[perm + 1],
+        //                       convs[conv_idx + data.half_rots]); num_add++;
+      }
+    }
+    // The correct index for the correct ciphertext in the final output
+    int out_idx = (perm / 2) % data.out_ct;
+    if (perm == 0) {
+      // The first set of convolutions is aligned correctly
+      if(!out_idx_flags[out_idx]){
+        result[out_idx] = partials[perm];
+        out_idx_flags[out_idx] = true;
+      } else {
+        // cout << "ERROR: out_idx already set" << endl;
+        evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
+      }
+      // evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
+      ///*
+      if (data.out_halves == 1 && data.inp_halves > 1) {
+        // If the output fits in a single half but the input
+        // doesn't, add the two columns
+        evaluator.rotate_columns_inplace(partials[perm], gal_keys); num_rot++;
+        // cout << "3. perm:" << perm << ", out_idx: " << out_idx << ", rot_cols" << endl;
+        evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
+      }
+      //*/
+      // Do the same for column swap if exists and we aren't on a repeat
+      if (data.half_perms > 1) {
+        evaluator.rotate_columns_inplace(partials[perm + 1], gal_keys); num_rot++; 
+        // cout << "4. perm:" << perm << ", out_idx: " << out_idx  << ", rot_cols" << endl;
+        evaluator.add_inplace(result[out_idx], partials[perm + 1]); num_add++;
+      }
+    } else {
+      // Rotate the output ciphertexts by one and add
+      if(!out_idx_flags[out_idx]){
+        result[out_idx] = partials[perm];
+        out_idx_flags[out_idx] = true;
+      } else {
+        // cout << "ERROR: out_idx already set" << endl;
+        evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
+      }
+      // evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
+      // If we're on a tight half we add both halves together and
+      // don't look at the column flip
+      if (data.half_perms > 1) {
+        evaluator.rotate_columns_inplace(partials[perm + 1], gal_keys); num_rot++; 
+        // cout << "5. perm:" << perm << ", out_idx: " << out_idx  << ", rot_cols" << endl;
+        evaluator.add_inplace(result[out_idx], partials[perm + 1]); num_add++;
+      }
+    }
+  }
+  //// Add the noise vector to remove any leakage
+  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+    evaluator.add_inplace(result[ct_idx], enc_noise[ct_idx]); num_add++;
+    // evaluator.mod_switch_to_next_inplace(result[ct_idx]);
+  }
+  data.counts[1] += num_add;
+  data.counts[2] += num_mod;
+  data.counts[3] += num_rot;
+  // if(data.print_cnts) printf("[HE_output_rotations_MR] num_mul: %3i, num_add: %3i, num_mod: %3i, num_rot: %3i \n", num_mul, num_add, num_mod, num_rot);
+  if(data.print_cnts){
+    cout << "[HE_output_rotations_MR] HE operation counts:" << endl;
+    cout << "+ num_mul: " << num_mul << endl;
+    cout << "+ num_add: " << num_add << endl;
+    cout << "+ num_mod: " << num_mod << endl;
+    cout << "+ num_rot: " << num_rot << endl;
+  }
+  return result;
+}
+
+void ConvField::non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_t FH,
+                                 int32_t FW, int32_t CO, Image *image,
+                                 Filters *filters,
+                                 vector<vector<vector<uint64_t>>> &outArr,
+                                 bool verbose
+                                 ) {
+  data.image_h = H;
+  data.image_w = W;
+  data.inp_chans = CI;
+  data.out_chans = CO;
+  data.filter_h = FH;
+  data.filter_w = FW;
+  data.pad_t = 0;
+  data.pad_b = 0;
+  data.pad_l = 0;
+  data.pad_r = 0;
+  data.stride_h = 1;
+  data.stride_w = 1;
+  auto _slot_count =
+      min(SEAL_POLY_MOD_DEGREE_MAX, max(8192, 2 * next_pow2(H * W)));
+
+  bool _free_keys = false;
+
+  SEALContext *context_;
+  Encryptor *encryptor_;
+  Decryptor *decryptor_;
+  Evaluator *evaluator_;
+  BatchEncoder *encoder_;
+  GaloisKeys *gal_keys_;
+  Ciphertext *zero_;
+  if (slot_count == _slot_count) {
+    context_ = this->context[0];
+    encryptor_ = this->encryptor[0];
+    decryptor_ = this->decryptor[0];
+    evaluator_ = this->evaluator[0];
+    encoder_ = this->encoder[0];
+    gal_keys_ = this->gal_keys[0];
+    zero_ = this->zero[0];
+  // } else if (slot_count == POLY_MOD_DEGREE_LARGE) {
+  //   context_ = this->context[1];
+  //   encryptor_ = this->encryptor[1];
+  //   decryptor_ = this->decryptor[1];
+  //   evaluator_ = this->evaluator[1];
+  //   encoder_ = this->encoder[1];
+  //   gal_keys_ = this->gal_keys[1];
+  //   zero_ = this->zero[1];
+  } else {
+    slot_count = _slot_count;
+    _free_keys = true;
+    generate_new_keys(party, io, slot_count, GET_COEFF_MOD_HLK(), context_, 
+      encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_, verbose);
+  }
+  
+  configure(verbose);
+
+  auto sw = StopWatch();
+  double prep_mat_time{}, prep_noise_time{}, processing_time{};
+
+  if (party == BOB) {
+
+    // printImageDims(*image);
+    // printImage(*image, 1);
+
+    auto pt = preprocess_image_OP(*image, data);
+    if (verbose) cout << "[Client] Image preprocessed" << endl;
+
+    // print2D(pt, 1, data.image_size * data.inp_chans);
+
+    auto pts = HE_encode_input(pt, data, *encoder_);
+
+    for (size_t pt_idx = 0; pt_idx < data.inp_ct; pt_idx++)
+    {
+      auto ct = encryptor_->encrypt_symmetric(pts.at(pt_idx));
+      send_ciphertext(io, ct);
+    }
+
+    if (verbose) cout << "[Client] Image encrypted and sent" << endl;
+
+    vector<Ciphertext> enc_result(data.out_ct);
+    recv_encrypted_vector(io, *context_, enc_result);
+    auto HE_result = HE_decrypt(enc_result, data, *decryptor_, *encoder_);
+
+    if (verbose) cout << "[Client] Result received and decrypted" << endl;
+
+    for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+      for (int chan = 0; chan < CO; chan++) {
+        outArr[idx / data.output_w][idx % data.output_w][chan] +=
+            HE_result[chan][idx];
+      }
+    }
+  } else  // party == ALICE
+  {
+
+    // for(auto im: *filters){ printImage(im, 4, true); cout << endl;}
+
+    // printConvMetaData(data);
+
+    PRG128 prg;
+    uint64_t **secret_share = new uint64_t *[CO];
+    for (int chan = 0; chan < CO; chan++) {
+      secret_share[chan] = new uint64_t[data.output_h * data.output_w];
+      prg.random_mod_p<uint64_t>(secret_share[chan],
+                                 data.output_h * data.output_w, prime_mod);
+    }
+    vector<Ciphertext> noise_ct = HE_preprocess_noise_MR(
+        secret_share, data, *encryptor_, *encoder_, *evaluator_);
+
+    if (verbose) {
+      prep_noise_time = sw.lap();
+      cout << "[Server] HE_preprocess_noise_MR runtime:" << prep_noise_time << endl;
+      cout << "[Server] Noise processed. Shape: (";
+      cout << noise_ct.size() << ")" << endl;
+    }
+
+    vector<vector<vector<Plaintext>>> masks_OP;
+    vector<vector<vector<int>>> rot_amts;
+    vector<map<int, vector<vector<int>>>> rot_maps;
+    masks_OP = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
+                                          , *evaluator_
+                                          , zero_->parms_id()
+                                          , rot_amts
+                                          , rot_maps
+                                          );
+
+    if (verbose) {
+      prep_mat_time = sw.lap();
+      cout << "[Server] HE_preprocess_filters_NTT_MR runtime:" << prep_mat_time << endl;
+      cout << "[Server] Filters processed. Shape: (";
+      cout << masks_OP.size() << ", " << masks_OP[0].size() << ", ";
+      cout << masks_OP[0][0].size() << ")" << endl;
+      cout << "[Server] Total offline pre-processing time: ";
+      cout << prep_mat_time + prep_noise_time << endl;
+    }
+
+    vector<Ciphertext> result;
+    vector<Ciphertext> ct(data.inp_ct);
+    for (int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++) {
+      recv_ciphertext(io, *context_, ct.at(ct_idx));
+    }
+
+    if (verbose) cout << "[Server] Input received." << endl;
+    
+#ifdef HE_DEBUG
+    PRINT_NOISE_BUDGET(decryptor_, ct[0],
+                       "in received ciphertexts");
+#endif
+
+    auto input_ntt = input_to_ntt(ct, *evaluator_);
+    if (verbose) {cout << "[Server] Input transformed to NTT. Shape: (";
+    cout << input_ntt.size() << ")" << endl;}
+
+    auto conv_result = HE_conv_heliks( input_ntt
+                                      , masks_OP
+                                      , gal_keys_
+                                      , *evaluator_ 
+                                      , data
+                                      );
+    if (verbose) {cout << "[Server] Convolution done. Shape: (";
+    cout << conv_result.size() << ")" << endl;}
+
+#ifdef HE_DEBUG
+    PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
+                       "after homomorphic convolution");
+#endif
+
+    result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_,
+                                    *zero_, noise_ct
+                                    );
+    if (verbose) {cout << "[Server] Output Rotations done. Shape: (";
+    cout << result.size() << ")" << endl;}
+
+#ifdef HE_DEBUG
+    PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
+#endif
+
+    if (verbose) {
+      processing_time = sw.lap();
+      cout << "[Server] Total online processing time: ";
+      cout << processing_time << endl;
+    }
+
+    send_encrypted_vector(io, result);
+    if (verbose) cout << "[Server] Result computed and sent" << endl;
+
+    for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+      for (int chan = 0; chan < CO; chan++) {
+        outArr[idx / data.output_w][idx % data.output_w][chan] +=
+            (prime_mod - secret_share[chan][idx]);
+      }
+    }
+    for (int i = 0; i < data.out_chans; i++) delete[] secret_share[i];
+    delete[] secret_share;
+  }
+
+  if(_free_keys){
+    if (slot_count > POLY_MOD_DEGREE && slot_count < POLY_MOD_DEGREE_LARGE) {
+      free_keys(party, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_,
+                zero_);
+    }
+  }
+}
+
+void ConvField::convolution_heliks(
+    int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
+    int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
+    int32_t zPadWRight, int32_t strideH, int32_t strideW,
+    const vector<vector<vector<vector<uint64_t>>>> &inputArr,
+    const vector<vector<vector<vector<uint64_t>>>> &filterArr,
+    vector<vector<vector<vector<uint64_t>>>> &outArr, bool verify_output,
+    bool verbose) {
+
+  data.counts = vector<int> (10);
+
+  int paddedH = H + zPadHLeft + zPadHRight;
+  int paddedW = W + zPadWLeft + zPadWRight;
+  int newH = 1 + (paddedH - FH) / strideH;
+  int newW = 1 + (paddedW - FW) / strideW;
+  int limitH = FH + ((paddedH - FH) / strideH) * strideH;
+  int limitW = FW + ((paddedW - FW) / strideW) * strideW;
+
+  for (int i = 0; i < newH; i++) {
+    for (int j = 0; j < newW; j++) {
+      for (int k = 0; k < CO; k++) {
+        outArr[0][i][j][k] = 0;
+      }
+    }
+  }
+
+  Image image;
+  Filters filters;
+
+  image.resize(CI);
+  for (int chan = 0; chan < CI; chan++) {
+    Channel tmp_chan(H, W);
+    for (int h = 0; h < H; h++) {
+      for (int w = 0; w < W; w++) {
+        tmp_chan(h, w) =
+            neg_mod((int64_t)inputArr[0][h][w][chan], (int64_t)prime_mod);
+      }
+    }
+    image[chan] = tmp_chan;
+  }
+
+  if (party == BOB) {
+    for (int s_row = 0; s_row < strideH; s_row++) {
+      for (int s_col = 0; s_col < strideW; s_col++) {
+        int lH = ((limitH - s_row + strideH - 1) / strideH);
+        int lW = ((limitW - s_col + strideW - 1) / strideW);
+        int lFH = ((FH - s_row + strideH - 1) / strideH);
+        int lFW = ((FW - s_col + strideW - 1) / strideW);
+        Image lImage(CI);
+        for (int chan = 0; chan < CI; chan++) {
+          Channel tmp_chan(lH, lW);
+          // lImage[chan] = new uint64_t[lH*lW];
+          for (int row = 0; row < lH; row++) {
+            for (int col = 0; col < lW; col++) {
+              int idxH = row * strideH + s_row - zPadHLeft;
+              int idxW = col * strideW + s_col - zPadWLeft;
+              if ((idxH < 0 || idxH >= H) || (idxW < 0 || idxW >= W)) {
+                tmp_chan(row, col) = 0;
+              } else {
+                tmp_chan(row, col) =
+                    neg_mod(inputArr[0][idxH][idxW][chan], (int64_t)prime_mod);
+              }
+            }
+          }
+          lImage[chan] = tmp_chan;
+        }
+        if (lFH > 0 && lFW > 0) {
+          non_strided_conv_NTT_MR(lH, lW, CI, lFH, lFW, CO, &lImage, nullptr,
+                              outArr[0],
+                              verbose);
+        }
+      }
+    }
+    for (int idx = 0; idx < newH * newW; idx++) {
+      for (int chan = 0; chan < CO; chan++) {
+        outArr[0][idx / newW][idx % newW][chan] = neg_mod(
+            (int64_t)outArr[0][idx / newW][idx % newW][chan], prime_mod);
+      }
+    }
+
+    if (verify_output) {
+      if(verbose) cout << "[convolution_heliks] Verifying output..." << endl;
+      verify(H, W, CI, CO, image, nullptr, outArr);
+    }
+  } else  // party == ALICE
+  {
+    filters.resize(CO);
+    for (int out_c = 0; out_c < CO; out_c++) {
+      Image tmp_img(CI);
+      for (int inp_c = 0; inp_c < CI; inp_c++) {
+        Channel tmp_chan(FH, FW);
+        for (int idx = 0; idx < FH * FW; idx++) {
+          int64_t val = (int64_t)filterArr[idx / FW][idx % FW][inp_c][out_c];
+          if (val > int64_t(prime_mod / 2)) {
+            val = val - prime_mod;
+          }
+          tmp_chan(idx / FW, idx % FW) = val;
+        }
+        tmp_img[inp_c] = tmp_chan;
+      }
+      filters[out_c] = tmp_img;
+    }
+
+    for (int s_row = 0; s_row < strideH; s_row++) {
+      for (int s_col = 0; s_col < strideW; s_col++) {
+        int lH = ((limitH - s_row + strideH - 1) / strideH);
+        int lW = ((limitW - s_col + strideW - 1) / strideW);
+        int lFH = ((FH - s_row + strideH - 1) / strideH);
+        int lFW = ((FW - s_col + strideW - 1) / strideW);
+        Filters lFilters(CO);
+        for (int out_c = 0; out_c < CO; out_c++) {
+          Image tmp_img(CI);
+          for (int inp_c = 0; inp_c < CI; inp_c++) {
+            Channel tmp_chan(lFH, lFW);
+            for (int row = 0; row < lFH; row++) {
+              for (int col = 0; col < lFW; col++) {
+                int idxFH = row * strideH + s_row;
+                int idxFW = col * strideW + s_col;
+                tmp_chan(row, col) = neg_mod(
+                    filterArr[idxFH][idxFW][inp_c][out_c], (int64_t)prime_mod);
+              }
+            }
+            tmp_img[inp_c] = tmp_chan;
+          }
+          lFilters[out_c] = tmp_img;
+        }
+
+        if (lFH > 0 && lFW > 0) {
+          non_strided_conv_NTT_MR(lH, lW, CI, lFH, lFW, CO, nullptr, &lFilters,
+                              outArr[0], 
+                              verbose);
+        }
+      }
+    }
+    data.image_h = H;
+    data.image_w = W;
+    data.inp_chans = CI;
+    data.out_chans = CO;
+    data.filter_h = FH;
+    data.filter_w = FW;
+    data.pad_t = zPadHLeft;
+    data.pad_b = zPadHRight;
+    data.pad_l = zPadWLeft;
+    data.pad_r = zPadWRight;
+    data.stride_h = strideH;
+    data.stride_w = strideW;
+
+    // The filter values should be small enough to not overflow uint64_t
+    Image local_result = ideal_functionality(image, filters);
+
+    for (int idx = 0; idx < newH * newW; idx++) {
+      for (int chan = 0; chan < CO; chan++) {
+        outArr[0][idx / newW][idx % newW][chan] =
+            neg_mod((int64_t)local_result[chan](idx / newW, idx % newW) +
+                        (int64_t)outArr[0][idx / newW][idx % newW][chan],
+                    prime_mod);
+      }
+    }
+
+    if (verify_output) {
+      if(verbose) cout << "[convolution_heliks] Verifying output..." << endl;
+      verify(H, W, CI, CO, image, &filters, outArr);
+    }
+
+    if(data.print_cnts){
+      // printf("[] HE #ops - mul: %i, add: %i, mod: %i, rot: %i \n", 
+      //   data.counts[0], data.counts[1], data.counts[2], data.counts[3]);
+      cout << "[convolution_heliks] HE operation counts: " << endl;
+      cout << "+ mul: " << data.counts[0] << endl;
+      cout << "+ add: " << data.counts[1] << endl;
+      cout << "+ mod: " << data.counts[2] << endl;
+      cout << "+ rot: " << data.counts[3] << endl;
+    }
+  }
+}

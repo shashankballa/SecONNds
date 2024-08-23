@@ -28,14 +28,156 @@ using namespace sci;
 using namespace seal;
 using namespace seal::util;
 
-void generate_new_keys(int party, NetIO *io, int slot_count,
+void generate_context(size_t slot_count, vector<int> coeff_modulus, 
+                      SEALContext *&context_, Evaluator *&evaluator_, 
+                      BatchEncoder *&encoder_, bool verbose) {
+
+  EncryptionParameters parms(scheme_type::bfv);
+  parms.set_poly_modulus_degree(slot_count);
+  parms.set_coeff_modulus(CoeffModulus::Create(slot_count, coeff_modulus));
+  parms.set_plain_modulus(prime_mod);
+  context_ = new SEALContext(parms, true, sec_level_type::none);
+  encoder_ = new BatchEncoder(*context_);
+  evaluator_ = new Evaluator(*context_);
+  if (verbose){
+    cout << "[generate_context] HE Parameters: " << endl;
+    cout << "+ poly_mod : "<< slot_count << endl;
+    cout << "+ plain_mod: " << prime_mod << endl;
+    cout << "+ coeff_mod: "; print1D(coeff_modulus, 2);
+  }
+}
+
+void generate_context(size_t slot_count, SEALContext *&context_, 
+                      Evaluator *&evaluator_, BatchEncoder *&encoder_, 
+                      bool verbose) {
+
+  generate_context(slot_count, GET_COEFF_MOD_CF2(), context_, evaluator_, 
+                   encoder_, verbose);
+}
+
+void exchange_keys(int party, NetIO *io, size_t slot_count,
+                       SEALContext *context_, BatchEncoder *encoder_,
+                       Encryptor *&encryptor_, Decryptor *&decryptor_,  
+                       GaloisKeys *&gal_keys_, Ciphertext *&zero_, 
+                       bool verbose) {
+  if (party == BOB) {
+    KeyGenerator keygen(*context_);
+    SecretKey sec_key = keygen.secret_key();
+    Serializable<PublicKey> pub_key = keygen.create_public_key();
+    Serializable<GaloisKeys> gal_keys = keygen.create_galois_keys();
+
+    stringstream os;
+    pub_key.save(os);
+    uint64_t pk_size = os.tellp();
+    gal_keys.save(os);
+    uint64_t gk_size = (uint64_t)os.tellp() - pk_size;
+
+    string keys_ser = os.str();
+    io->send_data(&pk_size, sizeof(uint64_t));
+    io->send_data(&gk_size, sizeof(uint64_t));
+    io->send_data(keys_ser.c_str(), pk_size + gk_size);
+    if (verbose)
+      cout << "[exchange_keys] Client sent public-keys to Server" << endl;
+
+    PublicKey pk;
+    pk.load(*context_, os);
+    encryptor_ = new Encryptor(*context_, pk);
+    decryptor_ = new Decryptor(*context_, sec_key);
+    gal_keys_ = new GaloisKeys();
+    gal_keys_->load(*context_, os);
+    encryptor_->set_secret_key(sec_key); // For symmetric key encryption
+#ifdef HE_DEBUG
+    stringstream os_sk;
+    sec_key.save(os_sk);
+    uint64_t sk_size = os_sk.tellp();
+    string keys_ser_sk = os_sk.str();
+    io->send_data(&sk_size, sizeof(uint64_t));
+    io->send_data(keys_ser_sk.c_str(), sk_size);
+    if (verbose){
+      cout << "[exchange_keys] [HE_DEBUG] Client sent secret-key to Server"
+           << endl;
+    }
+#endif
+  } else  // party == ALICE
+  {
+    uint64_t pk_size;
+    uint64_t gk_size;
+    io->recv_data(&pk_size, sizeof(uint64_t));
+    io->recv_data(&gk_size, sizeof(uint64_t));
+    char *key_share = new char[pk_size + gk_size];
+    io->recv_data(key_share, pk_size + gk_size);
+    if (verbose){
+      cout << "[exchange_keys] Server received public-keys from Client"
+           << endl;
+    }
+    
+    stringstream is;
+    PublicKey pub_key;
+    is.write(key_share, pk_size);
+    pub_key.load(*context_, is);
+    gal_keys_ = new GaloisKeys();
+    is.write(key_share + pk_size, gk_size);
+    gal_keys_->load(*context_, is);
+    delete[] key_share;
+
+    encryptor_ = new Encryptor(*context_, pub_key);
+    vector<uint64_t> pod_matrix(slot_count, 0ULL);
+    Plaintext tmp;
+    encoder_->encode(pod_matrix, tmp);
+    zero_ = new Ciphertext;
+    encryptor_->encrypt(tmp, *zero_);
+
+#ifdef HE_DEBUG
+    uint64_t sk_size;
+    io->recv_data(&sk_size, sizeof(uint64_t));
+    char *key_share_sk = new char[sk_size];
+    io->recv_data(key_share_sk, sk_size);
+    if (verbose){
+    cout << "[exchange_keys] [HE_DEBUG] Server received secret-key from Client"
+          << endl;
+    }
+    stringstream is_sk;
+    SecretKey sec_key;
+    is_sk.write(key_share_sk, sk_size);
+    sec_key.load(*context_, is_sk);
+    delete[] key_share_sk;
+    decryptor_ = new Decryptor(*context_, sec_key);
+#endif
+  }
+}
+
+void generate_new_keys(int party, NetIO *io, size_t slot_count,
+                       SEALContext *&context_, Encryptor *&encryptor_,
+                       Decryptor *&decryptor_, Evaluator *&evaluator_,
+                       BatchEncoder *&encoder_, GaloisKeys *&gal_keys_,
+                       Ciphertext *&zero_, bool verbose) {
+
+  generate_context(slot_count, context_, evaluator_, encoder_, verbose);
+  exchange_keys(party, io, slot_count, context_, encoder_, encryptor_, 
+                decryptor_, gal_keys_, zero_, verbose);
+}
+
+void generate_new_keys(int party, NetIO *io, size_t slot_count, 
+                       vector<int> coeff_modulus, SEALContext *&context_, 
+                       Encryptor *&encryptor_, Decryptor *&decryptor_, 
+                       Evaluator *&evaluator_, BatchEncoder *&encoder_, 
+                       GaloisKeys *&gal_keys_, Ciphertext *&zero_, 
+                       bool verbose) {
+
+  generate_context(slot_count, coeff_modulus, context_, evaluator_, 
+                   encoder_, verbose);
+  exchange_keys(party, io, slot_count, context_, encoder_, encryptor_, 
+                decryptor_, gal_keys_, zero_, verbose);
+}
+
+void generate_new_keys_SB(int party, NetIO *io, size_t slot_count,
                        SEALContext *&context_, Encryptor *&encryptor_,
                        Decryptor *&decryptor_, Evaluator *&evaluator_,
                        BatchEncoder *&encoder_, GaloisKeys *&gal_keys_,
                        Ciphertext *&zero_, bool verbose) {
   EncryptionParameters parms(scheme_type::bfv);
   parms.set_poly_modulus_degree(slot_count);
-  parms.set_coeff_modulus(CoeffModulus::Create(slot_count, {60, 60, 60, 49}));
+  parms.set_coeff_modulus(CoeffModulus::Create(slot_count, GET_COEFF_MOD_HLK()));
   parms.set_plain_modulus(prime_mod);
   context_ = new SEALContext(parms, true, sec_level_type::none);
   encoder_ = new BatchEncoder(*context_);
@@ -110,8 +252,10 @@ void generate_new_keys(int party, NetIO *io, int slot_count,
 #endif
   }
 
-  if (verbose)
+  if (verbose){
     cout << "Keys Generated (slot_count: " << slot_count << ")" << endl;
+    cout << "Coefficient Modulus Bits :"; print1D(GET_COEFF_MOD_HLK());
+  }
 }
 
 void free_keys(int party, Encryptor *&encryptor_, Decryptor *&decryptor_,
@@ -141,6 +285,17 @@ void send_encrypted_vector(NetIO *io, const vector<Ciphertext> &ct_vec) {
   }
 }
 
+void send_encrypted_vector(NetIO *io, 
+    const vector<Serializable<Ciphertext>> &ct_vec, 
+    compr_mode_type compr_mode) {
+  assert(ct_vec.size() > 0);
+  uint32_t ncts = ct_vec.size();
+  io->send_data(&ncts, sizeof(uint32_t));
+  for (size_t i = 0; i < ncts; ++i) {
+    send_ciphertext(io, ct_vec[i], compr_mode);
+  }
+}
+
 void recv_encrypted_vector(NetIO *io, const SEALContext &context,
                            vector<Ciphertext> &ct_vec) {
   uint32_t ncts{0};
@@ -155,6 +310,17 @@ void send_ciphertext(NetIO *io, const Ciphertext &ct) {
   stringstream os;
   uint64_t ct_size;
   ct.save(os);
+  ct_size = os.tellp();
+  string ct_ser = os.str();
+  io->send_data(&ct_size, sizeof(uint64_t));
+  io->send_data(ct_ser.c_str(), ct_ser.size());
+}
+
+void send_ciphertext(NetIO *io, const Serializable<Ciphertext> &ct,
+    compr_mode_type compr_mode) {
+  stringstream os;
+  uint64_t ct_size;
+  ct.save(os, compr_mode);
   ct_size = os.tellp();
   string ct_ser = os.str();
   io->send_data(&ct_size, sizeof(uint64_t));
@@ -220,14 +386,14 @@ void flood_ciphertext(Ciphertext &ct,
   set_poly_coeffs_uniform(noise.get(), noise_len, random, context_data);
   for (size_t i = 0; i < coeff_mod_count; i++) {
     add_poly_coeffmod(noise.get() + (i * coeff_count),
-                      ct.data() + (i * coeff_count), coeff_count,
-                      coeff_modulus[i], ct.data() + (i * coeff_count));
+                           ct.data() + (i * coeff_count), coeff_count,
+                           coeff_modulus[i], ct.data() + (i * coeff_count));
   }
 
   set_poly_coeffs_uniform(noise.get(), noise_len, random, context_data);
   for (size_t i = 0; i < coeff_mod_count; i++) {
     add_poly_coeffmod(noise.get() + (i * coeff_count),
-                      ct.data(1) + (i * coeff_count), coeff_count,
-                      coeff_modulus[i], ct.data(1) + (i * coeff_count));
+                           ct.data(1) + (i * coeff_count), coeff_count,
+                           coeff_modulus[i], ct.data(1) + (i * coeff_count));
   }
 }

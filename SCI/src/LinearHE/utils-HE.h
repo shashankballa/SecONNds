@@ -25,6 +25,7 @@ SOFTWARE.
 #include "LinearHE/defines-HE.h"
 #include "seal/seal.h"
 #include "utils/emp-tool.h"
+#include "utils-vec.h"
 
 #define PRINT_NOISE_BUDGET(decryptor, ct, print_msg)                           \
   if (verbose)                                                                 \
@@ -32,7 +33,21 @@ SOFTWARE.
             << decryptor->invariant_noise_budget(ct) << " bits" << RESET       \
             << std::endl
 
-void generate_new_keys(int party, sci::NetIO *io, int slot_count,
+void generate_context(size_t slot_count, std::vector<int> coeff_modulus, 
+                      seal::SEALContext *&context_, seal::Evaluator *&evaluator_, 
+                      seal::BatchEncoder *&encoder_, bool verbose);
+
+void generate_context(size_t slot_count, seal::SEALContext *&context_, 
+                      seal::Evaluator *&evaluator_, seal::BatchEncoder *&encoder_, 
+                      bool verbose);
+
+void exchange_keys(int party, sci::NetIO *io, size_t slot_count,
+                    seal::SEALContext *context_, seal::BatchEncoder *encoder_,
+                    seal::Encryptor *&encryptor_, seal::Decryptor *&decryptor_,  
+                    seal::GaloisKeys *&gal_keys_, seal::Ciphertext *&zero_, 
+                    bool verbose);
+
+void generate_new_keys(int party, sci::NetIO *io, size_t slot_count,
                        seal::SEALContext *&context_,
                        seal::Encryptor *&encryptor_,
                        seal::Decryptor *&decryptor_,
@@ -40,7 +55,39 @@ void generate_new_keys(int party, sci::NetIO *io, int slot_count,
                        seal::BatchEncoder *&encoder_,
                        seal::GaloisKeys *&gal_keys_, 
                        seal::Ciphertext *&zero_,
-                       bool verbose = false);
+                       bool verbose = true);
+
+void generate_new_keys(int party, sci::NetIO *io, size_t slot_count,
+                       std::vector<int> coeff_modulus,
+                       seal::SEALContext *&context_,
+                       seal::Encryptor *&encryptor_,
+                       seal::Decryptor *&decryptor_,
+                       seal::Evaluator *&evaluator_,
+                       seal::BatchEncoder *&encoder_,
+                       seal::GaloisKeys *&gal_keys_, 
+                       seal::Ciphertext *&zero_,
+                       bool verbose = true);
+
+void generate_new_keys_SB(int party, sci::NetIO *io, size_t slot_count,
+                       seal::SEALContext *&context_,
+                       seal::Encryptor *&encryptor_,
+                       seal::Decryptor *&decryptor_,
+                       seal::Evaluator *&evaluator_,
+                       seal::BatchEncoder *&encoder_,
+                       seal::GaloisKeys *&gal_keys_, 
+                       seal::Ciphertext *&zero_,
+                       bool verbose = true);
+
+void generate_new_keys_ckks_SB(int party, sci::NetIO *io, size_t slot_count,
+                            double ckks_scale,
+                            seal::SEALContext *&context_,
+                            seal::Encryptor *&encryptor_,
+                            seal::Decryptor *&decryptor_,
+                            seal::Evaluator *&evaluator_,
+                            seal::CKKSEncoder *&encoder_,
+                            seal::GaloisKeys *&gal_keys_,
+                            seal::Ciphertext *&zero_,
+                            bool verbose = true);
 
 void free_keys(int party, seal::Encryptor *&encryptor_,
                seal::Decryptor *&decryptor_, seal::Evaluator *&evaluator_,
@@ -50,10 +97,19 @@ void free_keys(int party, seal::Encryptor *&encryptor_,
 void send_encrypted_vector(sci::NetIO *io, 
                            const std::vector<seal::Ciphertext> &ct_vec);
 
+void send_encrypted_vector(sci::NetIO *io, 
+                    const std::vector<seal::Serializable<seal::Ciphertext>> &ct_vec, 
+                    seal::compr_mode_type compr_mode = seal::compr_mode_type::zstd);
+
+
 void recv_encrypted_vector(sci::NetIO *io, const seal::SEALContext& context,
                            std::vector<seal::Ciphertext> &ct_vec);
 
 void send_ciphertext(sci::NetIO *io, const seal::Ciphertext &ct);
+
+void send_ciphertext(sci::NetIO *io, 
+                     const seal::Serializable<seal::Ciphertext> &ct, 
+                     seal::compr_mode_type compr_mode = seal::compr_mode_type::zstd);
 
 void recv_ciphertext(sci::NetIO *io, const seal::SEALContext& context, seal::Ciphertext &ct);
 
