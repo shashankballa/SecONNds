@@ -17,6 +17,7 @@ int n_trials_p = 4;
 #endif  
 
 string model_name = "SqueezeNet";
+stringstream print_ss;
 
 int party = 0;
 int port = 32000;
@@ -32,7 +33,6 @@ bool use_seconnds = false;
 int _ntt = 0;
 bool conv_ntt = false;
 
-stringstream print_ss;
 
 void MatAddBroadCast2(int64_t s1, int64_t s2, uint64_t *A, uint64_t *B,
                       uint64_t *outArr) {
@@ -2295,12 +2295,24 @@ int main(int argc, char **argv) {
   amap.arg("ntrips", num_trips, "Number of triples to generate");
   amap.arg("csize", trips_csize, "Chunk size for triple generation");
 
+  // Print all the input arguments
+  print_ss << "Starting main_sqnet with the following inputs: \n"
+    << "Role : " << party << ", " << "Port: " << port << ", " << "IP: " << address << "\n"
+    << "Num Threads : " << num_threads << "\n"
+    << "Bitlength   : " << bitlength << ", " << "Scaling Factor: " << kScale << "\n"
+    << "Use SecONNds: " << std::boolalpha << _snn << ", " << "NTT in convolutions: " << _ntt << "\n"
+    << "Number of triples: " << num_trips << ", " << "Chunk size: " << trips_csize << "\n"
+    << "\n";
+  cout << print_ss.str();
+  print_ss.str("");
+
   amap.parse(argc, argv);
 
   use_seconnds = (_snn == 1);
   conv_ntt = (_ntt == 1);
 
   assert(party == SERVER || party == CLIENT);
+
   uint64_t *tmp0 =
       make_array<uint64_t>((int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3);
   /* Variable to read the clear value corresponding to the input variable tmp0
@@ -3219,7 +3231,6 @@ int main(int argc, char **argv) {
   print_ss = std::stringstream();
 
   if(use_seconnds){
-
 #if RUN_TRIP_TRIALS
     n_trials_p = _sf == 1 ? 1 : n_trials_p;
     std::cout << "Running " << n_trials << " x " << n_trials_p 
@@ -3230,11 +3241,9 @@ int main(int argc, char **argv) {
       }
     }
 #endif
-
     GenerateTriples(num_trips, trips_csize);
     std::cout << "Triples generated!" << std::endl;
   }
-
 
   StartComputation();
 
