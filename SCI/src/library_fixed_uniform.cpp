@@ -26,8 +26,8 @@ SOFTWARE.
 #include "functionalities_uniform.h"
 #include "library_fixed_common.h"
 
-// #define LOG_LAYERWISE
-// #define VERIFY_LAYERWISE
+#define LOG_LAYERWISE
+#define VERIFY_LAYERWISE
 
 #if USE_CHEETAH
 #undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation
@@ -282,6 +282,7 @@ static void Conv2D(int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH,
                    int32_t zPadHRight, int32_t zPadWLeft, int32_t zPadWRight,
                    int32_t strideH, int32_t strideW, uint64_t *inputArr,
                    uint64_t *filterArr, uint64_t *outArr) {
+                    
   int32_t reshapedFilterRows = CO;
 
   int32_t reshapedFilterCols = ((FH * FW) * CI);
@@ -567,9 +568,15 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
                           newH, std::vector<std::vector<intType>>(
                                     newW, std::vector<intType>(CO, 0))));
 
-  he_conv->convolution(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                       zPadWLeft, zPadWRight, strideH, strideW, inputVec,
-                       filterVec, outputVec);
+  if (conv_ntt){
+    he_conv->convolution(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                        zPadWLeft, zPadWRight, strideH, strideW, inputVec,
+                        filterVec, outputVec);
+  } else {
+    he_conv->convolution_heliks(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                        zPadWLeft, zPadWRight, strideH, strideW, inputVec,
+                        filterVec, outputVec);
+  }
 
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {

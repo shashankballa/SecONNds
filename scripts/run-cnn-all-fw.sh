@@ -17,7 +17,7 @@ if ! contains "sqnet resnet50 densenet121" $2; then
     exit 1
 fi
 
-for FW in seconnds_2 cheetah seconnds_p SCI_HE
+for FW in SCI_HE cheetah seconnds_p seconnds_2
 do
     bash scripts/run-cnn.sh $1 $FW $2 $3
 done

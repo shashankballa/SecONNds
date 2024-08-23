@@ -1018,8 +1018,8 @@ public:
     delete[] bit_res_cmp;
   }
 
-  // define a function for the following until traverse_and_compute_ANDs is called
-
+  // Computes bit-wise equals and less-than comparisons
+  // between inp_bits_0 and inp_bits_1
   void compute_bit_eql_cmp(int num_cmps, int bitlength, 
       uint8_t *inp_bits_0, uint8_t *inp_bits_1, 
       uint8_t *bit_res_eql, uint8_t *bit_res_cmp){
@@ -1074,7 +1074,8 @@ public:
     delete[] f;
   }
   
-  // TESTING SecONNds
+  // Computes integer equals and less-than comparisons
+  // using bit-wise comparisons from compute_bit_eql_cmp
   void traverse_and_compute_ANDs_new(int num_cmps, uint8_t *seg_res_eql, uint8_t *seg_res_cmp) {
 
 #if MILL_PRINT_TIME
