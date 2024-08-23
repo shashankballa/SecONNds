@@ -30,6 +30,7 @@ public:
   virtual void compare(uint8_t *res, uint64_t *data, int num_cmps, int bitlength,
                bool greater_than = true, bool equality = false,
                int radix_base = MILL_PARAM) = 0;
+  virtual bool isBufferEnabled() = 0;
 };
 
 #endif // RELU_INTERFACE_H__
