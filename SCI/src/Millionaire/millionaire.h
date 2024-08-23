@@ -115,7 +115,6 @@ public:
     }
   }
 
-
   void compare_old(uint8_t *res, uint64_t *data, int num_cmps, int bitlength,
                bool greater_than = true, bool equality = false,
                int radix_base = MILL_PARAM) {
@@ -633,12 +632,23 @@ public:
     }
   }
     
-  // TESTING NEW ALGO
+
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//                                                                                                    //
+//                                            SecONNds                                                //
+//                                                                                                    //
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+//,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
+
+
+
+  // TESTING SecONNds
   void compare_new(uint8_t *res, uint64_t *data, int num_cmps, int bitlength,
                 bool greater_than = true, bool equality = false,
                 int radix_base = MILL_PARAM){
     
-    //~~~~~~~~~~~~~ NEW ALGO ~~~~~~~~~~~~~~~
+    //~~~~~~~~~~~~~ SecONNds ~~~~~~~~~~~~~~~
 
     configure(bitlength, 1);
 
@@ -699,9 +709,6 @@ public:
       memset(data_ext + old_num_cmps, 0,
              (num_cmps - old_num_cmps) * sizeof(uint64_t));
     }
-
-    Triple triples_cmp(bitlength*num_cmps, true);
-    triple_gen->get(party, &triples_cmp);
 
 #if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
@@ -779,6 +786,14 @@ public:
 #endif
 
     uint8_t *bit_res_eql = new uint8_t[bitlength * num_cmps];
+    uint8_t *bit_res_cmp = new uint8_t[n_bits];
+
+    compute_bit_eql_cmp(num_cmps, bitlength, inp_bits_0, inp_bits_1, bit_res_eql, bit_res_cmp);
+    
+/*
+    Triple triples_cmp(bitlength*num_cmps, true);
+    triple_gen->get(party, &triples_cmp);
+    
     for (int i = 0; i < bitlength; i++) {
       for (int j = 0; j < n_cmps_8; j++) for (int k = 0; k < 8; k++) {
         bit_res_eql[i*num_cmps + (j<<3) + k] = inp_bits_0[i*num_cmps+(j<<3)+k] ^ inp_bits_1[i*num_cmps+(j<<3)+k];
@@ -831,11 +846,13 @@ public:
       f[i] ^= fi[i];
     }
 
-    // secret shares of less than results for each bit
-    uint8_t *bit_res_cmp = new uint8_t[n_bits];
-
     AND_step_2_new(bit_res_cmp, e, f,
       (triples_cmp.ai), (triples_cmp.bi), (triples_cmp.ci), n_bits);
+
+    delete[] ei;
+    delete[] fi;
+    delete[] e;
+    delete[] f;
 
 #if MILL_PRINT_TIME
     // get running time of leaf OTs in ms
@@ -846,6 +863,8 @@ public:
     log_time << f_tag << " | AND step 2 : " << and_step2.count() * 1000;
     log_time << " ms" << std::endl;
 #endif
+*/
+
 #if MILL_PRINT_COMP
     // get BOB's inp_bits_0 for debugging
     if (party == sci::BOB){
@@ -996,14 +1015,67 @@ public:
     delete[] inp_bits_0;
     delete[] inp_bits_1;
     delete[] bit_res_eql;
+    delete[] bit_res_cmp;
+  }
+
+  // Computes bit-wise equals and less-than comparisons
+  // between inp_bits_0 and inp_bits_1
+  void compute_bit_eql_cmp(int num_cmps, int bitlength, 
+      uint8_t *inp_bits_0, uint8_t *inp_bits_1, 
+      uint8_t *bit_res_eql, uint8_t *bit_res_cmp){
+
+    configure(bitlength, 1);
+    uint64_t n_bits   = bitlength * num_cmps;
+    uint64_t n_cmps_8 = num_cmps >> 3;
+    uint64_t n_bytes  = bitlength * n_cmps_8;
+
+    Triple triples_cmp(bitlength*num_cmps, true);
+    triple_gen->get(party, &triples_cmp);
+
+    for (int i = 0; i < bitlength; i++) {
+      for (int j = 0; j < n_cmps_8; j++) for (int k = 0; k < 8; k++) {
+        bit_res_eql[i*num_cmps + (j<<3) + k] = inp_bits_0[i*num_cmps+(j<<3)+k] ^ inp_bits_1[i*num_cmps+(j<<3)+k];
+      }
+    }
+
+    uint8_t *ei = new uint8_t[n_bytes];
+    uint8_t *fi = new uint8_t[n_bytes];
+    uint8_t *e  = new uint8_t[n_bytes];
+    uint8_t *f  = new uint8_t[n_bytes];
+  
+    AND_step_1_new(ei , fi, inp_bits_0, inp_bits_1,
+        (triples_cmp.ai), (triples_cmp.bi) , n_bits);
+
+    // Communicate the computed ANDs
+    if (party == sci::ALICE) {
+      io->send_data(ei, n_bytes);
+      io->send_data(fi, n_bytes);
+      io->recv_data(e, n_bytes);
+      io->recv_data(f, n_bytes);
+    } else { // party = sci::BOB
+      io->recv_data(e, n_bytes);
+      io->recv_data(f, n_bytes);
+      io->send_data(ei, n_bytes);
+      io->send_data(fi, n_bytes);
+    }
+
+    for (int i = 0; i < n_bytes; i++) {
+      e[i] ^= ei[i];
+      f[i] ^= fi[i];
+    }
+
+
+    AND_step_2_new(bit_res_cmp, e, f,
+      (triples_cmp.ai), (triples_cmp.bi), (triples_cmp.ci), n_bits);
+
     delete[] ei;
     delete[] fi;
     delete[] e;
     delete[] f;
-    delete[] bit_res_cmp;
   }
   
-  // TESTING NEW ALGO
+  // Computes integer equals and less-than comparisons
+  // using bit-wise comparisons from compute_bit_eql_cmp
   void traverse_and_compute_ANDs_new(int num_cmps, uint8_t *seg_res_eql, uint8_t *seg_res_cmp) {
 
 #if MILL_PRINT_TIME
