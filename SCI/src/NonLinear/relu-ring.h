@@ -368,7 +368,7 @@ public:
                                equality, radix_base);
   }
 
-  bool isBufferEnabled(){ return triple_gen->isBufferEnabled();};
+  bool isBufferEnabled(){ return (bool) this->millionaire->triple_gen->isBufferEnabled();};
 };
 
 #endif // RELU_RING_H__

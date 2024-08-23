@@ -364,8 +364,13 @@ void funcTruncateTwoPowerRing(int curParty, sci::NetIO *curio,
         carryBitCompArr[i] = (sci::all1Mask(consSF)) - carryBitCompArr[i];
       }
     }
-    MillionaireProtocol millionaire(curParty, curio, curotpack);
-    millionaire.compare(carryBitCompAns, carryBitCompArr, size, consSF);
+    
+    if(curReluImpl->isBufferEnabled()){
+      curReluImpl->compare(carryBitCompAns, carryBitCompArr, size, consSF);
+    } else {
+      MillionaireProtocol millionaire(curParty, curio, curotpack);
+      millionaire.compare(carryBitCompAns, carryBitCompArr, size, consSF);
+    }
   }
 
   bool createdMsbSharesHere = false;
@@ -1076,8 +1081,13 @@ void funcFieldDiv(int curParty, sci::NetIO *curio,
     }
   }
 
-  MillionaireProtocol millionaire(curParty, curio, curotpack);
-  millionaire.compare(carryBit, radixCompValues, totalComp, bitsForA - 1);
+  if(curReluImpl->isBufferEnabled()){
+    curReluImpl->compare(carryBit, radixCompValues, totalComp, bitsForA - 1);
+  } else {
+    MillionaireProtocol millionaire(curParty, curio, curotpack);
+    millionaire.compare(carryBit, radixCompValues, totalComp, bitsForA - 1);
+  }
+
   for (int i = 0; i < totalComp; i++) {
     localShareA_all3_drelu[i] = (localShareA_all3_drelu[i] + carryBit[i]) & 1;
   }
