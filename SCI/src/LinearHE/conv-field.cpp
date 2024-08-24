@@ -1960,7 +1960,7 @@ void ConvField::convolution_heliks(
 }
 
 void ConvField::set_seal(
-    // bool use_heliks,
+    bool use_heliks,
     SEALContext *&context_, Encryptor *&encryptor_, Decryptor *&decryptor_,
     Evaluator *&evaluator_, BatchEncoder *&encoder_, GaloisKeys *&gal_keys_,
     Ciphertext *&zero_) {
@@ -1993,6 +1993,7 @@ void ConvField::set_seal(
   }
 
 void ConvField::non_strided_conv_offline(
+    bool use_heliks,
     int32_t H, int32_t W, int32_t CI, int32_t FH,
     int32_t FW, int32_t CO,
     Filters *filters,
@@ -2029,7 +2030,7 @@ void ConvField::non_strided_conv_offline(
   GaloisKeys *gal_keys_;
   Ciphertext *zero_;
 
-  set_seal(context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
+  set_seal(use_heliks, context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
 
   if (party == ALICE){
     PRG128 prg;
@@ -2061,6 +2062,7 @@ void ConvField::non_strided_conv_offline(
 
 
 void ConvField::non_strided_conv_online(
+    bool use_heliks,
     int32_t H, int32_t W, int32_t CI, int32_t FH,
     int32_t FW, int32_t CO, Image *image,
     vector<seal::Ciphertext> noise_ct,
@@ -2097,7 +2099,7 @@ void ConvField::non_strided_conv_online(
   GaloisKeys *gal_keys_;
   Ciphertext *zero_;
 
-  set_seal(context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
+  set_seal(use_heliks, context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
 
   if (party == BOB) {
     auto pt = preprocess_image_OP(*image, data);
@@ -2207,10 +2209,10 @@ void ConvField::non_strided_conv(
   vector<vector<uint64_t>> secret_share_vec;
   vector<vector<vector<seal::Plaintext>>> encoded_filters;
 
-  non_strided_conv_offline(H, W, CI, FH, FW, CO, filters, 
+  non_strided_conv_offline(use_heliks, H, W, CI, FH, FW, CO, filters, 
       noise_ct, secret_share_vec, encoded_filters, verbose);
 
-  non_strided_conv_online(H, W, CI, FH, FW, CO, image, 
+  non_strided_conv_online(use_heliks, H, W, CI, FH, FW, CO, image, 
       noise_ct, secret_share_vec, encoded_filters, outArr, verbose);
 }
 
@@ -2264,7 +2266,7 @@ void ConvField::convolution_offline(
           lFilters[out_c] = tmp_img;
         }
         if (lFH > 0 && lFW > 0) {
-          non_strided_conv_offline(lH, lW, CI, lFH, lFW, CO, &lFilters, 
+          non_strided_conv_offline(use_heliks, lH, lW, CI, lFH, lFW, CO, &lFilters, 
               noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
               encoded_filters[s_row][s_col], verbose);
         }
@@ -2352,7 +2354,7 @@ void ConvField::convolution_online(
         }
         // Perform convolution for this stride
         if (lFH > 0 && lFW > 0) {
-          non_strided_conv_online(lH, lW, CI, lFH, lFW, CO, &lImage, 
+          non_strided_conv_online(use_heliks, lH, lW, CI, lFH, lFW, CO, &lImage, 
               __noise_ct, __secret_share_vec, __encoded_filters, outArr[0], verbose);
         }
       }
@@ -2377,7 +2379,7 @@ void ConvField::convolution_online(
         int lFW = ((FW - s_col + strideW - 1) / strideW);
 
         if (lFH > 0 && lFW > 0) {
-          non_strided_conv_online(lH, lW, CI, lFH, lFW, CO, nullptr, 
+          non_strided_conv_online(use_heliks, lH, lW, CI, lFH, lFW, CO, nullptr, 
               noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
               encoded_filters[s_row][s_col], outArr[0], verbose);
         }

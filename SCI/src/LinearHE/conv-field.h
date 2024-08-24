@@ -263,12 +263,13 @@ class ConvField {
         ConvField(int party, sci::NetIO *io, bool use_heliks);
 
         void set_seal(
-            // bool use_heliks,
+            bool use_heliks,
             seal::SEALContext *&context_, seal::Encryptor *&encryptor_, seal::Decryptor *&decryptor_,
             seal::Evaluator *&evaluator_, seal::BatchEncoder *&encoder_, seal::GaloisKeys *&gal_keys_,
             seal::Ciphertext *&zero_);
 
         void non_strided_conv_offline(
+            bool use_heliks,
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO,
             Filters *filters,
@@ -278,6 +279,7 @@ class ConvField {
             bool verbose = true);
 
         void non_strided_conv_online(
+            bool use_heliks,
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image,
             std::vector<seal::Ciphertext> noise_ct,
