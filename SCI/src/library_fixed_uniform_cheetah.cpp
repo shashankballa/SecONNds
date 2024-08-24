@@ -632,7 +632,7 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
 #endif  // VERIFY_LAYERWISE
 }
 
-void Conv2DOfflineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+void ConvOfflineCheetah(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                     signedIntType CI, signedIntType FH, signedIntType FW,
                     signedIntType CO, signedIntType zPadHLeft,
                     signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -680,7 +680,7 @@ void Conv2DOfflineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signe
   meta.is_shared_input = kIsSharedInput;
 
   printf(
-      "HomConvOffline #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
+      "ConvOfflineCheetah #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
       "CO=%ld, S=%ld, Padding %s (%d %d %d %d)\n",
       ctr++, N, meta.ishape.height(), meta.ishape.width(),
       meta.ishape.channels(), meta.fshape.height(), meta.fshape.width(),
@@ -700,7 +700,7 @@ void Conv2DOfflineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signe
 #endif
 }
 
-void Conv2DOnlineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+void ConvOnlineCheetah(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                     signedIntType CI, signedIntType FH, signedIntType FW,
                     signedIntType CO, signedIntType zPadHLeft,
                     signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -734,7 +734,7 @@ void Conv2DOnlineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signed
   meta.is_shared_input = kIsSharedInput;
 
   printf(
-      "HomConvOnline #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
+      "ConvOnlineCheetah #%d called N=%ld, H=%ld, W=%ld, CI=%ld, FH=%ld, FW=%ld, "
       "CO=%ld, S=%ld, Padding %s (%d %d %d %d)\n",
       ctr++, N, meta.ishape.height(), meta.ishape.width(),
       meta.ishape.channels(), meta.fshape.height(), meta.fshape.width(),

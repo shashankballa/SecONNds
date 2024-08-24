@@ -2368,6 +2368,22 @@ void ConvField::convolution_online(
     if (verify_output) verify(H, W, CI, CO, image, nullptr, outArr);
   } else  // party == ALICE
   {
+    
+    for (int s_row = 0; s_row < strideH; s_row++) { 
+      for (int s_col = 0; s_col < strideW; s_col++) {
+        int lH = ((limitH - s_row + strideH - 1) / strideH);
+        int lW = ((limitW - s_col + strideW - 1) / strideW);
+        int lFH = ((FH - s_row + strideH - 1) / strideH);
+        int lFW = ((FW - s_col + strideW - 1) / strideW);
+
+        if (lFH > 0 && lFW > 0) {
+          non_strided_conv_online(lH, lW, CI, lFH, lFW, CO, nullptr, 
+              noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
+              encoded_filters[s_row][s_col], outArr[0], verbose);
+        }
+      }
+    }
+
     filters.resize(CO);
     // Allocate memory for filters
     for (int out_c = 0; out_c < CO; out_c++) { 
@@ -2385,21 +2401,7 @@ void ConvField::convolution_online(
       }
       filters[out_c] = tmp_img;
     }
-    
-    for (int s_row = 0; s_row < strideH; s_row++) { 
-      for (int s_col = 0; s_col < strideW; s_col++) {
-        int lH = ((limitH - s_row + strideH - 1) / strideH);
-        int lW = ((limitW - s_col + strideW - 1) / strideW);
-        int lFH = ((FH - s_row + strideH - 1) / strideH);
-        int lFW = ((FW - s_col + strideW - 1) / strideW);
 
-        if (lFH > 0 && lFW > 0) {
-          non_strided_conv_online(lH, lW, CI, lFH, lFW, CO, nullptr, 
-              noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
-              encoded_filters[s_row][s_col], outArr[0], verbose);
-        }
-      }
-    }
     data.image_h = H;
     data.image_w = W;
     data.inp_chans = CI;
@@ -2424,7 +2426,6 @@ void ConvField::convolution_online(
                     prime_mod);
       }
     }
-    
     if (verify_output) verify(H, W, CI, CO, image, &filters, outArr);
   }
 }
