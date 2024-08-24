@@ -640,7 +640,6 @@ void Conv2DOfflineWrapper(bool conv_ntt, signedIntType N, signedIntType H, signe
                     signedIntType strideW, intType *filterArr,
                     std::vector<std::vector<seal::Plaintext>> &encoded_filters) {
 #ifdef LOG_LAYERWISE
-  INIT_ALL_IO_DATA_SENT;
   INIT_TIMER;
 #endif
 

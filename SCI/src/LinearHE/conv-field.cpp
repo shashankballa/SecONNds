@@ -2123,22 +2123,22 @@ void ConvField::non_strided_conv_online(
   {
 
     vector<seal::Ciphertext> result;
-    vector<seal::Ciphertext> ct(data.inp_ct);
-    vector<vector<seal::Ciphertext>> rotations(data.inp_ct);
+    vector<seal::Ciphertext> ct_buff(data.inp_ct);
+    vector<vector<seal::Ciphertext>> ct_buff_rot(data.inp_ct);
     for (int i = 0; i < data.inp_ct; i++) {
-      rotations[i].resize(data.filter_size);
+      ct_buff_rot[i].resize(data.filter_size);
     }
-    recv_encrypted_vector(io, *context_, ct);
-    rotations = filter_rotations(ct, data, evaluator_, gal_keys_);
+    recv_encrypted_vector(io, *context_, ct_buff);
+    ct_buff_rot = filter_rotations(ct_buff, data, evaluator_, gal_keys_);
     if (verbose) cout << "[Server] Filter Rotations done" << endl;
 
 #ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, rotations[0][0],
+    PRINT_NOISE_BUDGET(decryptor_, ct_buff_rot[0][0],
                        "before homomorphic convolution");
 #endif
 
     auto conv_result =
-        HE_conv_OP(encoded_filters, rotations, data, *evaluator_, *zero_);
+        HE_conv_OP(encoded_filters, ct_buff_rot, data, *evaluator_, *zero_);
     if (verbose) cout << "[Server] Convolution done" << endl;
 
 #ifdef HE_DEBUG
@@ -2151,7 +2151,7 @@ void ConvField::non_strided_conv_online(
     if (verbose) cout << "[Server] Output Rotations done" << endl;
 
 #ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
+    PRINT_NOISE_BUDGET(decryptor_, result[0], "after output ct_buff_rot");
 #endif
 
     parms_id_type parms_id = result[0].parms_id();
@@ -2439,9 +2439,9 @@ void ConvField::convolution(
     vector<vector<vector<vector<uint64_t>>>> &outArr, bool verify_output,
     bool verbose) {
 
-    vector<vector<vector<seal::Ciphertext>>> noise_ct;
-    vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
-    vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
+  vector<vector<vector<seal::Ciphertext>>> noise_ct;
+  vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
+  vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
   convolution_offline(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
       zPadWLeft, zPadWRight, strideH, strideW, filterArr, noise_ct, 
