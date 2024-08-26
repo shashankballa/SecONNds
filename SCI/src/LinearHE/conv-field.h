@@ -316,8 +316,8 @@ class ConvField {
             std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &secret_share_vec,
             std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
-            std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr, bool verify_output,
-            bool verbose = true);
+            std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr, 
+            bool verify_output = false, bool verbose = true);
 
         void convolution(
             bool use_heliks,

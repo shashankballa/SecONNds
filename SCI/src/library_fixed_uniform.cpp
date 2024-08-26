@@ -613,11 +613,19 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
   vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
   vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
-  ConvOfflineHeliks(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+  ConvOfflineHeliks(true, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                     zPadWLeft, zPadWRight, strideH, strideW, filterArr,
                     noise_ct, secret_share_vec, encoded_filters);
 
-  ConvOnlineHeliks(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+  ConvOnlineHeliks(true, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                   zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
+                   noise_ct, secret_share_vec, encoded_filters, outArr);
+
+  ConvOfflineHeliks(false, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                    zPadWLeft, zPadWRight, strideH, strideW, filterArr,
+                    noise_ct, secret_share_vec, encoded_filters);
+
+  ConvOnlineHeliks(false, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                    zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
                    noise_ct, secret_share_vec, encoded_filters, outArr);
 
@@ -669,7 +677,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
   he_conv->convolution_offline(
       use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
       zPadWLeft, zPadWRight, strideH, strideW, filterVec, noise_ct, 
-      secret_share_vec, encoded_filters, false);
+      secret_share_vec, encoded_filters);
 
 #ifdef LOG_LAYERWISE
   auto off_time = TIMER_TILL_NOW;
@@ -747,7 +755,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
 
   he_conv->convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
       zPadWLeft, zPadWRight, strideH, strideW, inputVec, filterVec, noise_ct, 
-      secret_share_vec, encoded_filters, outputVec, false);
+      secret_share_vec, encoded_filters, outputVec);
 
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {

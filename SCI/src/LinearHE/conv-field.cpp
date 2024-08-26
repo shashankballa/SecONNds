@@ -1339,7 +1339,7 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
   for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
     
     int in_idx = 0, fil_idx = data.filter_size - 1;
-
+    
     // delta = -1*((data.filter_h - 1) * data.image_w - offset + data.filter_w - 1);
     // curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
     // if ((prev_rot - curr_rot) != delta){
@@ -1352,7 +1352,7 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
     
     Ciphertext conv;
     evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], conv);
-    num_mul++;
+      num_mul++;
 
     for(int in_idx = 1; in_idx < data.inp_ct; in_idx++){
       
@@ -1368,7 +1368,7 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
       
       Ciphertext partial_i;
       evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial_i);
-      num_mul++;
+        num_mul++;
 
       evaluator.add_inplace(conv, partial_i);
       num_add++;
@@ -1398,7 +1398,7 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
 
       Ciphertext partial;
       evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial);
-      num_mul++;
+        num_mul++;
 
       for(int in_idx = 1; in_idx < data.inp_ct; in_idx++){
         
@@ -1414,7 +1414,7 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
         
         Ciphertext partial_i;
         evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial_i);
-        num_mul++;
+          num_mul++;
         
         evaluator.add_inplace(partial, partial_i);
         num_add++;
@@ -1633,14 +1633,8 @@ void ConvField::non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_
   double prep_mat_time{}, prep_noise_time{}, processing_time{};
 
   if (party == BOB) {
-
-    // printImageDims(*image);
-    // printImage(*image, 1);
-
     auto pt = preprocess_image_OP(*image, data);
     if (verbose) cout << "[Client] Image preprocessed" << endl;
-
-    // print2D(pt, 1, data.image_size * data.inp_chans);
 
     auto pts = HE_encode_input(pt, data, *encoder_);
 
@@ -2016,7 +2010,6 @@ void ConvField::non_strided_conv_offline(
   data.stride_w = 1;
   this->slot_count =
       min(SEAL_POLY_MOD_DEGREE_MAX, max((int) POLY_MOD_DEGREE, 2 * next_pow2(H * W)));
-  configure();
 
   if(verbose){
     std::cout << "non_strided_conv_offline | 2 * next_pow2(H * W) = " << 2 * next_pow2(H * W) << std::endl;
@@ -2031,6 +2024,11 @@ void ConvField::non_strided_conv_offline(
   Ciphertext *zero_;
 
   set_seal(use_heliks, context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
+
+  configure(verbose);
+
+  auto sw = StopWatch();
+  double prep_mat_time{}, prep_noise_time{};
 
   if (party == ALICE){
     PRG128 prg;
@@ -2049,17 +2047,50 @@ void ConvField::non_strided_conv_offline(
                         secret_share[chan] + data.output_h * data.output_w); 
     }
     
-    noise_ct = HE_preprocess_noise(
-        secret_share, data, *encryptor_, *encoder_, *evaluator_);
+    if(!use_heliks){
 
-    if (verbose) cout << "[Server] Noise processed" << endl;
+      noise_ct = HE_preprocess_noise(
+          secret_share, data, *encryptor_, *encoder_, *evaluator_);
 
-    encoded_filters = HE_preprocess_filters_OP(*filters, data, *encoder_);
+      if (verbose) cout << "[Server] Noise processed" << endl;
 
-    if (verbose) cout << "[Server] Filters processed" << endl;
+      encoded_filters = HE_preprocess_filters_OP(*filters, data, *encoder_);
+
+      if (verbose) cout << "[Server] Filters processed" << endl;
+
+    } else {
+
+      noise_ct = HE_preprocess_noise_MR(
+          secret_share, data, *encryptor_, *encoder_, *evaluator_);
+
+      if (verbose) {
+        prep_noise_time = sw.lap();
+        cout << "[Server] [HLK] HE_preprocess_noise_MR runtime:" << prep_noise_time << endl;
+        cout << "[Server] [HLK] Noise processed. Shape: (";
+        cout << noise_ct.size() << ")" << endl;
+      }
+
+      vector<vector<vector<int>>> rot_amts;
+      vector<map<int, vector<vector<int>>>> rot_maps;
+      encoded_filters = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
+                                            , *evaluator_
+                                            , zero_->parms_id()
+                                            , rot_amts
+                                            , rot_maps
+                                            );
+
+      if (verbose) {
+        prep_mat_time = sw.lap();
+        cout << "[Server] [HLK] HE_preprocess_filters_NTT_MR runtime:" << prep_mat_time << endl;
+        cout << "[Server] [HLK] Filters processed. Shape: (";
+        cout << encoded_filters.size() << ", " << encoded_filters[0].size() << ", ";
+        cout << encoded_filters[0][0].size() << ")" << endl;
+        cout << "[Server] [HLK] Total offline pre-processing time: ";
+        cout << prep_mat_time + prep_noise_time << endl;
+      }
+    }
   }
 }
-
 
 void ConvField::non_strided_conv_online(
     bool use_heliks,
@@ -2085,11 +2116,15 @@ void ConvField::non_strided_conv_online(
   data.stride_w = 1;
   this->slot_count =
       min(SEAL_POLY_MOD_DEGREE_MAX, max((int) POLY_MOD_DEGREE, 2 * next_pow2(H * W)));
-  configure();
 
   if(verbose){
-    std::cout << "non_strided_conv | 2 * next_pow2(H * W) = " << 2 * next_pow2(H * W) << std::endl;
+    std::cout << "non_strided_conv_online | 2 * next_pow2(H * W) = " << 2 * next_pow2(H * W) << std::endl;
   }
+
+  configure(verbose);
+
+  auto sw = StopWatch();
+  double processing_time{};
 
   SEALContext *context_;
   Encryptor *encryptor_;
@@ -2102,98 +2137,195 @@ void ConvField::non_strided_conv_online(
   set_seal(use_heliks, context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
 
   if (party == BOB) {
+
     auto pt = preprocess_image_OP(*image, data);
     if (verbose) cout << "[Client] Image preprocessed" << endl;
 
-    auto ct = HE_encrypt(pt, data, *encryptor_, *encoder_);
-    send_encrypted_vector(io, ct);
-    if (verbose) cout << "[Client] Image encrypted and sent" << endl;
+    if (!use_heliks) {
 
-    vector<seal::Ciphertext> enc_result(data.out_ct);
-    recv_encrypted_vector(io, *context_, enc_result);
-    auto HE_result = HE_decrypt(enc_result, data, *decryptor_, *encoder_);
+      auto ct = HE_encrypt(pt, data, *encryptor_, *encoder_);
+      send_encrypted_vector(io, ct);
+      if (verbose) cout << "[Client] Image encrypted and sent" << endl;
 
-    if (verbose) cout << "[Client] Result received and decrypted" << endl;
+      vector<seal::Ciphertext> enc_result(data.out_ct);
+      recv_encrypted_vector(io, *context_, enc_result);
+      auto HE_result = HE_decrypt(enc_result, data, *decryptor_, *encoder_);
 
-    for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
-      for (int chan = 0; chan < CO; chan++) {
-        outArr[idx / data.output_w][idx % data.output_w][chan] +=
-            HE_result[chan][idx];
+      if (verbose) cout << "[Client] Result received and decrypted" << endl;
+
+      for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+        for (int chan = 0; chan < CO; chan++) {
+          outArr[idx / data.output_w][idx % data.output_w][chan] +=
+              HE_result[chan][idx];
+        }
       }
-    }
-  } else  // party == ALICE
-  {
 
-    vector<seal::Ciphertext> result;
-    vector<seal::Ciphertext> ct_buff(data.inp_ct);
-    vector<vector<seal::Ciphertext>> ct_buff_rot(data.inp_ct);
-    for (int i = 0; i < data.inp_ct; i++) {
-      ct_buff_rot[i].resize(data.filter_size);
-    }
-    recv_encrypted_vector(io, *context_, ct_buff);
-    ct_buff_rot = filter_rotations(ct_buff, data, evaluator_, gal_keys_);
-    if (verbose) cout << "[Server] Filter Rotations done" << endl;
+    } else { // HELiKs
 
-#ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, ct_buff_rot[0][0],
-                       "before homomorphic convolution");
-#endif
+      auto pts = HE_encode_input(pt, data, *encoder_);
 
-    auto conv_result =
-        HE_conv_OP(encoded_filters, ct_buff_rot, data, *evaluator_, *zero_);
-    if (verbose) cout << "[Server] Convolution done" << endl;
+      for (size_t pt_idx = 0; pt_idx < data.inp_ct; pt_idx++)
+      {
+        auto ct = encryptor_->encrypt_symmetric(pts.at(pt_idx));
+        send_ciphertext(io, ct);
+      }
 
-#ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
-                       "after homomorphic convolution");
-#endif
+      if (verbose) cout << "[Client] [HLK] Image encrypted and sent" << endl;
 
-    result = HE_output_rotations(conv_result, data, *evaluator_, *gal_keys_,
-                                 *zero_, noise_ct);
-    if (verbose) cout << "[Server] Output Rotations done" << endl;
+      vector<seal::Ciphertext> enc_result(data.out_ct);
+      recv_encrypted_vector(io, *context_, enc_result);
+      auto HE_result = HE_decrypt(enc_result, data, *decryptor_, *encoder_);
 
-#ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, result[0], "after output ct_buff_rot");
-#endif
+      if (verbose) cout << "[Client] [HLK] Result received and decrypted" << endl;
 
-    parms_id_type parms_id = result[0].parms_id();
-    shared_ptr<const SEALContext::ContextData> context_data =
-        context_->get_context_data(parms_id);
-    for (size_t ct_idx = 0; ct_idx < result.size(); ct_idx++) {
-      flood_ciphertext(result[ct_idx], context_data, SMUDGING_BITLEN);
+      for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+        for (int chan = 0; chan < CO; chan++) {
+          outArr[idx / data.output_w][idx % data.output_w][chan] +=
+              HE_result[chan][idx];
+        }
+      }
+
     }
 
+  } else { // party == ALICE
+
+    if(!use_heliks){
+
+      vector<seal::Ciphertext> result;
+      vector<seal::Ciphertext> ct_buff(data.inp_ct);
+      vector<vector<seal::Ciphertext>> ct_buff_rot(data.inp_ct);
+      for (int i = 0; i < data.inp_ct; i++) {
+        ct_buff_rot[i].resize(data.filter_size);
+      }
+      recv_encrypted_vector(io, *context_, ct_buff);
+
+      if (verbose) cout << "[Server] Input received." << endl;
+
+      ct_buff_rot = filter_rotations(ct_buff, data, evaluator_, gal_keys_);
+      if (verbose) cout << "[Server] Filter Rotations done" << endl;
+
 #ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, result[0], "after noise flooding");
+      PRINT_NOISE_BUDGET(decryptor_, ct_buff_rot[0][0],
+                        "before homomorphic convolution");
 #endif
 
-    for (size_t ct_idx = 0; ct_idx < result.size(); ct_idx++) {
-      evaluator_->mod_switch_to_next_inplace(result[ct_idx]);
-    }
+      auto conv_result =
+          HE_conv_OP(encoded_filters, ct_buff_rot, data, *evaluator_, *zero_);
+      if (verbose) cout << "[Server] Convolution done" << endl;
 
 #ifdef HE_DEBUG
-    PRINT_NOISE_BUDGET(decryptor_, result[0], "after mod-switch");
+      PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
+                        "after homomorphic convolution");
 #endif
 
-    send_encrypted_vector(io, result);
-    if (verbose) cout << "[Server] Result computed and sent" << endl;
+      result = HE_output_rotations(conv_result, data, *evaluator_, *gal_keys_,
+                                  *zero_, noise_ct);
+      if (verbose) cout << "[Server] Output Rotations done" << endl;
 
-    for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
-      for (int chan = 0; chan < CO; chan++) {
-        outArr[idx / data.output_w][idx % data.output_w][chan] +=
-            (prime_mod - secret_share_vec[chan][idx]);
+#ifdef HE_DEBUG
+      PRINT_NOISE_BUDGET(decryptor_, result[0], "after output ct_buff_rot");
+#endif
+
+      parms_id_type parms_id = result[0].parms_id();
+      shared_ptr<const SEALContext::ContextData> context_data =
+          context_->get_context_data(parms_id);
+      for (size_t ct_idx = 0; ct_idx < result.size(); ct_idx++) {
+        flood_ciphertext(result[ct_idx], context_data, SMUDGING_BITLEN);
+      }
+
+#ifdef HE_DEBUG
+      PRINT_NOISE_BUDGET(decryptor_, result[0], "after noise flooding");
+#endif
+
+      for (size_t ct_idx = 0; ct_idx < result.size(); ct_idx++) {
+        evaluator_->mod_switch_to_next_inplace(result[ct_idx]);
+      }
+
+#ifdef HE_DEBUG
+      PRINT_NOISE_BUDGET(decryptor_, result[0], "after mod-switch");
+#endif
+
+      send_encrypted_vector(io, result);
+      if (verbose) cout << "[Server] Result computed and sent" << endl;
+
+      for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+        for (int chan = 0; chan < CO; chan++) {
+          outArr[idx / data.output_w][idx % data.output_w][chan] +=
+              (prime_mod - secret_share_vec[chan][idx]);
+        }
+      }
+
+    } else { // HELiKs
+    
+      vector<seal::Ciphertext> result;
+      vector<seal::Ciphertext> ct(data.inp_ct);
+      for (int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++) {
+        recv_ciphertext(io, *context_, ct.at(ct_idx));
+      }
+
+      if (verbose) cout << "[Server] Input received." << endl;
+      
+#ifdef HE_DEBUG
+      PRINT_NOISE_BUDGET(decryptor_, ct[0],
+                        "in received ciphertexts");
+#endif
+
+      auto input_ntt = input_to_ntt(ct, *evaluator_);
+      if (verbose) {cout << "[Server] Input transformed to NTT. Shape: (";
+      cout << input_ntt.size() << ")" << endl;}
+
+      auto conv_result = HE_conv_heliks( input_ntt
+                                        , encoded_filters
+                                        , gal_keys_
+                                        , *evaluator_ 
+                                        , data
+                                        );
+      if (verbose) {cout << "[Server] Convolution done. Shape: (";
+      cout << conv_result.size() << ")" << endl;}
+
+#ifdef HE_DEBUG
+      PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
+                        "after homomorphic convolution");
+#endif
+
+      result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_,
+                                      *zero_, noise_ct
+                                      );
+      if (verbose) {cout << "[Server] Output Rotations done. Shape: (";
+      cout << result.size() << ")" << endl;}
+
+#ifdef HE_DEBUG
+      PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
+#endif
+
+      if (verbose) {
+        processing_time = sw.lap();
+        cout << "[Server] Total online processing time: ";
+        cout << processing_time << endl;
+      }
+
+      send_encrypted_vector(io, result);
+      if (verbose) cout << "[Server] Result computed and sent" << endl;
+
+      for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+        for (int chan = 0; chan < CO; chan++) {
+          outArr[idx / data.output_w][idx % data.output_w][chan] +=
+              (prime_mod - secret_share_vec[chan][idx]);
+        }
       }
     }
 
     // Delete secret_share_vec
     for (int i = 0; i < CO; i++) secret_share_vec[i].clear();
     secret_share_vec.clear();
+
   }
 
-  if (slot_count > POLY_MOD_DEGREE && slot_count < POLY_MOD_DEGREE_LARGE) {
-    free_keys(party, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_,
-              zero_);
-  }
+  // if (slot_count > POLY_MOD_DEGREE && slot_count < POLY_MOD_DEGREE_LARGE) {
+  //   free_keys(party, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_,
+  //             zero_);
+  // }
+  
 }
 
 void ConvField::non_strided_conv(
