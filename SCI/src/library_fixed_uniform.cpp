@@ -43,7 +43,7 @@ SOFTWARE.
 #endif
 
 #ifdef SCI_HE
-uint64_t prime_mod = sci::default_prime_mod.at(41);
+uint64_t prime_mod = sci::default_prime_mod.at(32);
 #elif SCI_OT
 uint64_t prime_mod = (bitlength == 64 ? 0ULL : 1ULL << bitlength);
 uint64_t moduloMask = prime_mod - 1;
@@ -613,19 +613,13 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
   vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
   vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
-  ConvOfflineHeliks(true, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+  bool _use_heliks = use_heliks; // true;
+
+  ConvOfflineHeliks(_use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                     zPadWLeft, zPadWRight, strideH, strideW, filterArr,
                     noise_ct, secret_share_vec, encoded_filters);
 
-  ConvOnlineHeliks(true, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                   zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
-                   noise_ct, secret_share_vec, encoded_filters, outArr);
-
-  ConvOfflineHeliks(false, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                    zPadWLeft, zPadWRight, strideH, strideW, filterArr,
-                    noise_ct, secret_share_vec, encoded_filters);
-
-  ConvOnlineHeliks(false, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+  ConvOnlineHeliks(_use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                    zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
                    noise_ct, secret_share_vec, encoded_filters, outArr);
 

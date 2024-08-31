@@ -72,10 +72,10 @@ echo -e "$ROLE: Running ${GREEN}$3${NC} with ${GREEN}$2${NC}..."
 echo -e " "
 
 if [[ "$*" == *"--debug"* ]]; then
-  gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS csize=$CSIZE < $PRIVINP"
+  gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE < $PRIVINP"
 else
   if [ "$4" = "no_log" ]; then
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS csize=$CSIZE
+    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE
   else
     mkdir -p $LOGS_DIR
     if [ -z "$4" ]; then
@@ -86,7 +86,7 @@ else
     echo -e "Date: $(date)" > $LOGFILE
     echo -e "$ROLE: Running $3 with $2..." >> $LOGFILE
     echo -e " " >> $LOGFILE
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntrips=$NTRIPS csize=$CSIZE >> $LOGFILE
+    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE >> $LOGFILE
     echo -e "Done! Log saved to:"
     echo -e "${GREEN}$LOGFILE${NC}"
   fi

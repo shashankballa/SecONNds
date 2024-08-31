@@ -1,5 +1,7 @@
 . scripts/common.sh
 
+BUILD_MODE=Release
+
 for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0
 do
   if [ ! -d $BUILD_DIR/include/$deps ] 
@@ -20,13 +22,17 @@ done
 
 cd $BUILD_DIR/
 
+if [[ "$*" == *"--debug"* ]]; then
+  BUILD_MODE=Debug
+fi
+
 if [[ $* == *RUN_TRIP_TRIALS* ]]; then
-  cmake .. -DCMAKE_BUILD_TYPE=Debug -DSCI_BUILD_NETWORKS=ON -DSCI_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$BUILD_DIR -DUSE_APPROX_RESHARE=ON -DRUN_TRIP_TRIALS=ON
+  cmake .. -DCMAKE_BUILD_TYPE=$BUILD_MODE -DSCI_BUILD_NETWORKS=ON -DSCI_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$BUILD_DIR -DUSE_APPROX_RESHARE=ON -DRUN_TRIP_TRIALS=ON
 else
-  cmake .. -DCMAKE_BUILD_TYPE=Debug -DSCI_BUILD_NETWORKS=ON -DSCI_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$BUILD_DIR -DUSE_APPROX_RESHARE=ON -DRUN_TRIP_TRIALS=OFF
+  cmake .. -DCMAKE_BUILD_TYPE=$BUILD_MODE -DSCI_BUILD_NETWORKS=ON -DSCI_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$BUILD_DIR -DUSE_APPROX_RESHARE=ON -DRUN_TRIP_TRIALS=OFF
 fi
 for net in resnet50 sqnet densenet121
 do
-     make ${net}-cheetah -j16
-     make ${net}-SCI_HE -j16
+    make ${net}-cheetah -j16
+    make ${net}-SCI_HE -j16
 done

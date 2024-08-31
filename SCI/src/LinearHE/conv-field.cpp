@@ -1001,15 +1001,21 @@ ConvField::ConvField(int party, NetIO *io, bool use_heliks) {
   vector<size_t> poly_modulus_degree;
   vector<vector<int>> coeff_modulus;
 
-  // if(!use_heliks){
+  if(!use_heliks){
     num_objs = 2;
     poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
     coeff_modulus = vector<vector<int>> (2, GET_COEFF_MOD_CF2());
-  // } else {
-  //   num_objs = 3;
-  //   poly_modulus_degree = {POLY_MOD_DEGREE>>1, POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
-  //   coeff_modulus = {{40, 28, 40}, GET_COEFF_MOD_HLK(), GET_COEFF_MOD_HLK()};
-  // }
+  } else {
+    // num_objs = 3;
+    num_objs = 2;
+    // poly_modulus_degree = {4096, 8192, 32768};
+    poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
+    coeff_modulus = {
+      // {40, 28, 40}, 
+      GET_COEFF_MOD_HLK(),
+      GET_COEFF_MOD_HLK()
+    };
+  }
 
   context.resize(num_objs);
   encryptor.resize(num_objs);
@@ -1124,14 +1130,52 @@ vector<seal::Ciphertext> HE_preprocess_noise_MR(const uint64_t *const *secret_sh
   return enc_noise;
 }
 
+vector<seal::Plaintext> HE_preprocess_noise(const uint64_t *const *secret_share,
+                                       const ConvMetadata &data,
+                                       BatchEncoder &batch_encoder,
+                                       Evaluator &evaluator) {
+  vector<vector<uint64_t>> noise(data.out_ct,
+                                 vector<uint64_t>(data.slot_count, 0ULL));
+  // Sample randomness into vector
+  PRG128 prg;
+  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+    prg.random_mod_p<uint64_t>(noise[ct_idx].data(), data.slot_count,
+                               prime_mod);
+  }
+  vector<seal::Plaintext> enc_noise(data.out_ct);
+
+  // Puncture the vector with 0s where an actual convolution result value lives
+#pragma omp parallel for num_threads(num_threads) schedule(static)
+  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+    int out_base = 2 * ct_idx * data.chans_per_half;
+    for (int out_c = 0;
+         out_c < 2 * data.chans_per_half && out_c + out_base < data.out_chans;
+         out_c++) {
+      int half_idx = out_c / data.chans_per_half;
+      int half_off = out_c % data.chans_per_half;
+      for (int col = 0; col < data.output_h; col++) {
+        for (int row = 0; row < data.output_w; row++) {
+          int noise_idx =
+              half_idx * data.pack_num + half_off * data.image_size +
+              col * data.stride_w * data.image_w + row * data.stride_h;
+          int share_idx = col * data.output_w + row;
+          noise[ct_idx][noise_idx] = secret_share[out_base + out_c][share_idx];
+        }
+      }
+    }
+    Plaintext tmp;
+    batch_encoder.encode(noise[ct_idx], enc_noise[ct_idx]);
+  }
+  return enc_noise;
+}
+
+
 /* Same as HE_preprocess_filters_OP_MR but transforms the plaintexts to NTT
  * before returning the results. */
 vector<vector<vector<seal::Plaintext>>> HE_preprocess_filters_NTT_MR(
     Filters &filters, ConvMetadata &data, BatchEncoder &batch_encoder
     , Evaluator &evaluator
     , parms_id_type parms_id
-    , vector<vector<vector<int>>> &rot_amts
-    , vector<map<int, vector<vector<int>>>> &rot_maps
     ) {
 
   // Mask is convolutions x cts per convolution x mask size
@@ -1245,9 +1289,6 @@ vector<vector<vector<seal::Plaintext>>> HE_preprocess_filters_NTT_MR(
       data.convs, vector<vector<vector<uint64_t>>>(
                       data.inp_ct, vector<vector<uint64_t>>(data.filter_size)));
 
-  rot_amts = vector<vector<vector<int>>> (data.convs, vector<vector<int>>(
-                                data.inp_ct, vector<int>(data.filter_size)));
-  
 #pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
   for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
     for(int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++){
@@ -1258,8 +1299,6 @@ vector<vector<vector<seal::Plaintext>>> HE_preprocess_filters_NTT_MR(
         int row_offset = f_row * data.image_w - offset;
         int rot_amt = row_offset + f_col;
         int idx = f_row * data.filter_w + f_col;
-
-        rot_amts.at(conv_idx).at(ct_idx).at(idx) = rot_amt;
 
         vector<uint64_t> _mask = clear_masks[conv_idx][ct_idx][idx];
         
@@ -1278,26 +1317,14 @@ vector<vector<vector<seal::Plaintext>>> HE_preprocess_filters_NTT_MR(
         batch_encoder.encode(
                 clear_masks_rot[conv_idx][ct_idx][f],
                 encoded_masks[conv_idx][ct_idx][f]);
-        // if(!encoded_masks[conv_idx][ct_idx][f].is_zero()){
+        if(!encoded_masks[conv_idx][ct_idx][f].is_zero()){
           evaluator.transform_to_ntt_inplace(
             encoded_masks[conv_idx][ct_idx][f], parms_id);
-        // }
-      }
-    }
-  }
-
-  rot_maps = vector<map<int, vector<vector<int>>>>(data.convs);
-
-  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
-    for(int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++){
-      for(int f = 0; f< data.filter_size; f++){
-        if(!encoded_masks[conv_idx][ct_idx][f].is_zero()){
-          int rot_amt = rot_amts.at(conv_idx).at(ct_idx).at(f);
-          rot_maps[conv_idx][rot_amt].push_back(vector<int>{conv_idx, ct_idx, f});
         }
       }
     }
   }
+
   return encoded_masks;
 }
 
@@ -1320,6 +1347,46 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
   int num_mul{}, num_add{}, num_mod{}, num_rot{}, num_ntt{}, num_int{};
 
   vector<Ciphertext> result(data.convs);
+  vector<vector<vector<Ciphertext>>> _partials (data.convs);
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++) 
+    _partials.at(conv_idx).resize(data.filter_size);
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(3)
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    for(int fil_idx = 0; fil_idx < data.filter_size; fil_idx++){
+      for(int in_idx = 0; in_idx < data.inp_ct; in_idx++){
+        if(masks[conv_idx][in_idx][fil_idx].is_zero()){ continue;}
+        Ciphertext _partial;
+        evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], _partial);
+        num_mul++;
+        _partials.at(conv_idx).at(fil_idx).push_back(_partial);
+      }
+    }
+  }
+
+  vector<vector<Ciphertext>> _partials2(data.convs);
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++) 
+    _partials2.at(conv_idx).resize(data.filter_size);
+
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    for(int fil_idx = 0; fil_idx < data.filter_size; fil_idx++){
+      if(_partials.at(conv_idx).at(fil_idx).size() > 0){
+        evaluator.add_many(_partials.at(conv_idx).at(fil_idx), _partials2.at(conv_idx).at(fil_idx));
+        num_add += _partials.at(conv_idx).at(fil_idx).size();
+        _partials.at(conv_idx).at(fil_idx).clear();
+      }
+    }
+  }
+
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
+  for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
+    for(int fil_idx = 0; fil_idx < data.filter_size; fil_idx++){
+      evaluator.transform_from_ntt_inplace(_partials2.at(conv_idx).at(fil_idx));
+      num_int++;
+      evaluator.mod_switch_to_next_inplace(_partials2.at(conv_idx).at(fil_idx));
+      num_mod++;
+    }
+  }
 
 #pragma omp parallel for num_threads(num_threads) schedule(static)
   for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
@@ -1334,37 +1401,17 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
         evaluator.rotate_rows_inplace(conv, rot_steps, *gal_keys);
         num_rot++;
       }
-
-      vector<Ciphertext> _partials;
-      for(int in_idx = 0; in_idx < data.inp_ct; in_idx++){
-        if(masks[conv_idx][in_idx][fil_idx].is_zero()){ continue;}
-        Ciphertext _partial;
-        evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], _partial);
-        num_mul++;
-        _partials.push_back(_partial);
-      }
       
-      if(_partials.size() > 0){
-        Ciphertext _partial;
-        evaluator.add_many(_partials, _partial);
-        num_add += _partials.size();
-        evaluator.transform_from_ntt_inplace(_partial);
-        num_int++;
-        evaluator.mod_switch_to_next_inplace(_partial);
-        num_mod++;
-        
-        if(conv_init){
-          evaluator.add_inplace(conv, _partial);
-          num_add++;
-        } else {
-          conv = _partial;
-          conv_init = true;
-        }
+      if(conv_init){
+        evaluator.add_inplace(conv, _partials2.at(conv_idx).at(fil_idx));
+        num_add++;
+      } else {
+        conv = _partials2.at(conv_idx).at(fil_idx);
+        conv_init = true;
       }
     }
     
     assert(conv_init);
-    // evaluator.mod_switch_to_next_inplace(conv);
     result[conv_idx] = conv;
   }
 
@@ -1388,7 +1435,6 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
                                        Evaluator &evaluator,
                                        GaloisKeys &gal_keys, Ciphertext &zero,
                                        vector<seal::Ciphertext> &enc_noise
-                                       
                                        ) {
   int num_mul{}, num_add{}, num_mod{}, num_rot{};
 
@@ -1619,13 +1665,9 @@ void ConvField::non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_
     }
 
     vector<vector<vector<seal::Plaintext>>> masks_OP;
-    vector<vector<vector<int>>> rot_amts;
-    vector<map<int, vector<vector<int>>>> rot_maps;
     masks_OP = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
                                           , *evaluator_
                                           , zero_->parms_id()
-                                          , rot_amts
-                                          , rot_maps
                                           );
 
     if (verbose) {
@@ -2011,8 +2053,6 @@ void ConvField::non_strided_conv_offline(
       encoded_filters = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
                                             , *evaluator_
                                             , zero_->parms_id()
-                                            , rot_amts
-                                            , rot_maps
                                             );
 
       if (verbose) {

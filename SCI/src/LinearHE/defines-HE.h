@@ -34,13 +34,15 @@ extern int32_t num_threads;
 
 const uint64_t POLY_MOD_DEGREE = 8192;
 const uint64_t POLY_MOD_DEGREE_LARGE = 32768;
-const int32_t SMUDGING_BITLEN = 100 - bitlength;
+// const int32_t SMUDGING_BITLEN = 100 - bitlength;
+const int32_t SMUDGING_BITLEN = 80 - bitlength;
 
 // Default coefficient modulus for CryptFlow2
 inline std::vector<int> GET_COEFF_MOD_CF2() { return {60, 60, 60, 49}; }
 
 // Default coefficient modulus for HELiKs
-inline std::vector<int> GET_COEFF_MOD_HLK() { return {60, 23, 55}; }
+// inline std::vector<int> GET_COEFF_MOD_HLK() { return {60, 23, 55}; }
+inline std::vector<int> GET_COEFF_MOD_HLK() { return {42, 22, 20, 28}; }
 
 /* Helper function for rounding to the next power of 2
  * Credit:
