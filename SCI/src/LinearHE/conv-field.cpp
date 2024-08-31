@@ -1316,134 +1316,70 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
                                   , GaloisKeys *gal_keys
                                   , Evaluator &evaluator
                                   , ConvMetadata &data
-                                  // , vector<vector<vector<int>>> rot_amts
                                   ) {
   int num_mul{}, num_add{}, num_mod{}, num_rot{}, num_ntt{}, num_int{};
 
-  Plaintext mask;
-  vector<seal::Ciphertext> result(data.convs);
-
-  // cout << "HE_conv_heliks" << endl;
-  
-  // This tells us how many filters fit on a single row of the padded image
-  int f_per_row = data.image_w + (data.pad_l + data.pad_r) - data.filter_w + 1;
-
-  // This offset calculates rotations needed to bring filter from top left
-  // corner of image to the top left corner of padded image
-  int offset = f_per_row * data.pad_t + data.pad_l;
-
-  // int curr_rot{}, prev_rot{}, delta{};
-  // bool all_correct = true;
+  vector<Ciphertext> result(data.convs);
 
 #pragma omp parallel for num_threads(num_threads) schedule(static)
   for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
-    
-    int in_idx = 0, fil_idx = data.filter_size - 1;
-    
-    // delta = -1*((data.filter_h - 1) * data.image_w - offset + data.filter_w - 1);
-    // curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
-    // if ((prev_rot - curr_rot) != delta){
-    //   printf(
-    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
-    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
-    //   all_correct = false;
-    // }
-    // prev_rot = curr_rot;
-    
+
     Ciphertext conv;
-    evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], conv);
-      num_mul++;
+    bool conv_init = false;
 
-    for(int in_idx = 1; in_idx < data.inp_ct; in_idx++){
-      
-    //   delta = 0;
-    //   curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
-    //   if ((prev_rot - curr_rot) != delta){
-    //     printf(
-    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
-    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
-    //     all_correct = false;
-    //   }
-    //   prev_rot = curr_rot;
-      
-      Ciphertext partial_i;
-      evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial_i);
-        num_mul++;
-
-      evaluator.add_inplace(conv, partial_i);
-      num_add++;
-    }
-
-    evaluator.transform_from_ntt_inplace(conv);
-    num_int++;
-    evaluator.mod_switch_to_next_inplace(conv);
-    num_mod++;
-
-    for(int fil_idx = (data.filter_size - 2); fil_idx >= 0; fil_idx--){
+    for(int fil_idx = (data.filter_size - 1); fil_idx >= 0; fil_idx--){
 
       int rot_steps = ((fil_idx % data.filter_w) == (data.filter_w - 1)) ? data.output_w : 1;
-      
-      evaluator.rotate_rows_inplace(conv, rot_steps, *gal_keys);
-      num_rot++;
+      if(conv_init && (rot_steps != 0) && (fil_idx < (data.filter_size - 1))){
+        evaluator.rotate_rows_inplace(conv, rot_steps, *gal_keys);
+        num_rot++;
+      }
 
-    //   delta = rot_steps;
-    //   curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
-    //   if ((prev_rot - curr_rot) != delta){
-    //     printf(
-    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
-    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
-    //     all_correct = false;
-    //   }
-    //   prev_rot = curr_rot;
-
-      Ciphertext partial;
-      evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial);
+      vector<Ciphertext> _partials;
+      for(int in_idx = 0; in_idx < data.inp_ct; in_idx++){
+        if(masks[conv_idx][in_idx][fil_idx].is_zero()){ continue;}
+        Ciphertext _partial;
+        evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], _partial);
         num_mul++;
-
-      for(int in_idx = 1; in_idx < data.inp_ct; in_idx++){
-        
-    //     delta = 0;
-    //     curr_rot = rot_amts[conv_idx][in_idx][fil_idx];
-    //     if ((prev_rot - curr_rot) != delta){
-    //       printf(
-    // "+ (%3i, %3i, %3i) prev_rot: %3i, curr_rot: %3i; delta is %3i not %3i \n", 
-    // conv_idx, in_idx, fil_idx, prev_rot, curr_rot, (prev_rot - curr_rot), delta);
-    //       all_correct = false;
-    //     }
-    //     prev_rot = curr_rot;
-        
-        Ciphertext partial_i;
-        evaluator.multiply_plain(input[in_idx], masks[conv_idx][in_idx][fil_idx], partial_i);
-          num_mul++;
-        
-        evaluator.add_inplace(partial, partial_i);
-        num_add++;
+        _partials.push_back(_partial);
       }
       
-      evaluator.transform_from_ntt_inplace(partial);
-      num_int++;
-      evaluator.mod_switch_to_next_inplace(partial);
-      num_mod++;
-      evaluator.add_inplace(conv, partial);
-      num_add++;
+      if(_partials.size() > 0){
+        Ciphertext _partial;
+        evaluator.add_many(_partials, _partial);
+        num_add += _partials.size();
+        evaluator.transform_from_ntt_inplace(_partial);
+        num_int++;
+        evaluator.mod_switch_to_next_inplace(_partial);
+        num_mod++;
+        
+        if(conv_init){
+          evaluator.add_inplace(conv, _partial);
+          num_add++;
+        } else {
+          conv = _partial;
+          conv_init = true;
+        }
+      }
     }
-
+    
+    assert(conv_init);
+    // evaluator.mod_switch_to_next_inplace(conv);
     result[conv_idx] = conv;
   }
 
-  data.counts[0] += num_mul;
-  data.counts[1] += num_add;
-  data.counts[2] += num_mod;
-  data.counts[3] += num_rot;
-  // if(data.print_times)
-  // if(data.print_cnts) printf("[HE_conv_OP_MR] num_mul: %3i, num_add: %3i, num_mod: %3i, num_rot: %3i \n", num_mul, num_add, num_mod, num_rot);
-  if(data.print_cnts){
-    cout << "[HE_conv_heliks] HE operation counts:" << endl;
-    cout << "+ num_mul: " << num_mul << endl;
-    cout << "+ num_add: " << num_add << endl;
-    cout << "+ num_mod: " << num_mod << endl;
-    cout << "+ num_rot: " << num_rot << endl;
-  }
+  // data.counts[0] += num_mul;
+  // data.counts[1] += num_add;
+  // data.counts[2] += num_mod;
+  // data.counts[3] += num_rot;
+
+  // if(data.print_cnts){
+  //   cout << "[HE_conv_heliks] HE operation counts:" << endl;
+  //   cout << "+ num_mul: " << num_mul << endl;
+  //   cout << "+ num_add: " << num_add << endl;
+  //   cout << "+ num_mod: " << num_mod << endl;
+  //   cout << "+ num_rot: " << num_rot << endl;
+  // }
   return result;
 }
 
@@ -1557,20 +1493,20 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
   }
   //// Add the noise vector to remove any leakage
   for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+    evaluator.mod_switch_to_next_inplace(result[ct_idx]);
     evaluator.add_inplace(result[ct_idx], enc_noise[ct_idx]); num_add++;
-    // evaluator.mod_switch_to_next_inplace(result[ct_idx]);
   }
-  data.counts[1] += num_add;
-  data.counts[2] += num_mod;
-  data.counts[3] += num_rot;
-  // if(data.print_cnts) printf("[HE_output_rotations_MR] num_mul: %3i, num_add: %3i, num_mod: %3i, num_rot: %3i \n", num_mul, num_add, num_mod, num_rot);
-  if(data.print_cnts){
-    cout << "[HE_output_rotations_MR] HE operation counts:" << endl;
-    cout << "+ num_mul: " << num_mul << endl;
-    cout << "+ num_add: " << num_add << endl;
-    cout << "+ num_mod: " << num_mod << endl;
-    cout << "+ num_rot: " << num_rot << endl;
-  }
+  // data.counts[1] += num_add;
+  // data.counts[2] += num_mod;
+  // data.counts[3] += num_rot;
+  // // if(data.print_cnts) printf("[HE_output_rotations_MR] num_mul: %3i, num_add: %3i, num_mod: %3i, num_rot: %3i \n", num_mul, num_add, num_mod, num_rot);
+  // if(data.print_cnts){
+  //   cout << "[HE_output_rotations_MR] HE operation counts:" << endl;
+  //   cout << "+ num_mul: " << num_mul << endl;
+  //   cout << "+ num_add: " << num_add << endl;
+  //   cout << "+ num_mod: " << num_mod << endl;
+  //   cout << "+ num_rot: " << num_rot << endl;
+  // }
   return result;
 }
 
@@ -2025,7 +1961,7 @@ void ConvField::non_strided_conv_offline(
 
   set_seal(use_heliks, context_, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_, zero_);
 
-  configure(verbose);
+  configure();
 
   auto sw = StopWatch();
   double prep_mat_time{}, prep_noise_time{};
@@ -2121,7 +2057,7 @@ void ConvField::non_strided_conv_online(
     std::cout << "non_strided_conv_online | 2 * next_pow2(H * W) = " << 2 * next_pow2(H * W) << std::endl;
   }
 
-  configure(verbose);
+  configure();
 
   auto sw = StopWatch();
   double processing_time{};
@@ -2263,7 +2199,7 @@ void ConvField::non_strided_conv_online(
         recv_ciphertext(io, *context_, ct.at(ct_idx));
       }
 
-      if (verbose) cout << "[Server] Input received." << endl;
+      if (verbose) cout << "[Server] [HLK] Input received." << endl;
       
 #ifdef HE_DEBUG
       PRINT_NOISE_BUDGET(decryptor_, ct[0],
@@ -2271,7 +2207,7 @@ void ConvField::non_strided_conv_online(
 #endif
 
       auto input_ntt = input_to_ntt(ct, *evaluator_);
-      if (verbose) {cout << "[Server] Input transformed to NTT. Shape: (";
+      if (verbose) {cout << "[Server] [HLK] Input transformed to NTT. Shape: (";
       cout << input_ntt.size() << ")" << endl;}
 
       auto conv_result = HE_conv_heliks( input_ntt
@@ -2280,7 +2216,7 @@ void ConvField::non_strided_conv_online(
                                         , *evaluator_ 
                                         , data
                                         );
-      if (verbose) {cout << "[Server] Convolution done. Shape: (";
+      if (verbose) {cout << "[Server] [HLK] Convolution done. Shape: (";
       cout << conv_result.size() << ")" << endl;}
 
 #ifdef HE_DEBUG
@@ -2291,7 +2227,7 @@ void ConvField::non_strided_conv_online(
       result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_,
                                       *zero_, noise_ct
                                       );
-      if (verbose) {cout << "[Server] Output Rotations done. Shape: (";
+      if (verbose) {cout << "[Server] [HLK] Output Rotations done. Shape: (";
       cout << result.size() << ")" << endl;}
 
 #ifdef HE_DEBUG
@@ -2300,12 +2236,12 @@ void ConvField::non_strided_conv_online(
 
       if (verbose) {
         processing_time = sw.lap();
-        cout << "[Server] Total online processing time: ";
+        cout << "[Server] [HLK] Total online processing time: ";
         cout << processing_time << endl;
       }
 
       send_encrypted_vector(io, result);
-      if (verbose) cout << "[Server] Result computed and sent" << endl;
+      if (verbose) cout << "[Server] [HLK] Result computed and sent" << endl;
 
       for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
         for (int chan = 0; chan < CO; chan++) {

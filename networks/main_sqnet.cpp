@@ -2295,21 +2295,21 @@ int main(int argc, char **argv) {
   amap.arg("ntrips", num_trips, "Number of triples to generate");
   amap.arg("csize", trips_csize, "Chunk size for triple generation");
 
+  amap.parse(argc, argv);
+  use_seconnds = (_snn == 1);
+  conv_ntt = (_ntt == 1);
+
   // Print all the input arguments
   print_ss << "Starting main_sqnet with the following inputs: \n"
     << "Role : " << party << ", " << "Port: " << port << ", " << "IP: " << address << "\n"
     << "Num Threads : " << num_threads << "\n"
     << "Bitlength   : " << bitlength << ", " << "Scaling Factor: " << kScale << "\n"
-    << "Use SecONNds: " << std::boolalpha << _snn << ", " << "NTT in convolutions: " << _ntt << "\n"
+    << "Use SecONNds: " << std::boolalpha << use_seconnds << ", " 
+    << "NTT in convolutions: " << conv_ntt << "\n"
     << "Number of triples: " << num_trips << ", " << "Chunk size: " << trips_csize << "\n"
     << "\n";
   cout << print_ss.str();
   print_ss.str("");
-
-  amap.parse(argc, argv);
-
-  use_seconnds = (_snn == 1);
-  conv_ntt = (_ntt == 1);
 
   assert(party == SERVER || party == CLIENT);
 
