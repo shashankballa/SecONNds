@@ -80,6 +80,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
                   signedIntType zPadWRight, signedIntType strideH,
                   signedIntType strideW, intType *filterArr,
                   std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
+                  std::vector<std::vector<std::vector<seal::Plaintext>>> &noise_pt,
                   std::vector<std::vector<std::vector<std::vector<uint64_t>>>>& secret_share_vec,
                   std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters);
                   
@@ -91,6 +92,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
                   signedIntType strideW, intType *inputArr, 
                   intType *filterArr,
                   std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
+                  std::vector<std::vector<std::vector<seal::Plaintext>>> &noise_pt,
                   std::vector<std::vector<std::vector<std::vector<uint64_t>>>>& secret_share_vec,
                   std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
                   intType *outArr);

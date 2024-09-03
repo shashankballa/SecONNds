@@ -1004,17 +1004,11 @@ ConvField::ConvField(int party, NetIO *io, bool use_heliks) {
   if(!use_heliks){
     num_objs = 2;
     poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
-    coeff_modulus = vector<vector<int>> (2, GET_COEFF_MOD_CF2());
+    coeff_modulus = vector<vector<int>> (num_objs, GET_COEFF_MOD_CF2());
   } else {
-    // num_objs = 3;
-    num_objs = 2;
-    // poly_modulus_degree = {4096, 8192, 32768};
-    poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE};
-    coeff_modulus = {
-      // {40, 28, 40}, 
-      GET_COEFF_MOD_HLK(),
-      GET_COEFF_MOD_HLK()
-    };
+    num_objs = 3;
+    poly_modulus_degree = {POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE, POLY_MOD_DEGREE_SMALL};
+    coeff_modulus = vector<vector<int>> (num_objs, GET_COEFF_MOD_HLK());
   }
 
   context.resize(num_objs);
@@ -1123,10 +1117,10 @@ vector<seal::Ciphertext> HE_preprocess_noise_MR(const uint64_t *const *secret_sh
                                         encryptor, batch_encoder, evaluator);
 
   // Puncture the vector with 0s where an actual convolution result value lives
-#pragma omp parallel for num_threads(num_threads) schedule(static)
-  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
-    evaluator.mod_switch_to_next_inplace(enc_noise[ct_idx]);
-  }
+// #pragma omp parallel for num_threads(num_threads) schedule(static)
+//   for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
+//     evaluator.mod_switch_to_next_inplace(enc_noise[ct_idx]);
+//   }
   return enc_noise;
 }
 
@@ -1383,8 +1377,8 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
     for(int fil_idx = 0; fil_idx < data.filter_size; fil_idx++){
       evaluator.transform_from_ntt_inplace(_partials2.at(conv_idx).at(fil_idx));
       num_int++;
-      evaluator.mod_switch_to_next_inplace(_partials2.at(conv_idx).at(fil_idx));
-      num_mod++;
+      // evaluator.mod_switch_to_next_inplace(_partials2.at(conv_idx).at(fil_idx));
+      // num_mod++;
     }
   }
 
@@ -1433,28 +1427,20 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
 vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
                                        ConvMetadata &data,
                                        Evaluator &evaluator,
-                                       GaloisKeys &gal_keys, Ciphertext &zero,
-                                       vector<seal::Ciphertext> &enc_noise
+                                       GaloisKeys &gal_keys,
+                                       vector<seal::Plaintext> &noise_pt
                                        ) {
   int num_mul{}, num_add{}, num_mod{}, num_rot{};
 
   vector<bool> out_idx_flags (data.out_ct, false);
 
   vector<seal::Ciphertext> partials(data.half_perms);
-  Ciphertext zero_next_level = zero;
-  evaluator.mod_switch_to_next_inplace(zero_next_level); num_mod++;
-  // Init the result vector to all 0
   vector<seal::Ciphertext> result(data.out_ct);
-  for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
-    result[ct_idx] = zero_next_level;
-  }
 
   // For each half perm, add up all the inside channels of each half
   // half_perms = 2co/cn
 #pragma omp parallel for num_threads(num_threads) schedule(static)
   for (int perm = 0; perm < data.half_perms; perm += 2) {
-    partials[perm] = zero_next_level;
-    if (data.half_perms > 1) partials[perm + 1] = zero_next_level;
     // The output channel the current ct starts from
     // half_rots = cn/2
     int total_rots = data.half_rots;
@@ -1466,20 +1452,17 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
 
       if (rot_amt != 0){
         evaluator.rotate_rows_inplace(convs[conv_idx], rot_amt, gal_keys); num_rot++; 
-        // cout << "1. perm:" << perm << ", in_rot: " << in_rot  << ", convs idx: " << conv_idx  << ", rot_amt: " << rot_amt << endl;
       }
       if(in_rot == 0) {
         partials[perm] = convs[conv_idx];
       } else {
         evaluator.add_inplace(partials[perm], convs[conv_idx]); num_add++;
       }
-      // evaluator.add_inplace(partials[perm], convs[conv_idx]); num_add++;
       // Do the same for the column swap if it exists
       if (data.half_perms > 1) {
         if (rot_amt != 0){
           evaluator.rotate_rows_inplace(convs[conv_idx + data.half_rots], rot_amt,
                                       gal_keys); num_rot++; 
-          // cout << "2. perm:" << perm << ", in_rot: " << in_rot  << ", convs idx: " << conv_idx + data.half_rots << ", rot_amt: " << rot_amt << endl;
         }
         if (in_rot == 0) {
           partials[perm + 1] = convs[conv_idx + data.half_rots];
@@ -1487,8 +1470,6 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
           evaluator.add_inplace(partials[perm + 1],
                                 convs[conv_idx + data.half_rots]); num_add++;
         }
-        // evaluator.add_inplace(partials[perm + 1],
-        //                       convs[conv_idx + data.half_rots]); num_add++;
       }
     }
     // The correct index for the correct ciphertext in the final output
@@ -1499,23 +1480,17 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
         result[out_idx] = partials[perm];
         out_idx_flags[out_idx] = true;
       } else {
-        // cout << "ERROR: out_idx already set" << endl;
         evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
       }
-      // evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
-      ///*
       if (data.out_halves == 1 && data.inp_halves > 1) {
         // If the output fits in a single half but the input
         // doesn't, add the two columns
         evaluator.rotate_columns_inplace(partials[perm], gal_keys); num_rot++;
-        // cout << "3. perm:" << perm << ", out_idx: " << out_idx << ", rot_cols" << endl;
         evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
       }
-      //*/
       // Do the same for column swap if exists and we aren't on a repeat
       if (data.half_perms > 1) {
         evaluator.rotate_columns_inplace(partials[perm + 1], gal_keys); num_rot++; 
-        // cout << "4. perm:" << perm << ", out_idx: " << out_idx  << ", rot_cols" << endl;
         evaluator.add_inplace(result[out_idx], partials[perm + 1]); num_add++;
       }
     } else {
@@ -1524,15 +1499,12 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
         result[out_idx] = partials[perm];
         out_idx_flags[out_idx] = true;
       } else {
-        // cout << "ERROR: out_idx already set" << endl;
         evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
       }
-      // evaluator.add_inplace(result[out_idx], partials[perm]); num_add++;
       // If we're on a tight half we add both halves together and
       // don't look at the column flip
       if (data.half_perms > 1) {
         evaluator.rotate_columns_inplace(partials[perm + 1], gal_keys); num_rot++; 
-        // cout << "5. perm:" << perm << ", out_idx: " << out_idx  << ", rot_cols" << endl;
         evaluator.add_inplace(result[out_idx], partials[perm + 1]); num_add++;
       }
     }
@@ -1540,7 +1512,7 @@ vector<seal::Ciphertext> HE_output_rotations_MR(vector<seal::Ciphertext> &convs,
   //// Add the noise vector to remove any leakage
   for (int ct_idx = 0; ct_idx < data.out_ct; ct_idx++) {
     evaluator.mod_switch_to_next_inplace(result[ct_idx]);
-    evaluator.add_inplace(result[ct_idx], enc_noise[ct_idx]); num_add++;
+    evaluator.add_plain_inplace(result[ct_idx], noise_pt[ct_idx]); num_add++;
   }
   // data.counts[1] += num_add;
   // data.counts[2] += num_mod;
@@ -1654,14 +1626,14 @@ void ConvField::non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_
       prg.random_mod_p<uint64_t>(secret_share[chan],
                                  data.output_h * data.output_w, prime_mod);
     }
-    vector<seal::Ciphertext> noise_ct = HE_preprocess_noise_MR(
-        secret_share, data, *encryptor_, *encoder_, *evaluator_);
+    vector<seal::Plaintext> noise_pt = HE_preprocess_noise(
+        secret_share, data, *encoder_, *evaluator_);
 
     if (verbose) {
       prep_noise_time = sw.lap();
       cout << "[Server] HE_preprocess_noise_MR runtime:" << prep_noise_time << endl;
       cout << "[Server] Noise processed. Shape: (";
-      cout << noise_ct.size() << ")" << endl;
+      cout << noise_pt.size() << ")" << endl;
     }
 
     vector<vector<vector<seal::Plaintext>>> masks_OP;
@@ -1711,8 +1683,8 @@ void ConvField::non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_
                        "after homomorphic convolution");
 #endif
 
-    result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_,
-                                    *zero_, noise_ct
+    result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_
+                                    , noise_pt
                                     );
     if (verbose) {cout << "[Server] Output Rotations done. Shape: (";
     cout << result.size() << ")" << endl;}
@@ -1938,7 +1910,7 @@ void ConvField::set_seal(
     Ciphertext *&zero_) {
   
   int seal_idx;
-  // if(!use_heliks){
+  if(!use_heliks){
     if (this->slot_count == POLY_MOD_DEGREE) {
       seal_idx = 0;
     } else if (this->slot_count == POLY_MOD_DEGREE_LARGE) {
@@ -1959,10 +1931,31 @@ void ConvField::set_seal(
       // generate_new_keys(party, io, slot_count, context_, encryptor_, decryptor_,
       //                   evaluator_, encoder_, gal_keys_, zero_, false);
     }
-  // } else {
-
-  // }
+  } else {
+    if (this->slot_count == POLY_MOD_DEGREE) {
+      seal_idx = 0;
+    } else if (this->slot_count == POLY_MOD_DEGREE_LARGE) {
+      seal_idx = 1;
+    } else if (this->slot_count == POLY_MOD_DEGREE_SMALL) {
+      seal_idx = 2;
+    } else {
+      seal_idx = 3;
+    }
+    if (seal_idx < 3){
+      context_ = this->context[seal_idx];
+      encryptor_ = this->encryptor[seal_idx];
+      decryptor_ = this->decryptor[seal_idx];
+      evaluator_ = this->evaluator[seal_idx];
+      encoder_ = this->encoder[seal_idx];
+      gal_keys_ = this->gal_keys[seal_idx];
+      zero_ = this->zero[seal_idx];
+    } else {
+      // [TODO] generate new keys
+      // generate_new_keys(party, io, slot_count, context_, encryptor_, decryptor_,
+      //                   evaluator_, encoder_, gal_keys_, zero_, false);
+    }
   }
+}
 
 void ConvField::non_strided_conv_offline(
     bool use_heliks,
@@ -1970,6 +1963,7 @@ void ConvField::non_strided_conv_offline(
     int32_t FW, int32_t CO,
     Filters *filters,
     vector<seal::Ciphertext> &noise_ct,
+    vector<seal::Plaintext> &noise_pt,
     vector<vector<uint64_t>>& secret_share_vec,
     vector<vector<vector<seal::Plaintext>>> &encoded_filters,
     bool verbose) {
@@ -1986,11 +1980,19 @@ void ConvField::non_strided_conv_offline(
   data.pad_r = 0;
   data.stride_h = 1;
   data.stride_w = 1;
-  this->slot_count =
-      min(SEAL_POLY_MOD_DEGREE_MAX, max((int) POLY_MOD_DEGREE, 2 * next_pow2(H * W)));
+  if(!use_heliks){
+    this->slot_count =
+        min(SEAL_POLY_MOD_DEGREE_MAX, max((int) POLY_MOD_DEGREE, 2 * next_pow2(H * W)));
+  } else {
+    // the lowest number out of {POLY_MOD_DEGREE_SMALL, POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE}
+    // that is greater than 2 * next_pow2(H * W)
+    this->slot_count = 
+        min((int) POLY_MOD_DEGREE_LARGE, max((int) POLY_MOD_DEGREE_SMALL, 2 * next_pow2(H * W)));
+  }
 
   if(verbose){
     std::cout << "non_strided_conv_offline | 2 * next_pow2(H * W) = " << 2 * next_pow2(H * W) << std::endl;
+    std::cout << "non_strided_conv_offline | slot_count = " << this->slot_count << std::endl;
   }
 
   SEALContext *context_;
@@ -2038,21 +2040,21 @@ void ConvField::non_strided_conv_offline(
 
     } else {
 
-      noise_ct = HE_preprocess_noise_MR(
-          secret_share, data, *encryptor_, *encoder_, *evaluator_);
+      noise_pt = HE_preprocess_noise(
+          secret_share, data, *encoder_, *evaluator_);
 
       if (verbose) {
         prep_noise_time = sw.lap();
         cout << "[Server] [HLK] HE_preprocess_noise_MR runtime:" << prep_noise_time << endl;
         cout << "[Server] [HLK] Noise processed. Shape: (";
-        cout << noise_ct.size() << ")" << endl;
+        cout << noise_pt.size() << ")" << endl;
       }
 
       vector<vector<vector<int>>> rot_amts;
       vector<map<int, vector<vector<int>>>> rot_maps;
       encoded_filters = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
                                             , *evaluator_
-                                            , zero_->parms_id()
+                                            , context_->first_parms_id()
                                             );
 
       if (verbose) {
@@ -2073,6 +2075,7 @@ void ConvField::non_strided_conv_online(
     int32_t H, int32_t W, int32_t CI, int32_t FH,
     int32_t FW, int32_t CO, Image *image,
     vector<seal::Ciphertext> noise_ct,
+    vector<seal::Plaintext> noise_pt,
     vector<vector<uint64_t>> secret_share_vec,
     vector<vector<vector<seal::Plaintext>>> encoded_filters,
     vector<vector<vector<uint64_t>>> &outArr,
@@ -2090,8 +2093,15 @@ void ConvField::non_strided_conv_online(
   data.pad_r = 0;
   data.stride_h = 1;
   data.stride_w = 1;
-  this->slot_count =
-      min(SEAL_POLY_MOD_DEGREE_MAX, max((int) POLY_MOD_DEGREE, 2 * next_pow2(H * W)));
+  if(!use_heliks){
+    this->slot_count =
+        min(SEAL_POLY_MOD_DEGREE_MAX, max((int) POLY_MOD_DEGREE, 2 * next_pow2(H * W)));
+  } else {
+    // the lowest number out of {POLY_MOD_DEGREE_SMALL, POLY_MOD_DEGREE, POLY_MOD_DEGREE_LARGE}
+    // that is greater than 2 * next_pow2(H * W)
+    this->slot_count = 
+        min((int) POLY_MOD_DEGREE_LARGE, max((int) POLY_MOD_DEGREE_SMALL, 2 * next_pow2(H * W)));
+  }
 
   if(verbose){
     std::cout << "non_strided_conv_online | 2 * next_pow2(H * W) = " << 2 * next_pow2(H * W) << std::endl;
@@ -2264,8 +2274,8 @@ void ConvField::non_strided_conv_online(
                         "after homomorphic convolution");
 #endif
 
-      result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_,
-                                      *zero_, noise_ct
+      result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_
+                                      , noise_pt
                                       );
       if (verbose) {cout << "[Server] [HLK] Output Rotations done. Shape: (";
       cout << result.size() << ")" << endl;}
@@ -2314,14 +2324,15 @@ void ConvField::non_strided_conv(
   
 
   vector<seal::Ciphertext> noise_ct;
+  vector<seal::Plaintext> noise_pt;
   vector<vector<uint64_t>> secret_share_vec;
   vector<vector<vector<seal::Plaintext>>> encoded_filters;
 
   non_strided_conv_offline(use_heliks, H, W, CI, FH, FW, CO, filters, 
-      noise_ct, secret_share_vec, encoded_filters, verbose);
+      noise_ct, noise_pt, secret_share_vec, encoded_filters, verbose);
 
   non_strided_conv_online(use_heliks, H, W, CI, FH, FW, CO, image, 
-      noise_ct, secret_share_vec, encoded_filters, outArr, verbose);
+      noise_ct, noise_pt, secret_share_vec, encoded_filters, outArr, verbose);
 }
 
 
@@ -2332,6 +2343,7 @@ void ConvField::convolution_offline(
     int32_t zPadWRight, int32_t strideH, int32_t strideW,
     const vector<vector<vector<vector<uint64_t>>>> &filterArr,
     vector<vector<vector<seal::Ciphertext>>> &noise_ct,
+    vector<vector<vector<seal::Plaintext>>> &noise_pt,
     vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
     vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
     bool verbose) {
@@ -2342,13 +2354,16 @@ void ConvField::convolution_offline(
   int limitW = FW + ((paddedW - FW) / strideW) * strideW;
 
   noise_ct.resize(strideH);
+  noise_pt.resize(strideH);
   secret_share_vec.resize(strideH);
   encoded_filters.resize(strideH);
+
 
   if (party == ALICE) {
     
     for (int s_row = 0; s_row < strideH; s_row++) { 
       noise_ct[s_row].resize(strideW);
+      noise_pt[s_row].resize(strideW);
       secret_share_vec[s_row].resize(strideW);
       encoded_filters[s_row].resize(strideW);
       for (int s_col = 0; s_col < strideW; s_col++) {
@@ -2375,7 +2390,7 @@ void ConvField::convolution_offline(
         }
         if (lFH > 0 && lFW > 0) {
           non_strided_conv_offline(use_heliks, lH, lW, CI, lFH, lFW, CO, &lFilters, 
-              noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
+              noise_ct[s_row][s_col], noise_pt[s_row][s_col], secret_share_vec[s_row][s_col], 
               encoded_filters[s_row][s_col], verbose);
         }
       }
@@ -2391,6 +2406,7 @@ void ConvField::convolution_online(
     const vector<vector<vector<vector<uint64_t>>>> &inputArr,
     const vector<vector<vector<vector<uint64_t>>>> &filterArr,
     vector<vector<vector<seal::Ciphertext>>> &noise_ct,
+    vector<vector<vector<seal::Plaintext>>> &noise_pt,
     vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
     vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
     vector<vector<vector<vector<uint64_t>>>> &outArr, bool verify_output,
@@ -2430,6 +2446,8 @@ void ConvField::convolution_online(
 
     vector<seal::Ciphertext> 
         __noise_ct;
+    vector<seal::Plaintext> 
+        __noise_pt;
     vector<vector<uint64_t>> 
         __secret_share_vec;
     vector<vector<vector<seal::Plaintext>>>
@@ -2463,7 +2481,7 @@ void ConvField::convolution_online(
         // Perform convolution for this stride
         if (lFH > 0 && lFW > 0) {
           non_strided_conv_online(use_heliks, lH, lW, CI, lFH, lFW, CO, &lImage, 
-              __noise_ct, __secret_share_vec, __encoded_filters, outArr[0], verbose);
+              __noise_ct, __noise_pt, __secret_share_vec, __encoded_filters, outArr[0], verbose);
         }
       }
     }
@@ -2488,7 +2506,7 @@ void ConvField::convolution_online(
 
         if (lFH > 0 && lFW > 0) {
           non_strided_conv_online(use_heliks, lH, lW, CI, lFH, lFW, CO, nullptr, 
-              noise_ct[s_row][s_col], secret_share_vec[s_row][s_col], 
+              noise_ct[s_row][s_col], noise_pt[s_row][s_col], secret_share_vec[s_row][s_col], 
               encoded_filters[s_row][s_col], outArr[0], verbose);
         }
       }
@@ -2551,14 +2569,15 @@ void ConvField::convolution(
     bool verbose) {
 
   vector<vector<vector<seal::Ciphertext>>> noise_ct;
+  vector<vector<vector<seal::Plaintext>>> noise_pt;
   vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
   vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
   convolution_offline(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, filterArr, noise_ct, 
+      zPadWLeft, zPadWRight, strideH, strideW, filterArr, noise_ct, noise_pt,
       secret_share_vec, encoded_filters, verbose);
 
   convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr, noise_ct, 
+      zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr, noise_ct, noise_pt,
       secret_share_vec, encoded_filters, outArr, verify_output, verbose);
 }

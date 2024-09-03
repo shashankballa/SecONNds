@@ -610,6 +610,7 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
 #ifdef SCI_HE
 
   vector<vector<vector<seal::Ciphertext>>> noise_ct;
+  vector<vector<vector<seal::Plaintext>>> noise_pt;
   vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
   vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
@@ -617,11 +618,11 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
 
   ConvOfflineHeliks(_use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                     zPadWLeft, zPadWRight, strideH, strideW, filterArr,
-                    noise_ct, secret_share_vec, encoded_filters);
+                    noise_ct, noise_pt, secret_share_vec, encoded_filters);
 
   ConvOnlineHeliks(_use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                    zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
-                   noise_ct, secret_share_vec, encoded_filters, outArr);
+                   noise_ct, noise_pt, secret_share_vec, encoded_filters, outArr);
 
 #endif // SCI_HE
 }
@@ -634,6 +635,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
                   signedIntType zPadWRight, signedIntType strideH,
                   signedIntType strideW, intType *filterArr,
                   vector<vector<vector<seal::Ciphertext>>> &noise_ct,
+                  vector<vector<vector<seal::Plaintext>>> &noise_pt,
                   vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
                   vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters){
 
@@ -670,7 +672,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
 
   he_conv->convolution_offline(
       use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, filterVec, noise_ct, 
+      zPadWLeft, zPadWRight, strideH, strideW, filterVec, noise_ct, noise_pt,
       secret_share_vec, encoded_filters);
 
 #ifdef LOG_LAYERWISE
@@ -692,6 +694,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
                   signedIntType strideW, intType *inputArr, 
                   intType *filterArr,
                   vector<vector<vector<seal::Ciphertext>>> &noise_ct,
+                  vector<vector<vector<seal::Plaintext>>> &noise_pt,
                   vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
                   vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
                   intType *outArr) {
@@ -748,7 +751,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
                                     newW, std::vector<intType>(CO, 0))));
 
   he_conv->convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, inputVec, filterVec, noise_ct, 
+      zPadWLeft, zPadWRight, strideH, strideW, inputVec, filterVec, noise_ct, noise_pt, 
       secret_share_vec, encoded_filters, outputVec);
 
   for (int i = 0; i < N; i++) {

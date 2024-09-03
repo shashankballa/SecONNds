@@ -274,6 +274,7 @@ class ConvField {
             int32_t FW, int32_t CO,
             Filters *filters,
             std::vector<seal::Ciphertext> &noise_ct,
+            std::vector<seal::Plaintext> &noise_pt,
             std::vector<std::vector<uint64_t>>& secret_share_vec,
             std::vector<std::vector<std::vector<seal::Plaintext>>> &encoded_filters,
             bool verbose = true);
@@ -283,6 +284,7 @@ class ConvField {
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image,
             std::vector<seal::Ciphertext> noise_ct,
+            std::vector<seal::Plaintext> noise_pt,
             std::vector<std::vector<uint64_t>> secret_share_vec,
             std::vector<std::vector<std::vector<seal::Plaintext>>> encoded_filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
@@ -302,6 +304,7 @@ class ConvField {
             int32_t zPadWRight, int32_t strideH, int32_t strideW,
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &filterArr,
             std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
+            std::vector<std::vector<std::vector<seal::Plaintext>>> &noise_pt,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>>& secret_share_vec,
             std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
             bool verbose = true);
@@ -314,6 +317,7 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &inputArr,
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &filterArr,
             std::vector<std::vector<std::vector<seal::Ciphertext>>> &noise_ct,
+            std::vector<std::vector<std::vector<seal::Plaintext>>> &noise_pt,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &secret_share_vec,
             std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr, 
