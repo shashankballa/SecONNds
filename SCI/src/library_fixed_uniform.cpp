@@ -609,20 +609,23 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
 
 #ifdef SCI_HE
 
-  vector<vector<vector<seal::Ciphertext>>> noise_ct;
-  vector<vector<vector<seal::Plaintext>>> noise_pt;
-  vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
-  vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
+  if(use_heliks){
+    vector<vector<vector<seal::Ciphertext>>> noise_ct;
+    vector<vector<vector<seal::Plaintext>>> noise_pt;
+    vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
+    vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
-  bool _use_heliks = use_heliks; // true;
+    ConvOfflineHeliks(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                      zPadWLeft, zPadWRight, strideH, strideW, filterArr,
+                      noise_ct, noise_pt, secret_share_vec, encoded_filters);
 
-  ConvOfflineHeliks(_use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                    zPadWLeft, zPadWRight, strideH, strideW, filterArr,
-                    noise_ct, noise_pt, secret_share_vec, encoded_filters);
-
-  ConvOnlineHeliks(_use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-                   zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
-                   noise_ct, noise_pt, secret_share_vec, encoded_filters, outArr);
+    ConvOnlineHeliks(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                    zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
+                    noise_ct, noise_pt, secret_share_vec, encoded_filters, outArr);
+  } else {
+    Conv2DWrapper(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight, zPadWLeft,
+                  zPadWRight, strideH, strideW, inputArr, filterArr,outArr);
+  }
 
 #endif // SCI_HE
 }
@@ -768,7 +771,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
 #ifdef LOG_LAYERWISE
   auto temp = TIMER_TILL_NOW;
   ConvTimeInMilliSec += temp;
-  std::cout << "Time in sec for current conv = " << (temp / 1000.0)
+  std::cout << "Time in sec for current online conv = " << (temp / 1000.0)
             << std::endl;
   uint64_t curComm;
   FIND_ALL_IO_TILL_NOW(curComm);

@@ -211,7 +211,7 @@ class ConvField {
         void non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
                                 int32_t FW, int32_t CO, Image *image, Filters *filters,
                                 std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-                                bool verbose = true);
+                                bool verbose = false);
 
         void convolution(
             int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
@@ -222,7 +222,7 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
                 &filterArr,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = true);
+            bool verify_output = false, bool verbose = false);
 
         void verify(int H, int W, int CI, int CO, Image &image,
                     const Filters *filters,
@@ -239,14 +239,14 @@ class ConvField {
 //,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"^~,_,~^"//
 
         ConvField(int party, sci::NetIO *io, std::vector<int> CoeffModBits, int slot_count, 
-            bool verbose = true);
+            bool verbose = false);
 
         void configure(bool verbose);
 
         void non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image, Filters *filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-            bool verbose = true
+            bool verbose = false
             );
 
         void convolution_heliks(
@@ -258,7 +258,7 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
                 &filterArr,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = true);
+            bool verify_output = false, bool verbose = false);
 
         ConvField(int party, sci::NetIO *io, bool use_heliks);
 
@@ -277,7 +277,7 @@ class ConvField {
             std::vector<seal::Plaintext> &noise_pt,
             std::vector<std::vector<uint64_t>>& secret_share_vec,
             std::vector<std::vector<std::vector<seal::Plaintext>>> &encoded_filters,
-            bool verbose = true);
+            bool verbose = false);
 
         void non_strided_conv_online(
             bool use_heliks,
@@ -288,14 +288,14 @@ class ConvField {
             std::vector<std::vector<uint64_t>> secret_share_vec,
             std::vector<std::vector<std::vector<seal::Plaintext>>> encoded_filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-            bool verbose = true);
+            bool verbose = false);
 
         void non_strided_conv(
             bool use_heliks,
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image, Filters *filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-            bool verbose = true);
+            bool verbose = false);
 
         void convolution_offline(
             bool use_heliks,
@@ -307,7 +307,7 @@ class ConvField {
             std::vector<std::vector<std::vector<seal::Plaintext>>> &noise_pt,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>>& secret_share_vec,
             std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
-            bool verbose = true);
+            bool verbose = false);
 
         void convolution_online(
             bool use_heliks,
@@ -321,7 +321,7 @@ class ConvField {
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &secret_share_vec,
             std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr, 
-            bool verify_output = false, bool verbose = true);
+            bool verify_output = false, bool verbose = false);
 
         void convolution(
             bool use_heliks,
@@ -333,7 +333,7 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
                 &filterArr,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = true);
+            bool verify_output = false, bool verbose = false);
 };
 
 #endif

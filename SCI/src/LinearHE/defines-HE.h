@@ -26,7 +26,7 @@ SOFTWARE.
 #include <cmath>
 #include <vector>
 
-#define HE_DEBUG
+// #define HE_DEBUG
 
 extern uint64_t prime_mod;
 extern int32_t bitlength;
@@ -42,7 +42,7 @@ const int32_t SMUDGING_BITLEN = 80 - bitlength;
 inline std::vector<int> GET_COEFF_MOD_CF2() { return {60, 60, 60, 49}; }
 
 // Default coefficient modulus for HELiKs
-inline std::vector<int> GET_COEFF_MOD_HLK() { return {60, 29, 20}; }
+inline std::vector<int> GET_COEFF_MOD_HLK() { return {50, 29, 20}; }
 
 /* Helper function for rounding to the next power of 2
  * Credit:
