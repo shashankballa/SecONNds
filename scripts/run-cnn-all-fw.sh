@@ -1,5 +1,7 @@
 . scripts/common.sh
 
+MLR="" # Millionaires' with lower rounds
+
 if [ $# -lt 2 ] || [ $# -gt 3 ]
 then
     echo -e "${RED}Invalid number of arguments.${NC}"
@@ -17,7 +19,11 @@ if ! contains "sqnet resnet50 densenet121" $2; then
     exit 1
 fi
 
+if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
+  MLR="--mill_low_rnd"
+fi
+
 for FW in SCI_HE cheetah seconnds_p seconnds_2
 do
-    bash scripts/run-cnn.sh $1 $FW $2 $3
+    bash scripts/run-cnn.sh $1 $FW $2 $3 $MLR
 done

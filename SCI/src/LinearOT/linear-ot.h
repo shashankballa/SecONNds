@@ -46,7 +46,8 @@ public:
 
   LinearOT(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack);
 
-  LinearOT(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack, TripleGenerator<sci::NetIO> *triplegen);
+  LinearOT(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack, 
+      TripleGenerator<sci::NetIO> *triplegen, bool use_low_round = false);
 
   ~LinearOT();
 

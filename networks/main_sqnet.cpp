@@ -32,6 +32,8 @@ int _snn = 0;
 bool use_seconnds = false;
 int _ntt = 0;
 bool conv_ntt = false;
+int _mlr = 0;
+bool mill_low_rnd = false;
 
 
 void MatAddBroadCast2(int64_t s1, int64_t s2, uint64_t *A, uint64_t *B,
@@ -2292,12 +2294,14 @@ int main(int argc, char **argv) {
   amap.arg("k", kScale, "scaling factor");
   amap.arg("snn", _snn, "Use SecONNds");
   amap.arg("ntt", _ntt, "Perform NTT mults in convolutions");
+  amap.arg("mlr", _mlr, "Perform Mill with lower rounds");
   amap.arg("ntrips", num_trips, "Number of triples to generate");
   amap.arg("csize", trips_csize, "Chunk size for triple generation");
 
   amap.parse(argc, argv);
   use_seconnds = (_snn == 1);
   conv_ntt = (_ntt == 1);
+  mill_low_rnd = (_mlr == 1);
 
   // Print all the input arguments
   print_ss << "Starting main_sqnet with the following inputs: \n"
@@ -2306,6 +2310,7 @@ int main(int argc, char **argv) {
     << "Bitlength   : " << bitlength << ", " << "Scaling Factor: " << kScale << "\n"
     << "Use SecONNds: " << std::boolalpha << use_seconnds << ", " 
     << "NTT in convolutions: " << conv_ntt << "\n"
+    << "Millionaires' with lower rounds: " << mill_low_rnd << "\n"
     << "Number of triples: " << num_trips << ", " << "Chunk size: " << trips_csize << "\n"
     << "\n";
   cout << print_ss.str();
@@ -3245,7 +3250,7 @@ int main(int argc, char **argv) {
     std::cout << "Triples generated!" << std::endl;
   }
 
-  StartComputation();
+  StartComputation(false, mill_low_rnd);
 
   print_ss << "\n-> Private inputs loaded, starting Online...\n" << std::endl;
   std::cout << print_ss.str();

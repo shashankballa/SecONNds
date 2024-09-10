@@ -1950,7 +1950,7 @@ void GenerateTriples(int buffer_size, int chunk_size){
   doneGenerateTriples = true;
 }
 
-void StartComputation(bool use_heliks) {
+void StartComputation(bool use_heliks, bool use_low_round) {
 
   if (!doneConnectAndSetUp) {
     ConnectAndSetUp(use_heliks);
@@ -1999,11 +1999,11 @@ void StartComputation(bool use_heliks) {
   // multUniform = new MatMulUniform<sci::NetIO, intType, sci::IKNP<sci::NetIO>>(
   //     party, bitlength, io, iknpOT, iknpOTRoleReversed);
   relu = new ReLURingProtocol<sci::NetIO, intType>(party, RING, io, bitlength,
-                                                   MILL_PARAM, otpack, tripleGen);
+                                                   MILL_PARAM, otpack, tripleGen, use_low_round);
   // maxpool = new MaxPoolProtocol<sci::NetIO, intType>(
   //     party, RING, io, bitlength, MILL_PARAM, 0, otpack, relu);
   argmax = new ArgMaxProtocol<sci::NetIO, intType>(party, RING, io, bitlength,
-                                                   MILL_PARAM, 0, otpack, tripleGen, relu);
+                                          MILL_PARAM, 0, otpack, tripleGen, use_low_round, relu);
   // math = new MathFunctions(party, io, otpack);
 #endif
 
@@ -2014,11 +2014,11 @@ void StartComputation(bool use_heliks) {
     << std::endl;
 
   relu = new ReLUFieldProtocol<sci::NetIO, intType>(
-      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen);
+      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, use_low_round);
   maxpool = new MaxPoolProtocol<sci::NetIO, intType>(
-      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, relu);
+      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, use_low_round, relu);
   argmax = new ArgMaxProtocol<sci::NetIO, intType>(
-      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, relu);
+      party, FIELD, io, bitlength, MILL_PARAM, prime_mod, otpack, tripleGen, use_low_round, relu);
   he_fc = new FCField(party, io);
   he_prod = new ElemWiseProdField(party, io);
   assertFieldRun();
@@ -2034,20 +2034,20 @@ void StartComputation(bool use_heliks) {
   for (int i = 0; i < num_threads; i++) {
     if (i & 1) {
       reluArr[i] = new ReLURingProtocol<sci::NetIO, intType>(
-          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i], tripleGenArr[i]);
+          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i], tripleGenArr[i], use_low_round);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
-          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i], tripleGenArr[i],
+          3 - party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i], tripleGenArr[i], use_low_round,
           reluArr[i]);
-      multArr[i] = new LinearOT(3 - party, ioArr[i], otpackArr[i], tripleGenArr[i]);
+      multArr[i] = new LinearOT(3 - party, ioArr[i], otpackArr[i], tripleGenArr[i], use_low_round);
       truncationArr[i] = new Truncation(3 - party, ioArr[i], otpackArr[i], tripleGenArr[i]);
     } else {
       reluArr[i] = new ReLURingProtocol<sci::NetIO, intType>(
-          party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i], tripleGenArr[i]);
+          party, RING, ioArr[i], bitlength, MILL_PARAM, otpackArr[i], tripleGenArr[i], use_low_round);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
-          party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i], tripleGenArr[i],
+          party, RING, ioArr[i], bitlength, MILL_PARAM, 0, otpackArr[i], tripleGenArr[i], use_low_round,
           reluArr[i]);
-      multArr[i] = new LinearOT(party, ioArr[i], otpackArr[i], tripleGenArr[i]);
-      truncationArr[i] = new Truncation(party, ioArr[i], otpackArr[i], tripleGenArr[i]);
+      multArr[i] = new LinearOT(party, ioArr[i], otpackArr[i], tripleGenArr[i], use_low_round);
+      truncationArr[i] = new Truncation(party, ioArr[i], otpackArr[i], tripleGenArr[i], use_low_round);
     }
   }
 #endif
@@ -2063,17 +2063,17 @@ void StartComputation(bool use_heliks) {
     if (i & 1) {
       reluArr[i] = new ReLUFieldProtocol<sci::NetIO, intType>(
           3 - party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i], tripleGenArr[i]);
+          otpackArr[i], tripleGenArr[i], use_low_round);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
           3 - party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i], tripleGenArr[i], reluArr[i]);
+          otpackArr[i], tripleGenArr[i], use_low_round, reluArr[i]);
     } else {
       reluArr[i] = new ReLUFieldProtocol<sci::NetIO, intType>(
           party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i], tripleGenArr[i]);
+          otpackArr[i], tripleGenArr[i], use_low_round);
       maxpoolArr[i] = new MaxPoolProtocol<sci::NetIO, intType>(
           party, FIELD, ioArr[i], bitlength, MILL_PARAM, prime_mod,
-          otpackArr[i], tripleGenArr[i], reluArr[i]);
+          otpackArr[i], tripleGenArr[i], use_low_round, reluArr[i]);
     }
   }
 #endif

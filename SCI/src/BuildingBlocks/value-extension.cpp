@@ -41,6 +41,7 @@ XTProtocol::XTProtocol(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
 
 XTProtocol::XTProtocol(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
                        TripleGenerator<sci::NetIO> *triplegen,
+                       bool use_low_round,
                        AuxProtocols *auxp) {
   this->party = party;
   this->io = io;
@@ -48,7 +49,7 @@ XTProtocol::XTProtocol(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
   this->triple_gen = triplegen;
   if (auxp == nullptr) {
     del_aux = true;
-    this->aux = new AuxProtocols(party, io, otpack, triplegen);
+    this->aux = new AuxProtocols(party, io, otpack, triplegen, use_low_round);
   } else {
     this->aux = auxp;
   }

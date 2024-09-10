@@ -61,7 +61,8 @@ class DReLUFieldProtocol {
 
   DReLUFieldProtocol(int party, int bitlength, int log_radix_base,
                      uint64_t prime_mod, IO *io, sci::OTPack<IO> *otpack,
-                     TripleGenerator<IO> *triplegen) {
+                     TripleGenerator<IO> *triplegen,
+                     bool use_low_round = false) {
     if(triplegen->isBufferEnabled()) log_radix_base = 1;
     assert(log_radix_base <= 8);
     assert(bitlength <= 64);
@@ -72,8 +73,8 @@ class DReLUFieldProtocol {
     this->p = prime_mod;
     this->otpack = otpack;
     this->triple_gen = triplegen;
-    this->millionaire = new MillionaireProtocol<IO>(party, io, otpack, triplegen,
-                                                    bitlength, log_radix_base);
+    this->millionaire = new MillionaireProtocol<IO>(party, io, otpack, triplegen, 
+      use_low_round, bitlength, log_radix_base);
     configure();
   }
 

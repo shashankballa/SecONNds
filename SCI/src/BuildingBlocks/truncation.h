@@ -46,6 +46,7 @@ public:
              
   Truncation(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack,
              TripleGenerator<sci::NetIO> *triplegen,
+             bool use_low_round = false,
              AuxProtocols *auxp = nullptr,
              MillionaireWithEquality<sci::NetIO> *mill_eq_in = nullptr);
 

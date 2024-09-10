@@ -8,6 +8,7 @@ NTRIPS=0
 ROLE=client
 ROLENUM=2
 PRIVINP=0
+MILL_LR=0 # Millionaires' with lower rounds
 
 echo -e "=============================================================================="
 echo -e " "
@@ -33,6 +34,12 @@ if ! contains "sqnet resnet50 densenet121" $3; then
   exit 1
 fi
 
+if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
+  MILL_LR=1
+  echo -e "Using Millionaires' with lower rounds."
+  echo -e " "
+fi
+
 ROLE=$1
 
 if [ "$ROLE" = "server" ]; then
@@ -52,7 +59,11 @@ if [ "$2" = "seconnds_2" ]; then
   SNN=1
   NTT=1
   if [ "$3" = "sqnet" ]; then
-    NTRIPS=$NTRIPS_2_SQNET
+    if [ "$MILL_LR" = 1 ]; then
+      NTRIPS=$NTRIPS_SQNET_2_LR
+    else
+      NTRIPS=$NTRIPS_SQNET_2
+    fi
   fi
 fi
 
@@ -61,7 +72,11 @@ if [ "$2" = "seconnds_p" ]; then
   SNN=1
   NTT=1
   if [ "$3" = "sqnet" ]; then
-    NTRIPS=$NTRIPS_P_SQNET
+    if [ "$MILL_LR" = 1 ]; then
+      NTRIPS=$NTRIPS_SQNET_P_LR
+    else
+      NTRIPS=$NTRIPS_SQNET_P
+    fi
   fi
 fi
 
@@ -72,10 +87,10 @@ echo -e "$ROLE: Running ${GREEN}$3${NC} with ${GREEN}$2${NC}..."
 echo -e " "
 
 if [[ "$*" == *"--debug"* ]]; then
-  gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE < $PRIVINP"
+  gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR < $PRIVINP"
 else
   if [ "$4" = "no_log" ]; then
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE
+    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR
   else
     mkdir -p $LOGS_DIR
     if [ -z "$4" ]; then
@@ -86,7 +101,7 @@ else
     echo -e "Date: $(date)" > $LOGFILE
     echo -e "$ROLE: Running $3 with $2..." >> $LOGFILE
     echo -e " " >> $LOGFILE
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE >> $LOGFILE
+    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR >> $LOGFILE
     echo -e "Done! Log saved to:"
     echo -e "${GREEN}$LOGFILE${NC}"
   fi

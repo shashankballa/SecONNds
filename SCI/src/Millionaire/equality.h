@@ -55,6 +55,7 @@ public:
   }
 
   Equality(int party, IO *io, sci::OTPack<IO> *otpack, TripleGenerator<IO> *triplegen,
+           bool use_low_round = false,
            MillionaireProtocol<IO> *mill_in = nullptr, int bitlength = 32,
            int radix_base = MILL_PARAM) {
     this->party = party;
@@ -65,7 +66,7 @@ public:
     if (mill_in == nullptr) {
       del_mill = true;
       mill =
-          new MillionaireProtocol<IO>(party, io, otpack, triplegen, bitlength, radix_base);
+          new MillionaireProtocol<IO>(party, io, otpack, triplegen, use_low_round, bitlength, radix_base);
     }
     configure(bitlength, radix_base);
   }

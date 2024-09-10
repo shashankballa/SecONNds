@@ -71,6 +71,7 @@ public:
   MaxPoolProtocol(int party, int algeb_str, IO *io, int l, int b,
                   uint64_t prime, sci::OTPack<IO> *otpack,
                   TripleGenerator<IO> *triplegen,
+                  bool use_low_round = false,
                   ReLUProtocol<IO, type> *relu_obj = nullptr) {
     this->party = party;
     this->algeb_str = algeb_str;
@@ -83,7 +84,7 @@ public:
     if (algeb_str == RING) {
       if (relu_obj == nullptr) {
         this->relu_oracle =
-            new ReLURingProtocol<IO, type>(party, RING, io, l, b, otpack, triplegen);
+            new ReLURingProtocol<IO, type>(party, RING, io, l, b, otpack, triplegen, use_low_round);
       } else {
         this->relu_oracle = (ReLURingProtocol<IO, type> *)relu_obj;
         this->relu_oracle->triple_gen = triplegen;
@@ -91,7 +92,7 @@ public:
     } else {
       if (relu_obj == nullptr) {
         this->relu_field_oracle = new ReLUFieldProtocol<IO, type>(
-            party, FIELD, io, l, b, this->prime_mod, otpack, triplegen);
+            party, FIELD, io, l, b, this->prime_mod, otpack, triplegen, use_low_round);
       } else {
         this->relu_field_oracle = (ReLUFieldProtocol<IO, type> *)relu_obj;
         this->relu_field_oracle->triple_gen = triplegen;

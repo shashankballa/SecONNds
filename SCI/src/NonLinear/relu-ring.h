@@ -73,7 +73,8 @@ public:
 
   ReLURingProtocol(int party, int algeb_str, IO *io, int l, int b,
                    sci::OTPack<IO> *otpack,
-                   TripleGenerator<IO> *triplegen) {
+                   TripleGenerator<IO> *triplegen,
+                   bool use_low_round = false) {
     this->party = party;
     this->algeb_str = algeb_str;
     this->io = io;
@@ -81,7 +82,7 @@ public:
     this->b = b;
     this->otpack = otpack;
     this->triple_gen = triplegen;
-    this->millionaire = new MillionaireProtocol<IO>(party, io, otpack, triplegen);
+    this->millionaire = new MillionaireProtocol<IO>(party, io, otpack, triplegen, use_low_round);
     this->aux = new AuxProtocols(party, io, otpack, triplegen);
     configure();
   }

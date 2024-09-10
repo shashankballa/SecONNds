@@ -157,7 +157,7 @@ void ConnectAndSetUp(bool use_heliks = false);
 
 void GenerateTriples(int buffer_size = 0, int chunk_size = 0);
 
-void StartComputation(bool use_heliks = false);
+void StartComputation(bool use_heliks = false, bool use_low_round = false);
 
 void EndComputation();
 

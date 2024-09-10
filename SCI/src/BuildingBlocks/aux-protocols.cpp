@@ -44,13 +44,14 @@ AuxProtocols::AuxProtocols(int party, sci::NetIO *io,
 
 AuxProtocols::AuxProtocols(int party, sci::NetIO *io,
                            OTPack<sci::NetIO> *otpack,
-                           TripleGenerator<sci::NetIO> *triplegen) {
+                           TripleGenerator<sci::NetIO> *triplegen,
+                           bool use_low_round) {
   this->party = party;
   this->io = io;
   this->otpack = otpack;
-  this->mill = new MillionaireProtocol<sci::NetIO>(party, io, otpack, triplegen);
+  this->mill = new MillionaireProtocol<sci::NetIO>(party, io, otpack, triplegen, use_low_round);
   this->mill_and_eq =
-      new MillionaireWithEquality<sci::NetIO>(party, io, otpack, triplegen);
+      new MillionaireWithEquality<sci::NetIO>(party, io, otpack, triplegen, use_low_round);
 }
 
 AuxProtocols::~AuxProtocols() {

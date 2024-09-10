@@ -41,6 +41,7 @@ public:
 
   XTProtocol(int party, sci::NetIO *io, sci::OTPack<sci::NetIO> *otpack,
              TripleGenerator<sci::NetIO> *triplegen,
+             bool use_low_round = false,
              AuxProtocols *auxp = nullptr);
 
   // Destructor

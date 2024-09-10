@@ -49,6 +49,8 @@ public:
   int num_triples;
   uint8_t mask_beta, mask_r;
 
+  bool use_low_round = false;
+
   MillionaireProtocol(int party, IO *io, sci::OTPack<IO> *otpack,
                       int bitlength = 32, int radix_base = MILL_PARAM) {
     this->party = party;
@@ -62,11 +64,13 @@ public:
   
   MillionaireProtocol(int party, IO *io, sci::OTPack<IO> *otpack, 
                       TripleGenerator<IO> *triplegen,
+                      bool use_low_round = false,
                       int bitlength = 32, int radix_base = MILL_PARAM) {
     this->party = party;
     this->io = io;
     this->otpack = otpack;
     this->triple_gen = triplegen;
+    this->use_low_round = use_low_round;
     configure(bitlength, radix_base);
   }
 
@@ -81,8 +85,12 @@ public:
     this->log_alpha = sci::bitlen(num_digits) - 1;
     this->log_num_digits = log_alpha + 1;
     this->num_triples_corr = 2 * num_digits - 2 - 2 * log_num_digits;
-    this->num_triples_std = log_num_digits;
-    this->num_triples = num_triples_std + num_triples_corr;
+    this->num_triples_std = log_num_digits; // = log_alpha + 1 = sci::bitlen(ceil((double) bitlength / radix_base))
+    this->num_triples = num_triples_std + num_triples_corr; 
+    /* 
+    num_triples  = sci::bitlen(ceil((double) bitlength)) + 2 * bitlength - 2 - 2 * sci::bitlen(sci::bitlen(ceil((double) bitlength)))
+                 = 2 * bitlength - 2 - sci::bitlen(sci::bitlen(ceil((double) bitlength)))
+    */
     if (beta == 8)
       this->mask_beta = -1;
     else
@@ -1115,110 +1123,248 @@ public:
     log_comm << std::endl;
 #endif
 
-    int n_trips = num_digits - 1;
-    Triple trips_seg(n_trips * num_cmps, true);
-    triple_gen->get(party, &trips_seg);
+    if(!this->use_low_round){
+      int n_trips = num_digits - 1;
+      Triple trips_seg(n_trips * num_cmps, true);
+      triple_gen->get(party, &trips_seg);
     
 #if MILL_PRINT_TIME
-    // get running time of leaf OTs in ms
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> trip_gen_time = end - (start + total_time);
-    total_time += trip_gen_time;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag << " | Triple GET : " << trip_gen_time.count() * 1000;
-    log_time << " ms" << std::endl;
+      // get running time of leaf OTs in ms
+      end = std::chrono::system_clock::now();
+      std::chrono::duration<double> trip_gen_time = end - (start + total_time);
+      total_time += trip_gen_time;
+      log_time << "P" << party << " TIME | ";
+      log_time << f_tag << " | Triple GET : " << trip_gen_time.count() * 1000;
+      log_time << " ms" << std::endl;
 #endif
 #if MILL_PRINT_COMP
-    log_ss << f_tag1 << " | " << party_str 
-      << " | SEG"
-      << " | triples generate: trips_seg"
-      << ", num_triples = " << std::setw(_w1) << trips_seg.num_triples 
-      << ", num_bytes = " << std::setw(_w1) << trips_seg.num_bytes
-      << ", offset = " << std::setw(_w1) << trips_seg.offset
-      << ", packed = " << std::setw(_w1) << trips_seg.packed
-      << std::endl;
+      log_ss << f_tag1 << " | " << party_str 
+        << " | SEG"
+        << " | triples generate: trips_seg"
+        << ", num_triples = " << std::setw(_w1) << trips_seg.num_triples 
+        << ", num_bytes = " << std::setw(_w1) << trips_seg.num_bytes
+        << ", offset = " << std::setw(_w1) << trips_seg.offset
+        << ", packed = " << std::setw(_w1) << trips_seg.packed
+        << std::endl;
 #endif
 #if MILL_PRINT_COMM
-    uint64_t comm_trips = io->counter - (comm_start + comm_total);
-    comm_total += comm_trips;
-    log_comm << "P" << party << " COMM";
-    log_comm << ": ANDtrp = " << std::setw(_w2) << comm_trips;
-    log_comm << std::endl;
+      uint64_t comm_trips = io->counter - (comm_start + comm_total);
+      comm_total += comm_trips;
+      log_comm << "P" << party << " COMM";
+      log_comm << ": ANDtrp = " << std::setw(_w2) << comm_trips;
+      log_comm << std::endl;
 #endif
 
-    for(int i = 0; i < n_trips; i++){
-      uint64_t n_cmps_8 = num_cmps >> 3;
+      for(int i = 0; i < n_trips; i++){
+        uint64_t n_cmps_8 = num_cmps >> 3;
 
 #if MILL_PRINT_COMP
-    log_ss << f_tag1 << " | " << party_str 
-      << " | SEG"
-      << " | main loop iteration:"
-      << ", i = " << std::setw(_w1) << i
-      << ", n_cmps_8 = " << std::setw(_w1) << n_cmps_8
-      << std::endl;
+      log_ss << f_tag1 << " | " << party_str 
+        << " | SEG"
+        << " | main loop iteration:"
+        << ", i = " << std::setw(_w1) << i
+        << ", n_cmps_8 = " << std::setw(_w1) << n_cmps_8
+        << std::endl;
 #endif 
-      uint8_t *ei_ = new uint8_t[n_cmps_8];
-      uint8_t *fi_ = new uint8_t[n_cmps_8];
-      uint8_t *e_  = new uint8_t[n_cmps_8];
-      uint8_t *f_  = new uint8_t[n_cmps_8];  
+        uint8_t *ei_ = new uint8_t[n_cmps_8];
+        uint8_t *fi_ = new uint8_t[n_cmps_8];
+        uint8_t *e_  = new uint8_t[n_cmps_8];
+        uint8_t *f_  = new uint8_t[n_cmps_8];  
 
-      AND_step_1_new(ei_ , fi_, 
-                seg_res_cmp + ( i      * num_cmps),
-                seg_res_eql + ((i + 1) * num_cmps),
-                (trips_seg.ai) + i * n_cmps_8,
-                (trips_seg.bi) + i * n_cmps_8, num_cmps);
+        AND_step_1_new(ei_ , fi_, 
+                  seg_res_cmp + ( i      * num_cmps),
+                  seg_res_eql + ((i + 1) * num_cmps),
+                  (trips_seg.ai) + i * n_cmps_8,
+                  (trips_seg.bi) + i * n_cmps_8, num_cmps);
 #if MILL_PRINT_COMP
-    log_ss << f_tag1 << " | " << party_str 
-      << " | SEG"
-      << " | AND_step_1 completed"
-      << ": i = " << std::setw(_w1) << i 
-      << std::endl;
+      log_ss << f_tag1 << " | " << party_str 
+        << " | SEG"
+        << " | AND_step_1 completed"
+        << ": i = " << std::setw(_w1) << i 
+        << std::endl;
 #endif     
 #if MILL_PRINT_COMP
-    log_ss << f_tag1 << " | " << party_str 
-      << " | starting comm"
-      << ", i = " << std::setw(_w1) << i
-      << ", n_cmps_8 = " << std::setw(_w1) << n_cmps_8
-      << std::endl;
+      log_ss << f_tag1 << " | " << party_str 
+        << " | starting comm"
+        << ", i = " << std::setw(_w1) << i
+        << ", n_cmps_8 = " << std::setw(_w1) << n_cmps_8
+        << std::endl;
 #endif   
-      // Communicate the computed ANDs
-      if (party == sci::ALICE) {
-        io->send_data(ei_, n_cmps_8);
-        io->send_data(fi_, n_cmps_8);
-        io->recv_data(e_ , n_cmps_8);
-        io->recv_data(f_ , n_cmps_8);
-      } else // party = sci::BOB
-      {
-        io->recv_data(e_ , n_cmps_8);
-        io->recv_data(f_ , n_cmps_8);
-        io->send_data(ei_, n_cmps_8);
-        io->send_data(fi_, n_cmps_8);
-      }
+        // Communicate the computed ANDs
+        if (party == sci::ALICE) {
+          io->send_data(ei_, n_cmps_8);
+          io->send_data(fi_, n_cmps_8);
+          io->recv_data(e_ , n_cmps_8);
+          io->recv_data(f_ , n_cmps_8);
+        } else // party = sci::BOB
+        {
+          io->recv_data(e_ , n_cmps_8);
+          io->recv_data(f_ , n_cmps_8);
+          io->send_data(ei_, n_cmps_8);
+          io->send_data(fi_, n_cmps_8);
+        }
 
 #if MILL_PRINT_COMP
-    log_ss << f_tag1 << " | " << party_str 
-      << " | finished comm"
-      << std::endl;
+      log_ss << f_tag1 << " | " << party_str 
+        << " | finished comm"
+        << std::endl;
 #endif        
       
-      for (int i = 0; i < n_cmps_8; i++) {
-        e_[i] ^= ei_[i];
-        f_[i] ^= fi_[i];
+        for (int i = 0; i < n_cmps_8; i++) {
+          e_[i] ^= ei_[i];
+          f_[i] ^= fi_[i];
+        }
+
+        uint8_t *lt_and_eq = new uint8_t[num_cmps];
+        AND_step_2_new(lt_and_eq, e_, f_,
+                  (trips_seg.ai) + i * n_cmps_8,
+                  (trips_seg.bi) + i * n_cmps_8,
+                  (trips_seg.ci) + i * n_cmps_8, num_cmps);
+
+        for (int k = 0; k < num_cmps; k++)
+            seg_res_cmp[(i + 1) * num_cmps + k] ^= lt_and_eq[k];
       }
 
-      uint8_t *lt_and_eq = new uint8_t[num_cmps];
-      AND_step_2_new(lt_and_eq, e_, f_,
-                (trips_seg.ai) + i * n_cmps_8,
-                (trips_seg.bi) + i * n_cmps_8,
-                (trips_seg.ci) + i * n_cmps_8, num_cmps);
-
       for (int k = 0; k < num_cmps; k++)
-          seg_res_cmp[(i + 1) * num_cmps + k] ^= lt_and_eq[k];
+        seg_res_cmp[k] = seg_res_cmp[k + n_trips * num_cmps] & 1;
+
+
+    } else { // use_low_round
+
+      int n_trips = 2 * num_digits - 2 - sci::bitlen(sci::bitlen(ceil((double) num_digits)));
+
+      Triple triples_std((n_trips)*num_cmps, true);
+
+      // Generate required Bit-Triples
+      triple_gen->get(party, &triples_std);
+
+      // std::cout << "Bit Triples Generated" << std::endl;
+
+      // Combine leaf OT results in a bottom-up fashion
+      int counter_std = 0, old_counter_std = 0;
+      int counter_corr = 0, old_counter_corr = 0;
+      int counter_combined = 0, old_counter_combined = 0;
+      uint8_t *ei = new uint8_t[(n_trips * num_cmps) / 8];
+      uint8_t *fi = new uint8_t[(n_trips * num_cmps) / 8];
+      uint8_t *e = new uint8_t[(n_trips * num_cmps) / 8];
+      uint8_t *f = new uint8_t[(n_trips * num_cmps) / 8];
+
+      for (int i = 1; i < num_digits; i *= 2) {
+        for (int j = 0; j < num_digits and j + i < num_digits; j += 2 * i) {
+          if (j == 0) {
+            AND_step_1(
+                ei + (counter_std * num_cmps) / 8,
+                fi + (counter_std * num_cmps) / 8, seg_res_cmp + j * num_cmps,
+                seg_res_eql + (j + i) * num_cmps,
+                (triples_std.ai) + (counter_combined * num_cmps) / 8,
+                (triples_std.bi) + (counter_combined * num_cmps) / 8, num_cmps);
+            counter_std++;
+            counter_combined++;
+          } else {
+            AND_step_1(
+                ei + ((num_triples_std + 2 * counter_corr) * num_cmps) / 8,
+                fi + ((num_triples_std + 2 * counter_corr) * num_cmps) / 8,
+                seg_res_cmp + j * num_cmps, seg_res_eql + (j + i) * num_cmps,
+                (triples_std.ai) + (counter_combined * num_cmps) / 8,
+                (triples_std.bi) + (counter_combined * num_cmps) / 8, num_cmps);
+            counter_combined++;
+            AND_step_1(
+                ei + ((num_triples_std + (2 * counter_corr + 1)) * num_cmps) / 8,
+                fi + ((num_triples_std + (2 * counter_corr + 1)) * num_cmps) / 8,
+                seg_res_eql + j * num_cmps, seg_res_eql + (j + i) * num_cmps,
+                (triples_std.ai) + (counter_combined * num_cmps) / 8,
+                (triples_std.bi) + (counter_combined * num_cmps) / 8, num_cmps);
+            counter_combined++;
+            counter_corr++;
+          }
+        }
+        int offset_std = (old_counter_std * num_cmps) / 8;
+        int size_std = ((counter_std - old_counter_std) * num_cmps) / 8;
+        int offset_corr =
+            ((num_triples_std + 2 * old_counter_corr) * num_cmps) / 8;
+        int size_corr = (2 * (counter_corr - old_counter_corr) * num_cmps) / 8;
+
+        if (party == sci::ALICE) {
+          io->send_data(ei + offset_std, size_std);
+          io->send_data(ei + offset_corr, size_corr);
+          io->send_data(fi + offset_std, size_std);
+          io->send_data(fi + offset_corr, size_corr);
+          io->recv_data(e + offset_std, size_std);
+          io->recv_data(e + offset_corr, size_corr);
+          io->recv_data(f + offset_std, size_std);
+          io->recv_data(f + offset_corr, size_corr);
+        } else // party = sci::BOB
+        {
+          io->recv_data(e + offset_std, size_std);
+          io->recv_data(e + offset_corr, size_corr);
+          io->recv_data(f + offset_std, size_std);
+          io->recv_data(f + offset_corr, size_corr);
+          io->send_data(ei + offset_std, size_std);
+          io->send_data(ei + offset_corr, size_corr);
+          io->send_data(fi + offset_std, size_std);
+          io->send_data(fi + offset_corr, size_corr);
+        }
+        for (int i = 0; i < size_std; i++) {
+          e[i + offset_std] ^= ei[i + offset_std];
+          f[i + offset_std] ^= fi[i + offset_std];
+        }
+        for (int i = 0; i < size_corr; i++) {
+          e[i + offset_corr] ^= ei[i + offset_corr];
+          f[i + offset_corr] ^= fi[i + offset_corr];
+        }
+
+        counter_std = old_counter_std;
+        counter_corr = old_counter_corr;
+        counter_combined = old_counter_combined;
+        for (int j = 0; j < num_digits and j + i < num_digits; j += 2 * i) {
+          if (j == 0) {
+            AND_step_2(
+                seg_res_cmp + j * num_cmps, e + (counter_std * num_cmps) / 8,
+                f + (counter_std * num_cmps) / 8,
+                ei + (counter_std * num_cmps) / 8,
+                fi + (counter_std * num_cmps) / 8,
+                (triples_std.ai) + (counter_combined * num_cmps) / 8,
+                (triples_std.bi) + (counter_combined * num_cmps) / 8,
+                (triples_std.ci) + (counter_combined * num_cmps) / 8, num_cmps);
+            counter_combined++;
+
+            for (int k = 0; k < num_cmps; k++)
+              seg_res_cmp[j * num_cmps + k] ^=
+                  seg_res_cmp[(j + i) * num_cmps + k];
+            counter_std++;
+          } else {
+            AND_step_2(seg_res_cmp + j * num_cmps,
+                      e + ((num_triples_std + 2 * counter_corr) * num_cmps) / 8,
+                      f + ((num_triples_std + 2 * counter_corr) * num_cmps) / 8,
+                      ei + ((num_triples_std + 2 * counter_corr) * num_cmps) / 8,
+                      fi + ((num_triples_std + 2 * counter_corr) * num_cmps) / 8,
+                      (triples_std.ai) + (counter_combined * num_cmps) / 8,
+                      (triples_std.bi) + (counter_combined * num_cmps) / 8,
+                      (triples_std.ci) + (counter_combined * num_cmps) / 8,
+                      num_cmps);
+            counter_combined++;
+            AND_step_2(
+                seg_res_eql + j * num_cmps,
+                e + ((num_triples_std + (2 * counter_corr + 1)) * num_cmps) / 8,
+                f + ((num_triples_std + (2 * counter_corr + 1)) * num_cmps) / 8,
+                ei + ((num_triples_std + (2 * counter_corr + 1)) * num_cmps) / 8,
+                fi + ((num_triples_std + (2 * counter_corr + 1)) * num_cmps) / 8,
+                (triples_std.ai) + (counter_combined * num_cmps) / 8,
+                (triples_std.bi) + (counter_combined * num_cmps) / 8,
+                (triples_std.ci) + (counter_combined * num_cmps) / 8, num_cmps);
+            counter_combined++;
+
+            for (int k = 0; k < num_cmps; k++)
+              seg_res_cmp[j * num_cmps + k] ^=
+                  seg_res_cmp[(j + i) * num_cmps + k];
+            counter_corr++;
+          }
+        }
+        old_counter_std = counter_std;
+        old_counter_corr = counter_corr;
+        old_counter_combined = counter_combined;
+      }
     }
-
-    for (int k = 0; k < num_cmps; k++)
-      seg_res_cmp[k] = seg_res_cmp[k + n_trips * num_cmps] & 1;
-
 #if MILL_PRINT_TIME
     // get running time of the entire function in ms
     end = std::chrono::system_clock::now();

@@ -79,6 +79,7 @@ public:
   ArgMaxProtocol(int party, int algeb_str, IO *io, int l, int b, uint64_t prime,
                  sci::OTPack<IO> *otpack,
                  TripleGenerator<IO> *triplegen,
+                 bool use_low_round = false,
                  ReLUProtocol<IO, type> *relu_obj = nullptr) {
     this->party = party;
     this->algeb_str = algeb_str;
@@ -91,7 +92,8 @@ public:
     this->otpack = otpack;
     if (algeb_str == RING) {
       if (relu_obj == nullptr) {
-        this->relu_oracle = new ReLURingProtocol<IO, type>(party, RING, io, l, b, otpack, triplegen);
+        this->relu_oracle = new ReLURingProtocol<IO, type>(
+            party, RING, io, l, b, otpack, triplegen, use_low_round);
         createdReluObj = true;
       } else {
         this->relu_oracle = (ReLURingProtocol<IO, type> *)relu_obj;

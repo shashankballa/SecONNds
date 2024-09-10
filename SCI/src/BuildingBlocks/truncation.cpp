@@ -54,6 +54,7 @@ Truncation::Truncation(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
 
 Truncation::Truncation(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
                        TripleGenerator<sci::NetIO> *triplegen,
+                       bool use_low_round,
                        AuxProtocols *auxp,
                        MillionaireWithEquality<sci::NetIO> *mill_eq_in) {
   this->party = party;
@@ -62,19 +63,19 @@ Truncation::Truncation(int party, sci::NetIO *io, OTPack<sci::NetIO> *otpack,
   this->triple_gen = triplegen;
   if (auxp == nullptr) {
     del_aux = true;
-    this->aux = new AuxProtocols(party, io, otpack, triplegen);
+    this->aux = new AuxProtocols(party, io, otpack, triplegen, use_low_round);
   } else {
     this->aux = auxp;
   }
   if (mill_eq_in == nullptr) {
     del_milleq = true;
-    this->mill_eq = new MillionaireWithEquality<sci::NetIO>(party, io, otpack, triplegen,
-                                                            this->aux->mill);
+    this->mill_eq = new MillionaireWithEquality<sci::NetIO>(party, io, otpack, triplegen, 
+                                                use_low_round, this->aux->mill);
   } else {
     this->mill_eq = mill_eq_in;
   }
   this->mill = this->aux->mill;
-  this->eq = new Equality<sci::NetIO>(party, io, otpack, triplegen, this->mill);
+  this->eq = new Equality<sci::NetIO>(party, io, otpack, triplegen, use_low_round, this->mill);
 }
 
 Truncation::~Truncation() {

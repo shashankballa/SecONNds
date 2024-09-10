@@ -9,7 +9,9 @@ endmacro()
 macro (add_network_HE _name)
   add_executable(${_name}-SCI_HE "main_${_name}.cpp")
   target_link_libraries(${_name}-SCI_HE SCI-HE) 
-  target_compile_definitions(${_name}-SCI_HE PUBLIC SCI-OT=0 USE_CHEETAH=0)
+  message(STATUS "Adding ${_name}-SCI_HE with RUN_TRIP_TRIALS=${RUN_TRIP_TRIALS}")
+  target_compile_definitions(${_name}-SCI_HE PUBLIC SCI-OT=0 USE_CHEETAH=0 
+      RUN_TRIP_TRIALS=${RUN_TRIP_TRIALS})
 endmacro()
 
 # Networks
