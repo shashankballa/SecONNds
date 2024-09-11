@@ -1962,7 +1962,6 @@ void ConvField::non_strided_conv_offline(
     int32_t H, int32_t W, int32_t CI, int32_t FH,
     int32_t FW, int32_t CO,
     Filters *filters,
-    vector<seal::Ciphertext> &noise_ct,
     vector<seal::Plaintext> &noise_pt,
     vector<vector<uint64_t>>& secret_share_vec,
     vector<vector<vector<seal::Plaintext>>> &encoded_filters,
@@ -2026,46 +2025,32 @@ void ConvField::non_strided_conv_offline(
       secret_share_vec[chan].assign(secret_share[chan], 
                         secret_share[chan] + data.output_h * data.output_w); 
     }
-    
-    if(!use_heliks){
 
-      noise_ct = HE_preprocess_noise(
-          secret_share, data, *encryptor_, *encoder_, *evaluator_);
+    noise_pt = HE_preprocess_noise(
+        secret_share, data, *encoder_, *evaluator_);
 
-      if (verbose) cout << "[Server] Noise processed" << endl;
+    if (verbose) {
+      prep_noise_time = sw.lap();
+      cout << "[Server] [HLK] HE_preprocess_noise_MR runtime:" << prep_noise_time << endl;
+      cout << "[Server] [HLK] Noise processed. Shape: (";
+      cout << noise_pt.size() << ")" << endl;
+    }
 
-      encoded_filters = HE_preprocess_filters_OP(*filters, data, *encoder_);
+    vector<vector<vector<int>>> rot_amts;
+    vector<map<int, vector<vector<int>>>> rot_maps;
+    encoded_filters = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
+                                          , *evaluator_
+                                          , context_->first_parms_id()
+                                          );
 
-      if (verbose) cout << "[Server] Filters processed" << endl;
-
-    } else {
-
-      noise_pt = HE_preprocess_noise(
-          secret_share, data, *encoder_, *evaluator_);
-
-      if (verbose) {
-        prep_noise_time = sw.lap();
-        cout << "[Server] [HLK] HE_preprocess_noise_MR runtime:" << prep_noise_time << endl;
-        cout << "[Server] [HLK] Noise processed. Shape: (";
-        cout << noise_pt.size() << ")" << endl;
-      }
-
-      vector<vector<vector<int>>> rot_amts;
-      vector<map<int, vector<vector<int>>>> rot_maps;
-      encoded_filters = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
-                                            , *evaluator_
-                                            , context_->first_parms_id()
-                                            );
-
-      if (verbose) {
-        prep_mat_time = sw.lap();
-        cout << "[Server] [HLK] HE_preprocess_filters_NTT_MR runtime:" << prep_mat_time << endl;
-        cout << "[Server] [HLK] Filters processed. Shape: (";
-        cout << encoded_filters.size() << ", " << encoded_filters[0].size() << ", ";
-        cout << encoded_filters[0][0].size() << ")" << endl;
-        cout << "[Server] [HLK] Total offline pre-processing time: ";
-        cout << prep_mat_time + prep_noise_time << endl;
-      }
+    if (verbose) {
+      prep_mat_time = sw.lap();
+      cout << "[Server] [HLK] HE_preprocess_filters_NTT_MR runtime:" << prep_mat_time << endl;
+      cout << "[Server] [HLK] Filters processed. Shape: (";
+      cout << encoded_filters.size() << ", " << encoded_filters[0].size() << ", ";
+      cout << encoded_filters[0][0].size() << ")" << endl;
+      cout << "[Server] [HLK] Total offline pre-processing time: ";
+      cout << prep_mat_time + prep_noise_time << endl;
     }
   }
 }
@@ -2074,7 +2059,6 @@ void ConvField::non_strided_conv_online(
     bool use_heliks,
     int32_t H, int32_t W, int32_t CI, int32_t FH,
     int32_t FW, int32_t CO, Image *image,
-    vector<seal::Ciphertext> noise_ct,
     vector<seal::Plaintext> noise_pt,
     vector<vector<uint64_t>> secret_share_vec,
     vector<vector<vector<seal::Plaintext>>> encoded_filters,
@@ -2175,129 +2159,60 @@ void ConvField::non_strided_conv_online(
 
   } else { // party == ALICE
 
-    if(!use_heliks){
+    vector<seal::Ciphertext> result;
+    vector<seal::Ciphertext> ct(data.inp_ct);
+    for (int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++) {
+      recv_ciphertext(io, *context_, ct.at(ct_idx));
+    }
 
-      vector<seal::Ciphertext> result;
-      vector<seal::Ciphertext> ct_buff(data.inp_ct);
-      vector<vector<seal::Ciphertext>> ct_buff_rot(data.inp_ct);
-      for (int i = 0; i < data.inp_ct; i++) {
-        ct_buff_rot[i].resize(data.filter_size);
-      }
-      recv_encrypted_vector(io, *context_, ct_buff);
-
-      if (verbose) cout << "[Server] Input received." << endl;
-
-      ct_buff_rot = filter_rotations(ct_buff, data, evaluator_, gal_keys_);
-      if (verbose) cout << "[Server] Filter Rotations done" << endl;
-
-#ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, ct_buff_rot[0][0],
-                        "before homomorphic convolution");
-#endif
-
-      auto conv_result =
-          HE_conv_OP(encoded_filters, ct_buff_rot, data, *evaluator_, *zero_);
-      if (verbose) cout << "[Server] Convolution done" << endl;
-
-#ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
-                        "after homomorphic convolution");
-#endif
-
-      result = HE_output_rotations(conv_result, data, *evaluator_, *gal_keys_,
-                                  *zero_, noise_ct);
-      if (verbose) cout << "[Server] Output Rotations done" << endl;
-
-#ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, result[0], "after output ct_buff_rot");
-#endif
-
-      parms_id_type parms_id = result[0].parms_id();
-      shared_ptr<const SEALContext::ContextData> context_data =
-          context_->get_context_data(parms_id);
-      for (size_t ct_idx = 0; ct_idx < result.size(); ct_idx++) {
-        flood_ciphertext(result[ct_idx], context_data, SMUDGING_BITLEN);
-      }
-
-#ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, result[0], "after noise flooding");
-#endif
-
-      for (size_t ct_idx = 0; ct_idx < result.size(); ct_idx++) {
-        evaluator_->mod_switch_to_next_inplace(result[ct_idx]);
-      }
-
-#ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, result[0], "after mod-switch");
-#endif
-
-      send_encrypted_vector(io, result);
-      if (verbose) cout << "[Server] Result computed and sent" << endl;
-
-      for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
-        for (int chan = 0; chan < CO; chan++) {
-          outArr[idx / data.output_w][idx % data.output_w][chan] +=
-              (prime_mod - secret_share_vec[chan][idx]);
-        }
-      }
-
-    } else { // HELiKs
+    if (verbose) cout << "[Server] [HLK] Input received." << endl;
     
-      vector<seal::Ciphertext> result;
-      vector<seal::Ciphertext> ct(data.inp_ct);
-      for (int ct_idx = 0; ct_idx < data.inp_ct; ct_idx++) {
-        recv_ciphertext(io, *context_, ct.at(ct_idx));
-      }
-
-      if (verbose) cout << "[Server] [HLK] Input received." << endl;
-      
 #ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, ct[0],
-                        "in received ciphertexts");
+    PRINT_NOISE_BUDGET(decryptor_, ct[0],
+                      "in received ciphertexts");
 #endif
 
-      auto input_ntt = input_to_ntt(ct, *evaluator_);
-      if (verbose) {cout << "[Server] [HLK] Input transformed to NTT. Shape: (";
-      cout << input_ntt.size() << ")" << endl;}
+    auto input_ntt = input_to_ntt(ct, *evaluator_);
+    if (verbose) {cout << "[Server] [HLK] Input transformed to NTT. Shape: (";
+    cout << input_ntt.size() << ")" << endl;}
 
-      auto conv_result = HE_conv_heliks( input_ntt
-                                        , encoded_filters
-                                        , gal_keys_
-                                        , *evaluator_ 
-                                        , data
-                                        );
-      if (verbose) {cout << "[Server] [HLK] Convolution done. Shape: (";
-      cout << conv_result.size() << ")" << endl;}
-
-#ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
-                        "after homomorphic convolution");
-#endif
-
-      result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_
-                                      , noise_pt
+    auto conv_result = HE_conv_heliks( input_ntt
+                                      , encoded_filters
+                                      , gal_keys_
+                                      , *evaluator_ 
+                                      , data
                                       );
-      if (verbose) {cout << "[Server] [HLK] Output Rotations done. Shape: (";
-      cout << result.size() << ")" << endl;}
+    if (verbose) {cout << "[Server] [HLK] Convolution done. Shape: (";
+    cout << conv_result.size() << ")" << endl;}
 
 #ifdef HE_DEBUG
-      PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
+    PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
+                      "after homomorphic convolution");
 #endif
 
-      if (verbose) {
-        processing_time = sw.lap();
-        cout << "[Server] [HLK] Total online processing time: ";
-        cout << processing_time << endl;
-      }
+    result = HE_output_rotations_MR(conv_result, data, *evaluator_, *gal_keys_
+                                    , noise_pt
+                                    );
+    if (verbose) {cout << "[Server] [HLK] Output Rotations done. Shape: (";
+    cout << result.size() << ")" << endl;}
 
-      send_encrypted_vector(io, result);
-      if (verbose) cout << "[Server] [HLK] Result computed and sent" << endl;
+#ifdef HE_DEBUG
+    PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
+#endif
 
-      for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
-        for (int chan = 0; chan < CO; chan++) {
-          outArr[idx / data.output_w][idx % data.output_w][chan] +=
-              (prime_mod - secret_share_vec[chan][idx]);
-        }
+    if (verbose) {
+      processing_time = sw.lap();
+      cout << "[Server] [HLK] Total online processing time: ";
+      cout << processing_time << endl;
+    }
+
+    send_encrypted_vector(io, result);
+    if (verbose) cout << "[Server] [HLK] Result computed and sent" << endl;
+
+    for (int idx = 0; idx < data.output_h * data.output_w; idx++) {
+      for (int chan = 0; chan < CO; chan++) {
+        outArr[idx / data.output_w][idx % data.output_w][chan] +=
+            (prime_mod - secret_share_vec[chan][idx]);
       }
     }
 
@@ -2306,12 +2221,6 @@ void ConvField::non_strided_conv_online(
     secret_share_vec.clear();
 
   }
-
-  // if (slot_count > POLY_MOD_DEGREE && slot_count < POLY_MOD_DEGREE_LARGE) {
-  //   free_keys(party, encryptor_, decryptor_, evaluator_, encoder_, gal_keys_,
-  //             zero_);
-  // }
-  
 }
 
 void ConvField::non_strided_conv(
@@ -2322,17 +2231,15 @@ void ConvField::non_strided_conv(
     vector<vector<vector<uint64_t>>> &outArr,
     bool verbose) {
   
-
-  vector<seal::Ciphertext> noise_ct;
   vector<seal::Plaintext> noise_pt;
   vector<vector<uint64_t>> secret_share_vec;
   vector<vector<vector<seal::Plaintext>>> encoded_filters;
 
   non_strided_conv_offline(use_heliks, H, W, CI, FH, FW, CO, filters, 
-      noise_ct, noise_pt, secret_share_vec, encoded_filters, verbose);
+      noise_pt, secret_share_vec, encoded_filters, verbose);
 
   non_strided_conv_online(use_heliks, H, W, CI, FH, FW, CO, image, 
-      noise_ct, noise_pt, secret_share_vec, encoded_filters, outArr, verbose);
+      noise_pt, secret_share_vec, encoded_filters, outArr, verbose);
 }
 
 
@@ -2342,7 +2249,6 @@ void ConvField::convolution_offline(
     int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
     int32_t zPadWRight, int32_t strideH, int32_t strideW,
     const vector<vector<vector<vector<uint64_t>>>> &filterArr,
-    vector<vector<vector<seal::Ciphertext>>> &noise_ct,
     vector<vector<vector<seal::Plaintext>>> &noise_pt,
     vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
     vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
@@ -2353,7 +2259,6 @@ void ConvField::convolution_offline(
   int limitH = FH + ((paddedH - FH) / strideH) * strideH;
   int limitW = FW + ((paddedW - FW) / strideW) * strideW;
 
-  noise_ct.resize(strideH);
   noise_pt.resize(strideH);
   secret_share_vec.resize(strideH);
   encoded_filters.resize(strideH);
@@ -2362,7 +2267,6 @@ void ConvField::convolution_offline(
   if (party == ALICE) {
     
     for (int s_row = 0; s_row < strideH; s_row++) { 
-      noise_ct[s_row].resize(strideW);
       noise_pt[s_row].resize(strideW);
       secret_share_vec[s_row].resize(strideW);
       encoded_filters[s_row].resize(strideW);
@@ -2390,7 +2294,7 @@ void ConvField::convolution_offline(
         }
         if (lFH > 0 && lFW > 0) {
           non_strided_conv_offline(use_heliks, lH, lW, CI, lFH, lFW, CO, &lFilters, 
-              noise_ct[s_row][s_col], noise_pt[s_row][s_col], secret_share_vec[s_row][s_col], 
+              noise_pt[s_row][s_col], secret_share_vec[s_row][s_col], 
               encoded_filters[s_row][s_col], verbose);
         }
       }
@@ -2405,7 +2309,6 @@ void ConvField::convolution_online(
     int32_t zPadWRight, int32_t strideH, int32_t strideW,
     const vector<vector<vector<vector<uint64_t>>>> &inputArr,
     const vector<vector<vector<vector<uint64_t>>>> &filterArr,
-    vector<vector<vector<seal::Ciphertext>>> &noise_ct,
     vector<vector<vector<seal::Plaintext>>> &noise_pt,
     vector<vector<vector<vector<uint64_t>>>>& secret_share_vec,
     vector<vector<vector<vector<vector<seal::Plaintext>>>>> &encoded_filters,
@@ -2481,7 +2384,7 @@ void ConvField::convolution_online(
         // Perform convolution for this stride
         if (lFH > 0 && lFW > 0) {
           non_strided_conv_online(use_heliks, lH, lW, CI, lFH, lFW, CO, &lImage, 
-              __noise_ct, __noise_pt, __secret_share_vec, __encoded_filters, outArr[0], verbose);
+              __noise_pt, __secret_share_vec, __encoded_filters, outArr[0], verbose);
         }
       }
     }
@@ -2506,7 +2409,7 @@ void ConvField::convolution_online(
 
         if (lFH > 0 && lFW > 0) {
           non_strided_conv_online(use_heliks, lH, lW, CI, lFH, lFW, CO, nullptr, 
-              noise_ct[s_row][s_col], noise_pt[s_row][s_col], secret_share_vec[s_row][s_col], 
+              noise_pt[s_row][s_col], secret_share_vec[s_row][s_col], 
               encoded_filters[s_row][s_col], outArr[0], verbose);
         }
       }
@@ -2568,16 +2471,15 @@ void ConvField::convolution(
     vector<vector<vector<vector<uint64_t>>>> &outArr, bool verify_output,
     bool verbose) {
 
-  vector<vector<vector<seal::Ciphertext>>> noise_ct;
   vector<vector<vector<seal::Plaintext>>> noise_pt;
   vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
   vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
 
   convolution_offline(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, filterArr, noise_ct, noise_pt,
+      zPadWLeft, zPadWRight, strideH, strideW, filterArr, noise_pt,
       secret_share_vec, encoded_filters, verbose);
 
   convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr, noise_ct, noise_pt,
+      zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr, noise_pt,
       secret_share_vec, encoded_filters, outArr, verify_output, verbose);
 }

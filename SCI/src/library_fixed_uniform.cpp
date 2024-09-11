@@ -675,7 +675,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
 
   he_conv->convolution_offline(
       use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, filterVec, noise_ct, noise_pt,
+      zPadWLeft, zPadWRight, strideH, strideW, filterVec, noise_pt,
       secret_share_vec, encoded_filters);
 
 #ifdef LOG_LAYERWISE
@@ -754,7 +754,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
                                     newW, std::vector<intType>(CO, 0))));
 
   he_conv->convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
-      zPadWLeft, zPadWRight, strideH, strideW, inputVec, filterVec, noise_ct, noise_pt, 
+      zPadWLeft, zPadWRight, strideH, strideW, inputVec, filterVec, noise_pt, 
       secret_share_vec, encoded_filters, outputVec);
 
   for (int i = 0; i < N; i++) {
@@ -1937,7 +1937,7 @@ void ConnectAndSetUp(bool use_heliks){
   doneConnectAndSetUp = true;
 }
 
-void GenerateTriples(int buffer_size, int chunk_size){
+void GenerateTriples(uint64_t buffer_size, uint64_t chunk_size){
   // printf("Generating triples ...\n");
   std::cout << "GenerateTriples() called with buffer_size = " << buffer_size 
     << ", chunk_size = " << chunk_size

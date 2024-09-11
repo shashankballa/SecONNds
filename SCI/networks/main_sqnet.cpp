@@ -3257,7 +3257,7 @@ int main(int argc, char **argv) {
   print_ss = std::stringstream();
 
   if(use_seconnds){
-    int buffer_size = (num_trips / num_threads);
+    uint64_t buffer_size = (num_trips / num_threads);
     buffer_size += (buffer_size >> 7);
 #if RUN_TRIP_TRIALS
     n_trials_p = _sf == 1 ? 1 : n_trials_p;

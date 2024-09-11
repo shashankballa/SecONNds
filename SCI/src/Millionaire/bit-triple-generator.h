@@ -44,7 +44,7 @@ public:
   uint8_t *ai;
   uint8_t *bi;
   uint8_t *ci;
-  int num_triples, num_bytes, offset;
+  uint64_t num_triples, num_bytes, offset;
 
   Triple(int num_triples, bool packed = false, int offset = 0) {
     assert((offset < num_triples) || (num_triples == 0));
@@ -84,8 +84,8 @@ template <typename IO> class TripleGenerator {
 
     TripleGenerator(int Party, IO *io, sci::OTPack<IO> *otpack
                     , bool enable_buffer = false
-                    , int buffr_size = BSIZE
-                    , int chunk_size = CSIZE
+                    , uint64_t buffr_size = BSIZE
+                    , uint64_t chunk_size = CSIZE
                     ) {
       this->io = io;
       this->otpack = otpack;
@@ -93,9 +93,9 @@ template <typename IO> class TripleGenerator {
 
       if(enable_buffer) {
         this->party = Party;
-        this->_buffSize = std::max(1, buffr_size >> 3) << 3;
+        this->_buffSize = (buffr_size >> 3) > 1 ? ((buffr_size >> 3) << 3) : 8;
         this->_buffBytes = _buffSize >> 3;
-        this->_chunkSize = std::max(1, chunk_size >> 3) << 3;
+        this->_chunkSize = (chunk_size >> 3) > 1 ? ((chunk_size >> 3) << 3) : 8;
         
 // #if TGEN_PRINT_COMM || TGEN_PRINT_TIME
 //         std::string f_tag = "NEW | 3Gen";
@@ -243,9 +243,9 @@ template <typename IO> class TripleGenerator {
         // generate triples in chunks of size _chunkSize
         int nChunks = ceil((double)n_trips / _chunkSize);
         for (int i = 0; i < nChunks; i++) {
-          int start = i * _chunkSize;
-          int startBytes = start >> 3;
-          int end = std::min(n_trips, (i + 1) * _chunkSize);
+          uint64_t start = i * _chunkSize;
+          uint64_t startBytes = start >> 3;
+          uint64_t end = ((i + 1) * _chunkSize) < n_trips ? ((i + 1) * _chunkSize) : n_trips;
        
 #if TGEN_PRINT_COMM || TGEN_PRINT_TIME
           std::string f_tag = "NEW | 3get";
@@ -325,15 +325,15 @@ template <typename IO> class TripleGenerator {
     uint8_t *_Bai;   // Buffer for Ai
     uint8_t *_Bbi;   // Buffer for Bi
     uint8_t *_Bci;   // Buffer for Ci
-    int _buffSize;   // Number of triples in the buffer (always multiple of 8)
-    int _buffBytes;  // Number of bytes in the buffer (always = _buffSize/8)
-    int _chunkSize;  // Number of triples to be generated in one go (always multiple of 8)
+    uint64_t _buffSize;   // Number of triples in the buffer (always multiple of 8)
+    uint64_t _buffBytes;  // Number of bytes in the buffer (always = _buffSize/8)
+    uint64_t _chunkSize;  // Number of triples to be generated in one go (always multiple of 8)
     bool _buffEnable = false; // Flag to enable/disable buffer
     int _buffPtr = 0;// Pointer to the current triple in the buffer
     int _nRefill = 0;// Number of times the buffer has been refilled
 
     void generate(int party, uint8_t *ai, uint8_t *bi, uint8_t *ci,
-                  int num_triples, TripleGenMethod method, bool packed = false,
+                  uint64_t num_triples, TripleGenMethod method, bool packed = false,
                   int offset = 1) {
       if (!num_triples)
         return;
