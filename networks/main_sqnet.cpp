@@ -3140,6 +3140,8 @@ int main(int argc, char **argv) {
         (party == SERVER) ? __tmp_in_tmp52 : 0;
   }
     
+  ConnectAndSetUp();
+  
   std::vector<std::vector<seal::Plaintext>> 
   tmp1_pts , tmp3_pts , tmp5_pts , tmp7_pts , tmp9_pts , 
   tmp11_pts, tmp13_pts, tmp15_pts, tmp17_pts, tmp19_pts, 
@@ -3148,7 +3150,6 @@ int main(int argc, char **argv) {
   tmp41_pts, tmp43_pts, tmp45_pts, tmp47_pts, tmp49_pts, 
   tmp51_pts;
 
-  ConnectAndSetUp();
   if(use_seconnds && (party == SERVER)){
     ConvOfflineCheetah(conv_ntt, (int32_t)1, (int32_t)227, (int32_t)227, (int32_t)3, (int32_t)3,
                   (int32_t)3, (int32_t)64, (int32_t)0, (int32_t)0, (int32_t)0,

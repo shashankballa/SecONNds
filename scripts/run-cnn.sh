@@ -35,10 +35,12 @@ if ! contains "sqnet resnet50 densenet121" $3; then
 fi
 
 if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
-  MILL_LR=1
-  echo -e "${GREEN}-mlr/--mill_low_rnd${NC}: Using Millionaires' with lower rounds."
-  echo -e "${RED}(Must be set for both server and client.)${NC}"
-  echo -e " "
+  if [ "$2" == "seconnds_2" ] || [ "$2" == "seconnds_p" ]; then
+    MILL_LR=1
+    echo -e "${GREEN}-mlr/--mill_low_rnd${NC}: Using Millionaires' with lower rounds."
+    echo -e "${RED}(Must be set for both server and client.)${NC}"
+    echo -e " "
+  fi
 fi
 
 # if -j is passed, then set the number of threads to the value passed
@@ -63,28 +65,87 @@ if [ "$2" = "SCI_HE" ]; then
   BASE_FWORK=SCI_HE
 fi
 
-if [ "$2" = "seconnds_2" ]; then
-  BASE_FWORK=cheetah
-  SNN=1
-  NTT=1
-  if [ "$3" = "sqnet" ]; then
-    if [ "$MILL_LR" = 1 ]; then
-      NTRIPS=$NTRIPS_SQNET_2_LR
-    else
-      NTRIPS=$NTRIPS_SQNET_2
+if [ "$SS_BITLEN" == "32" ]; then
+  if [ "$2" = "seconnds_2" ]; then
+    BASE_FWORK=cheetah
+    SNN=1
+    NTT=1
+    if [ "$3" = "sqnet" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_SQNET_2_LR_32
+      else
+        NTRIPS=$NTRIPS_SQNET_2_32
+      fi
+    fi
+    if [ "$3" = "resnet50" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_RESNET50_2_LR_32
+      else
+        NTRIPS=$NTRIPS_RESNET50_2_32
+      fi
+    fi
+  fi
+
+  if [ "$2" = "seconnds_p" ]; then
+    BASE_FWORK=SCI_HE
+    SNN=1
+    NTT=1
+    if [ "$3" = "sqnet" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_SQNET_P_LR_32
+      else
+        NTRIPS=$NTRIPS_SQNET_P_32
+      fi
+    fi
+    if [ "$3" = "resnet50" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_RESNET50_P_LR_32
+      else
+        NTRIPS=$NTRIPS_RESNET50_P_32
+      fi
     fi
   fi
 fi
 
-if [ "$2" = "seconnds_p" ]; then
-  BASE_FWORK=SCI_HE
-  SNN=1
-  NTT=1
-  if [ "$3" = "sqnet" ]; then
-    if [ "$MILL_LR" = 1 ]; then
-      NTRIPS=$NTRIPS_SQNET_P_LR
-    else
-      NTRIPS=$NTRIPS_SQNET_P
+
+if [ "$SS_BITLEN" == "37" ]; then
+  if [ "$2" = "seconnds_2" ]; then
+    BASE_FWORK=cheetah
+    SNN=1
+    NTT=1
+    if [ "$3" = "sqnet" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_SQNET_2_LR_37
+      else
+        NTRIPS=$NTRIPS_SQNET_2_37
+      fi
+    fi
+    if [ "$3" = "resnet50" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_RESNET50_2_LR_37
+      else
+        NTRIPS=$NTRIPS_RESNET50_2_37
+      fi
+    fi
+  fi
+
+  if [ "$2" = "seconnds_p" ]; then
+    BASE_FWORK=SCI_HE
+    SNN=1
+    NTT=1
+    if [ "$3" = "sqnet" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_SQNET_P_LR_37
+      else
+        NTRIPS=$NTRIPS_SQNET_P_37
+      fi
+    fi
+    if [ "$3" = "resnet50" ]; then
+      if [ "$MILL_LR" = 1 ]; then
+        NTRIPS=$NTRIPS_RESNET50_P_LR_37
+      else
+        NTRIPS=$NTRIPS_RESNET50_P_37
+      fi
     fi
   fi
 fi
@@ -106,9 +167,7 @@ else
     mkdir -p $LOGS_DIR
 
     if [ "$MILL_LR" == "1" ]; then
-      if [ "$2" == "seconnds_2" ] || [ "$2" == "seconnds_p" ]; then
-        LOGFILE="$3-j$NTHREADS-$2"_"mlr-$ROLE.log"
-      fi
+      LOGFILE="$3-j$NTHREADS-$2"_"mlr-$ROLE.log"
     else
       LOGFILE="$3-j$NTHREADS-$2-$ROLE.log"
     fi

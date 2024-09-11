@@ -1,0 +1,59 @@
+# Extracted with pattern: Conv2DWrapper.*?; (flattened)
+# Prefix: 
+# Suffix: 
+# Starting from line 0
+
+Conv2DWrapper(N, H, W, CI, fh, fw, CO, padHLeft, padHRight, padWLeft, padWRight, strideH, strideW, in_tensor, scaled_filters, out_tensor);
+Conv2DWrapper(1, 230, 230, 3, 7, 7, 64, 0, 0, 0, 0, 2, 2, tmp253, tmp1, tmp256);
+Conv2DWrapper(1, 56, 56, 64, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp265, tmp6, tmp267);
+Conv2DWrapper(1, 56, 56, 64, 1, 1, 64, 0, 0, 0, 0, 1, 1, tmp265, tmp7, tmp269);
+Conv2DWrapper(1, 56, 56, 64, 3, 3, 64, 1, 1, 1, 1, 1, 1, tmp276, tmp12, tmp278);
+Conv2DWrapper(1, 56, 56, 64, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp285, tmp17, tmp287);
+Conv2DWrapper(1, 56, 56, 256, 1, 1, 64, 0, 0, 0, 0, 1, 1, tmp296, tmp22, tmp298);
+Conv2DWrapper(1, 56, 56, 64, 3, 3, 64, 1, 1, 1, 1, 1, 1, tmp305, tmp27, tmp307);
+Conv2DWrapper(1, 56, 56, 64, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp314, tmp32, tmp316);
+Conv2DWrapper(1, 56, 56, 256, 1, 1, 64, 0, 0, 0, 0, 1, 1, tmp325, tmp37, tmp327);
+Conv2DWrapper(1, 56, 56, 64, 3, 3, 64, 1, 1, 1, 1, 1, 1, tmp334, tmp42, tmp336);
+Conv2DWrapper(1, 56, 56, 64, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp343, tmp47, tmp345);
+Conv2DWrapper(1, 56, 56, 256, 1, 1, 512, 0, 0, 0, 0, 2, 2, tmp358, tmp52, tmp360);
+Conv2DWrapper(1, 56, 56, 256, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp355, tmp53, tmp363);
+Conv2DWrapper(1, 58, 58, 128, 3, 3, 128, 0, 0, 0, 0, 2, 2, tmp373, tmp58, tmp376);
+Conv2DWrapper(1, 28, 28, 128, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp383, tmp63, tmp385);
+Conv2DWrapper(1, 28, 28, 512, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp394, tmp68, tmp396);
+Conv2DWrapper(1, 28, 28, 128, 3, 3, 128, 1, 1, 1, 1, 1, 1, tmp403, tmp73, tmp405);
+Conv2DWrapper(1, 28, 28, 128, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp412, tmp78, tmp414);
+Conv2DWrapper(1, 28, 28, 512, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp423, tmp83, tmp425);
+Conv2DWrapper(1, 28, 28, 128, 3, 3, 128, 1, 1, 1, 1, 1, 1, tmp432, tmp88, tmp434);
+Conv2DWrapper(1, 28, 28, 128, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp441, tmp93, tmp443);
+Conv2DWrapper(1, 28, 28, 512, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp452, tmp98, tmp454);
+Conv2DWrapper(1, 28, 28, 128, 3, 3, 128, 1, 1, 1, 1, 1, 1, tmp461, tmp103, tmp463);
+Conv2DWrapper(1, 28, 28, 128, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp470, tmp108, tmp472);
+Conv2DWrapper(1, 28, 28, 512, 1, 1, 1024, 0, 0, 0, 0, 2, 2, tmp485, tmp113, tmp487);
+Conv2DWrapper(1, 28, 28, 512, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp482, tmp114, tmp490);
+Conv2DWrapper(1, 30, 30, 256, 3, 3, 256, 0, 0, 0, 0, 2, 2, tmp500, tmp119, tmp503);
+Conv2DWrapper(1, 14, 14, 256, 1, 1, 1024, 0, 0, 0, 0, 1, 1, tmp510, tmp124, tmp512);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp521, tmp129, tmp523);
+Conv2DWrapper(1, 14, 14, 256, 3, 3, 256, 1, 1, 1, 1, 1, 1, tmp530, tmp134, tmp532);
+Conv2DWrapper(1, 14, 14, 256, 1, 1, 1024, 0, 0, 0, 0, 1, 1, tmp539, tmp139, tmp541);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp550, tmp144, tmp552);
+Conv2DWrapper(1, 14, 14, 256, 3, 3, 256, 1, 1, 1, 1, 1, 1, tmp559, tmp149, tmp561);
+Conv2DWrapper(1, 14, 14, 256, 1, 1, 1024, 0, 0, 0, 0, 1, 1, tmp568, tmp154, tmp570);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp579, tmp159, tmp581);
+Conv2DWrapper(1, 14, 14, 256, 3, 3, 256, 1, 1, 1, 1, 1, 1, tmp588, tmp164, tmp590);
+Conv2DWrapper(1, 14, 14, 256, 1, 1, 1024, 0, 0, 0, 0, 1, 1, tmp597, tmp169, tmp599);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp608, tmp174, tmp610);
+Conv2DWrapper(1, 14, 14, 256, 3, 3, 256, 1, 1, 1, 1, 1, 1, tmp617, tmp179, tmp619);
+Conv2DWrapper(1, 14, 14, 256, 1, 1, 1024, 0, 0, 0, 0, 1, 1, tmp626, tmp184, tmp628);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp637, tmp189, tmp639);
+Conv2DWrapper(1, 14, 14, 256, 3, 3, 256, 1, 1, 1, 1, 1, 1, tmp646, tmp194, tmp648);
+Conv2DWrapper(1, 14, 14, 256, 1, 1, 1024, 0, 0, 0, 0, 1, 1, tmp655, tmp199, tmp657);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 2048, 0, 0, 0, 0, 2, 2, tmp670, tmp204, tmp672);
+Conv2DWrapper(1, 14, 14, 1024, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp667, tmp205, tmp675);
+Conv2DWrapper(1, 16, 16, 512, 3, 3, 512, 0, 0, 0, 0, 2, 2, tmp685, tmp210, tmp688);
+Conv2DWrapper(1, 7, 7, 512, 1, 1, 2048, 0, 0, 0, 0, 1, 1, tmp695, tmp215, tmp697);
+Conv2DWrapper(1, 7, 7, 2048, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp706, tmp220, tmp708);
+Conv2DWrapper(1, 7, 7, 512, 3, 3, 512, 1, 1, 1, 1, 1, 1, tmp715, tmp225, tmp717);
+Conv2DWrapper(1, 7, 7, 512, 1, 1, 2048, 0, 0, 0, 0, 1, 1, tmp724, tmp230, tmp726);
+Conv2DWrapper(1, 7, 7, 2048, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp735, tmp235, tmp737);
+Conv2DWrapper(1, 7, 7, 512, 3, 3, 512, 1, 1, 1, 1, 1, 1, tmp744, tmp240, tmp746);
+Conv2DWrapper(1, 7, 7, 512, 1, 1, 2048, 0, 0, 0, 0, 1, 1, tmp753, tmp245, tmp755);

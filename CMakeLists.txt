@@ -60,5 +60,5 @@ macro (add_network_cheetah _name)
 endmacro()
 
 add_network_cheetah(sqnet)
-# add_network_cheetah(resnet50)
-# add_network_cheetah(densenet121)
+add_network_cheetah(resnet50)
+add_network_cheetah(densenet121)
