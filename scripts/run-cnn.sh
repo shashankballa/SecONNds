@@ -36,7 +36,16 @@ fi
 
 if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
   MILL_LR=1
-  echo -e "Using Millionaires' with lower rounds."
+  echo -e "${GREEN}-mlr/--mill_low_rnd${NC}: Using Millionaires' with lower rounds."
+  echo -e "${RED}(Must be set for both server and client.)${NC}"
+  echo -e " "
+fi
+
+# if -j is passed, then set the number of threads to the value passed
+if [[ "$*" == *"-j="* ]]; then
+  NTHREADS=$(echo $* | grep -o -P '(?<=-j=)\d+' | head -1)
+  echo -e "${GREEN}-j=$NTHREADS${NC}: Setting number of threads to ${GREEN}$NTHREADS${NC}."
+  echo -e "${RED}(Must be same for both server and client.)${NC}"
   echo -e " "
 fi
 
@@ -89,21 +98,33 @@ echo -e " "
 if [[ "$*" == *"--debug"* ]]; then
   gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR < $PRIVINP"
 else
-  if [ "$4" = "no_log" ]; then
+  if [[ "$*" == *"-nl"* ]] || [[ "$*" == *"--no_log"* ]]; then
+    echo -e "${GREEN}-nl/--no_log${NC}: No log file will be generated."
+    echo -e " "
     cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR
   else
     mkdir -p $LOGS_DIR
-    if [ -z "$4" ]; then
-      LOGFILE="$LOGS_DIR/$3-$2-$ROLE.log"
+
+    if [ "$MILL_LR" == "1" ]; then
+      if [ "$2" == "seconnds_2" ] || [ "$2" == "seconnds_p" ]; then
+        LOGFILE="$3-j$NTHREADS-$2"_"mlr-$ROLE.log"
+      fi
     else
-      LOGFILE="$LOGS_DIR/$4-$3-$2-$ROLE.log"
+      LOGFILE="$3-j$NTHREADS-$2-$ROLE.log"
     fi
-    echo -e "Date: $(date)" > $LOGFILE
-    echo -e "$ROLE: Running $3 with $2..." >> $LOGFILE
-    echo -e " " >> $LOGFILE
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR >> $LOGFILE
+    
+    if [[ "$*" == *"-l="* ]]; then
+      LOGNUM=$(echo $* | grep -o -P '(?<=-l=)\d+' | head -1)
+      LOGFILE="$LOGNUM-$LOGFILE"
+      echo -e "${GREEN}-l=$LOGNUM${NC}: Log file will be saved as ${GREEN}$LOGFILE${NC}."
+    fi
+
+    echo -e "Date: $(date)" > "$LOGS_DIR/$LOGFILE"
+    echo -e "$ROLE: Running $3 with $2..." >> "$LOGS_DIR/$LOGFILE"
+    echo -e " " >> "$LOGS_DIR/$LOGFILE"
+    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR >> "$LOGS_DIR/$LOGFILE"
     echo -e "Done! Log saved to:"
-    echo -e "${GREEN}$LOGFILE${NC}"
+    echo -e "${GREEN}$LOGS_DIR/$LOGFILE${NC}"
   fi
 fi
 

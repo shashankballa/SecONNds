@@ -3236,17 +3236,19 @@ int main(int argc, char **argv) {
   print_ss = std::stringstream();
 
   if(use_seconnds){
+    int buffer_size = (num_trips / num_threads);
+    buffer_size += (buffer_size >> 7);
 #if RUN_TRIP_TRIALS
     n_trials_p = _sf == 1 ? 1 : n_trials_p;
     std::cout << "Running " << n_trials << " x " << n_trials_p 
       << " triple gen trials with sf = " << _sf << std::endl;
     for(int i = 0; i < n_trials; i++){
       for(int j = 0; j < n_trials_p; j++){
-        GenerateTriples(num_trips, std::pow(_sf, j)*trips_csize);
+        GenerateTriples(buffer_size, std::pow(_sf, j)*trips_csize);
       }
     }
 #endif
-    GenerateTriples(num_trips, trips_csize);
+    GenerateTriples(buffer_size, trips_csize);
     std::cout << "Triples generated!" << std::endl;
   }
 

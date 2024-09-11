@@ -1,29 +1,35 @@
 . scripts/common.sh
 
-MLR="" # Millionaires' with lower rounds
-
-if [ $# -lt 2 ] || [ $# -gt 3 ]
-then
+if [ $# -lt 2 ]; then
     echo -e "${RED}Invalid number of arguments.${NC}"
-    echo "Usage: run-cnn-all-fw [server|client] [sqnet|resnet50|densenet121] [(optional) log-file tag]"
+    echo "Usage: run-cnn-all-fw [server|client] [sqnet|resnet50|densenet121]"
     exit 1
 fi
 
 if ! contains "server client" $1; then
-    echo -e "Usage: run-cnn-all-fw ${RED}[server|client]${NC} [sqnet|resnet50|densenet121] [(optional) log-file tag]"
+    echo -e "Usage: run-cnn-all-fw ${RED}[server|client]${NC} [sqnet|resnet50|densenet121]"
     exit 1
 fi
 
 if ! contains "sqnet resnet50 densenet121" $2; then
-    echo -e "Usage: run-cnn-all-fw [server|client] ${RED}[sqnet|resnet50|densenet121]${NC} [(optional) log-file tag]"
+    echo -e "Usage: run-cnn-all-fw [server|client] ${RED}[sqnet|resnet50|densenet121]${NC}"
     exit 1
 fi
 
-if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
-  MLR="--mill_low_rnd"
-fi
+ROLE=$1
+DNN=$2
 
-for FW in SCI_HE cheetah seconnds_p seconnds_2
+# remove $1 $2 from the arguments
+shift 2
+
+for FW in seconnds_2 seconnds_p cheetah SCI_HE
 do
-    bash scripts/run-cnn.sh $1 $FW $2 $3 $MLR
+    bash scripts/run-cnn.sh $ROLE $FW $DNN $*
 done
+
+if [[ $* != *"-mlr"* ]] && [[ $* != *"--mill_low_rnd"* ]]; then
+    for FW in seconnds_p seconnds_2
+    do
+        bash scripts/run-cnn.sh $ROLE $FW $DNN "-mlr" $*
+    done
+fi

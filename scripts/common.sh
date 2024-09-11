@@ -58,12 +58,11 @@ NUM_THREADS=16
 
 # Chunk size for triple generation
 CSIZE=32000
-
 # Default number of triples for buffer
-# SQNet
-## SecONNds 2-exponent ring
-NTRIPS_SQNET_2=18233736
-NTRIPS_SQNET_2_LR=26247912
-## SecONNds prime ring
-NTRIPS_SQNET_P=45444848
-NTRIPS_SQNET_P_LR=65454224
+## SQNet
+### SecONNds 2-exponent ring
+NTRIPS_SQNET_2=290843352
+NTRIPS_SQNET_2_LR=418672656
+### SecONNds prime ring
+NTRIPS_SQNET_P=725229680
+NTRIPS_SQNET_P_LR=1044535856
