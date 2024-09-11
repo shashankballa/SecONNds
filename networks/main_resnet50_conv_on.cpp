@@ -5115,7 +5115,6 @@ int main(int argc, char **argv) {
     ConvOfflineCheetah(conv_ntt, 1, 7, 7, 512, 1, 1, 2048, 0, 0, 0, 0, 1, 1, tmp230, tmp230_pts);
     ConvOfflineCheetah(conv_ntt, 1, 7, 7, 2048, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp235, tmp235_pts);
     ConvOfflineCheetah(conv_ntt, 1, 7, 7, 512, 3, 3, 512, 1, 1, 1, 1, 1, 1, tmp240, tmp240_pts);
-		ConvOfflineCheetah(conv_ntt,1,7,7,512,1,1,2048,0,0,0,0,1,1,tmp245,tmp245_pts);
   }
 
   print_ss << "\n-> One-time setup done for " << model_name << "!\n" << std::endl;
