@@ -22,14 +22,21 @@ DNN=$2
 # remove $1 $2 from the arguments
 shift 2
 
-for FW in seconnds_p SCI_HE seconnds_2 cheetah 
+for FW in seconnds_2 cheetah SCI_HE # seconnds_p
 do
     bash scripts/run-cnn.sh $ROLE $FW $DNN $*
 done
 
 if [[ $* != *"-mlr"* ]] && [[ $* != *"--mill_low_rnd"* ]]; then
-    for FW in seconnds_p seconnds_2
+    for FW in seconnds_2 # seconnds_p
     do
         bash scripts/run-cnn.sh $ROLE $FW $DNN "-mlr" $*
+    done
+fi
+
+if [[ $* != *"-ntt"* ]] && [[ $* != *"--conv_ntt"* ]]; then
+    for FW in cheetah SCI_HE
+    do
+        bash scripts/run-cnn.sh $ROLE $FW $DNN "-ntt" $*
     done
 fi

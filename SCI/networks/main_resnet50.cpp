@@ -6097,7 +6097,7 @@ int main(int argc, char **argv) {
   //   ConvOfflineHeliks(conv_ntt, 1, 7, 7, 512, 1, 1, 2048, 0, 0, 0, 0, 1, 1, tmp245, noise_cts_245, noise_pts_245, secret_share_vec_245, tmp245_pts);
   // }
 
-  print_ss << "\n-> One-time setup done for " << model_name << "!\n" << std::endl;
+  print_ss << "\n-> One-time setup done for " << model_name << "!" << std::endl;
   std::cout << print_ss.str();
   std::cerr << print_ss.str();
   print_ss = std::stringstream();
@@ -7695,8 +7695,14 @@ int main(int argc, char **argv) {
 
   for (uint64_t i0 = (uint64_t)0; i0 < 1; i0++) {
 	auto pred = funcReconstruct2PCCons(Arr1DIdxRowM(tmp780, 1, i0), 2);
-	if (party == CLIENT) {
-	  printf("predicted label=%lld\n", pred);
-	}
+    if (party == CLIENT) {
+      printf("-> Predicted label = %lld\n", pred);
+      std::cerr << "-> Predicted label = " << pred << std::endl;
+      std::cerr << " " << std::endl;
+    } else {
+      printf("-> Predicted label = (see client output)\n");
+      std::cerr << "-> Predicted label = (see client output)" << std::endl;
+      std::cerr << " " << std::endl;
+    }
   }
 }

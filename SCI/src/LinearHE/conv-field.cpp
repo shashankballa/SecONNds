@@ -337,8 +337,6 @@ vector<seal::Ciphertext> HE_conv_OP(vector<vector<vector<seal::Plaintext>>> &mas
       }
     }
     evaluator.transform_to_ntt_inplace(zero_ntt);
-    
-
   }
 
   // Multiply masks and add for each convolution
@@ -1326,7 +1324,7 @@ vector<seal::Ciphertext> HE_conv_heliks(  vector<seal::Ciphertext> &input
   vector<vector<vector<Ciphertext>>> _partials (data.convs);
   for(int conv_idx = 0; conv_idx < data.convs; conv_idx++) 
     _partials.at(conv_idx).resize(data.filter_size);
-#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(3)
+#pragma omp parallel for num_threads(num_threads) schedule(static) collapse(2)
   for(int conv_idx = 0; conv_idx < data.convs; conv_idx++){
     for(int fil_idx = 0; fil_idx < data.filter_size; fil_idx++){
       for(int in_idx = 0; in_idx < data.inp_ct; in_idx++){

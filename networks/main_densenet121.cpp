@@ -12055,7 +12055,7 @@ int main(int argc, char **argv) {
         auto pred = funcReconstruct2PCCons(
                     Arr3DIdxRowM(tmp1942, 1, 1, 1, i0, i1, i2), 2);
         if (party == CLIENT) {
-	  printf("predicted label=%lld\n", pred);
+	  printf("-> Predicted label=%lld\n", pred);
         }
       }
     }

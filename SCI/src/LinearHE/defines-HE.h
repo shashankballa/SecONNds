@@ -44,7 +44,7 @@ inline std::vector<int> GET_COEFF_MOD_CF2() { return {60, 60, 60, 49}; }
 // Default coefficient modulus for HELiKs
 inline std::vector<int> GET_COEFF_MOD_HLK() {
     // convert the macro to a vector
-    return {60, 60, 60};
+    return {50, 40, 60};
 }
 
 /* Helper function for rounding to the next power of 2

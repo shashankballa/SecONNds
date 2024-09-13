@@ -6383,7 +6383,7 @@ int main(int argc, char **argv) {
   for (uint64_t i0 = (uint64_t)0; i0 < 1; i0++) {
     auto pred = funcReconstruct2PCCons(Arr1DIdxRowM(tmp780, 1, i0), 2);
     if (party == CLIENT) {
-	  printf("predicted label=%lld\n", pred);
+	  printf("-> Predicted label=%lld\n", pred);
 	}
   }
 

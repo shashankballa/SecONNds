@@ -14075,7 +14075,7 @@ int main(int argc, char **argv) {
                                                      (int32_t)1, (int32_t)1, i0,
                                                      i1, i2), 2);
 	if (party == CLIENT) {
-          printf("predicted label=%lld\n", pred);
+          printf("-> Predicted label=%lld\n", pred);
         }
       }
     }
