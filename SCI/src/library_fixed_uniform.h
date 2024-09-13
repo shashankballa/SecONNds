@@ -65,7 +65,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
                    signedIntType strideW, intType *inputArr, intType *filterArr,
                    intType *outArr);
 
-void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -73,7 +73,15 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
                    signedIntType strideW, intType *inputArr, intType *filterArr,
                    intType *outArr);
 
-void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DWrapper(bool use_heliks, bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+                   signedIntType CI, signedIntType FH, signedIntType FW,
+                   signedIntType CO, signedIntType zPadHLeft,
+                   signedIntType zPadHRight, signedIntType zPadWLeft,
+                   signedIntType zPadWRight, signedIntType strideH,
+                   signedIntType strideW, intType *inputArr, intType *filterArr,
+                   intType *outArr);
+
+void ConvOfflineHeliks(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                   signedIntType CI, signedIntType FH, signedIntType FW,
                   signedIntType CO, signedIntType zPadHLeft,
                   signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -84,7 +92,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
                   std::vector<std::vector<std::vector<std::vector<uint64_t>>>>& secret_share_vec,
                   std::vector<std::vector<std::vector<std::vector<std::vector<seal::Plaintext>>>>> &encoded_filters);
                   
-void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+void ConvOnlineHeliks(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                   signedIntType CI, signedIntType FH, signedIntType FW,
                   signedIntType CO, signedIntType zPadHLeft,
                   signedIntType zPadHRight, signedIntType zPadWLeft,

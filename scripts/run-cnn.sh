@@ -43,6 +43,13 @@ if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
   fi
 fi
 
+
+if [[ "$*" == *"--conv_ntt"* ]] || [[ "$*" == *"-ntt"* ]]; then
+  NTT=1
+  echo -e "${GREEN}-ntt/--conv_ntt${NC}: Server is using convolution with NTT preprocessing."
+  echo -e " "
+fi
+
 # if -j is passed, then set the number of threads to the value passed
 if [[ "$*" == *"-j="* ]]; then
   NTHREADS=$(echo $* | grep -o -P '(?<=-j=)\d+' | head -1)
@@ -153,7 +160,7 @@ fi
 # create a data/ to store the Ferret output
 mkdir -p data
 
-echo -e "$ROLE: Running ${GREEN}$3${NC} with ${GREEN}$2${NC}..."
+echo -e "${GREEN}$ROLE${NC}: Running ${GREEN}$3${NC} with ${GREEN}$2${NC}..."
 echo -e " "
 
 if [[ "$*" == *"--debug"* ]]; then
@@ -166,11 +173,18 @@ else
   else
     mkdir -p $LOGS_DIR
 
+    LOGFILE="$3-j$NTHREADS-$2"
+
     if [ "$MILL_LR" == "1" ]; then
-      LOGFILE="$3-j$NTHREADS-$2"_"mlr-$ROLE.log"
-    else
-      LOGFILE="$3-j$NTHREADS-$2-$ROLE.log"
+      LOGFILE="$LOGFILE"_"mlr"
     fi
+
+    if [[ "$2" == "SCI_HE"  || "$2" == "cheetah" ]] && [ "$NTT" == "1" ]; then
+      LOGFILE="$LOGFILE"_"ntt"
+    fi
+
+    LOGFILE="$LOGFILE-$ROLE.log"
+
     
     if [[ "$*" == *"-l="* ]]; then
       LOGNUM=$(echo $* | grep -o -P '(?<=-l=)\d+' | head -1)

@@ -501,7 +501,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
 #endif
 }
 
-void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+void Conv2DWrapper(bool use_heliks, bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                    signedIntType CI, signedIntType FH, signedIntType FW,
                    signedIntType CO, signedIntType zPadHLeft,
                    signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -608,30 +608,198 @@ void Conv2DWrapper(bool use_heliks, signedIntType N, signedIntType H, signedIntT
 #endif // SCI_OT
 
 #ifdef SCI_HE
-
   if(use_heliks){
     vector<vector<vector<seal::Ciphertext>>> noise_ct;
     vector<vector<vector<seal::Plaintext>>> noise_pt;
     vector<vector<vector<vector<uint64_t>>>> secret_share_vec;
     vector<vector<vector<vector<vector<seal::Plaintext>>>>> encoded_filters;
-
-    ConvOfflineHeliks(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+    ConvOfflineHeliks(conv_ntt, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                       zPadWLeft, zPadWRight, strideH, strideW, filterArr,
                       noise_ct, noise_pt, secret_share_vec, encoded_filters);
-
-    ConvOnlineHeliks(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+    ConvOnlineHeliks(conv_ntt, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
                     zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
                     noise_ct, noise_pt, secret_share_vec, encoded_filters, outArr);
   } else {
-    Conv2DWrapper(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight, zPadWLeft,
-                  zPadWRight, strideH, strideW, inputArr, filterArr,outArr);
-  }
+#ifdef LOG_LAYERWISE
+    INIT_ALL_IO_DATA_SENT;
+    INIT_TIMER;
+#endif
 
+    static int ctr = 1;
+    std::cout << "Conv2DCSF " << ctr << " called N=" << N << ", H=" << H
+              << ", W=" << W << ", CI=" << CI << ", FH=" << FH << ", FW=" << FW
+              << ", CO=" << CO << ", S=" << strideH << std::endl;
+    ctr++;
+
+    signedIntType newH = (((H + (zPadHLeft + zPadHRight) - FH) / strideH) + 1);
+    signedIntType newW = (((W + (zPadWLeft + zPadWRight) - FW) / strideW) + 1);
+    
+    // If its a field, then its a HE based -- use the HE based conv implementation
+    std::vector<std::vector<std::vector<std::vector<intType>>>> inputVec;
+    inputVec.resize(N, std::vector<std::vector<std::vector<intType>>>(
+                          H, std::vector<std::vector<intType>>(
+                                  W, std::vector<intType>(CI, 0))));
+
+    std::vector<std::vector<std::vector<std::vector<intType>>>> filterVec;
+    filterVec.resize(FH, std::vector<std::vector<std::vector<intType>>>(
+                            FW, std::vector<std::vector<intType>>(
+                                    CI, std::vector<intType>(CO, 0))));
+
+    std::vector<std::vector<std::vector<std::vector<intType>>>> outputVec;
+    outputVec.resize(N, std::vector<std::vector<std::vector<intType>>>(
+                            newH, std::vector<std::vector<intType>>(
+                                      newW, std::vector<intType>(CO, 0))));
+
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < H; j++) {
+        for (int k = 0; k < W; k++) {
+          for (int p = 0; p < CI; p++) {
+            inputVec[i][j][k][p] =
+                getRingElt(Arr4DIdxRowM(inputArr, N, H, W, CI, i, j, k, p));
+          }
+        }
+      }
+    }
+    for (int i = 0; i < FH; i++) {
+      for (int j = 0; j < FW; j++) {
+        for (int k = 0; k < CI; k++) {
+          for (int p = 0; p < CO; p++) {
+            filterVec[i][j][k][p] =
+                getRingElt(Arr4DIdxRowM(filterArr, FH, FW, CI, CO, i, j, k, p));
+          }
+        }
+      }
+    }
+
+    he_conv->convolution(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                        zPadWLeft, zPadWRight, strideH, strideW, inputVec,
+                        filterVec, outputVec, false, false, conv_ntt);
+
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < newH; j++) {
+        for (int k = 0; k < newW; k++) {
+          for (int p = 0; p < CO; p++) {
+            Arr4DIdxRowM(outArr, N, newH, newW, CO, i, j, k, p) =
+                getRingElt(outputVec[i][j][k][p]);
+          }
+        }
+      }
+    }
+
+#ifdef LOG_LAYERWISE
+    auto temp = TIMER_TILL_NOW;
+    ConvTimeInMilliSec += temp;
+    std::cout << "Time in sec for current conv = " << (temp / 1000.0)
+              << std::endl;
+    uint64_t curComm;
+    FIND_ALL_IO_TILL_NOW(curComm);
+    ConvCommSent += curComm;
+#endif
+
+#ifdef VERIFY_LAYERWISE
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < newH; j++) {
+        for (int k = 0; k < newW; k++) {
+          for (int p = 0; p < CO; p++) {
+            assert(Arr4DIdxRowM(outArr, N, newH, newW, CO, i, j, k, p) <
+                  prime_mod);
+          }
+        }
+      }
+    }
+    if (party == SERVER) {
+      funcReconstruct2PCCons(nullptr, inputArr, N * H * W * CI);
+      funcReconstruct2PCCons(nullptr, filterArr, FH * FW * CI * CO);
+      funcReconstruct2PCCons(nullptr, outArr, N * newH * newW * CO);
+    } else {
+      signedIntType *VinputArr = new signedIntType[N * H * W * CI];
+      funcReconstruct2PCCons(VinputArr, inputArr, N * H * W * CI);
+      signedIntType *VfilterArr = new signedIntType[FH * FW * CI * CO];
+      funcReconstruct2PCCons(VfilterArr, filterArr, FH * FW * CI * CO);
+      signedIntType *VoutputArr = new signedIntType[N * newH * newW * CO];
+      funcReconstruct2PCCons(VoutputArr, outArr, N * newH * newW * CO);
+
+      std::vector<std::vector<std::vector<std::vector<uint64_t>>>> VinputVec;
+      VinputVec.resize(N, std::vector<std::vector<std::vector<uint64_t>>>(
+                              H, std::vector<std::vector<uint64_t>>(
+                                    W, std::vector<uint64_t>(CI, 0))));
+
+      std::vector<std::vector<std::vector<std::vector<uint64_t>>>> VfilterVec;
+      VfilterVec.resize(FH, std::vector<std::vector<std::vector<uint64_t>>>(
+                                FW, std::vector<std::vector<uint64_t>>(
+                                        CI, std::vector<uint64_t>(CO, 0))));
+
+      std::vector<std::vector<std::vector<std::vector<uint64_t>>>> VoutputVec;
+      VoutputVec.resize(N, std::vector<std::vector<std::vector<uint64_t>>>(
+                              newH, std::vector<std::vector<uint64_t>>(
+                                        newW, std::vector<uint64_t>(CO, 0))));
+
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < H; j++) {
+          for (int k = 0; k < W; k++) {
+            for (int p = 0; p < CI; p++) {
+              VinputVec[i][j][k][p] =
+                  getRingElt(Arr4DIdxRowM(VinputArr, N, H, W, CI, i, j, k, p));
+            }
+          }
+        }
+      }
+      for (int i = 0; i < FH; i++) {
+        for (int j = 0; j < FW; j++) {
+          for (int k = 0; k < CI; k++) {
+            for (int p = 0; p < CO; p++) {
+              VfilterVec[i][j][k][p] = getRingElt(
+                  Arr4DIdxRowM(VfilterArr, FH, FW, CI, CO, i, j, k, p));
+            }
+          }
+        }
+      }
+
+      Conv2DWrapper_pt(N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight, zPadWLeft,
+                      zPadWRight, strideH, strideW, VinputVec, VfilterVec,
+                      VoutputVec); // consSF = 0
+
+      bool pass = true;
+      for (int i = 0; i < N; i++) {
+        for (int j = 0; j < newH; j++) {
+          for (int k = 0; k < newW; k++) {
+            for (int p = 0; p < CO; p++) {
+              if (Arr4DIdxRowM(VoutputArr, N, newH, newW, CO, i, j, k, p) !=
+                  getSignedVal(VoutputVec[i][j][k][p])) {
+                pass = false;
+              }
+            }
+          }
+        }
+      }
+      if (pass == true)
+        std::cout << GREEN << "Convolution Output Matches" << RESET << std::endl;
+      else
+        std::cout << RED << "Convolution Output Mismatch" << RESET << std::endl;
+
+      delete[] VinputArr;
+      delete[] VfilterArr;
+      delete[] VoutputArr;
+    }
+#endif
+  }
 #endif // SCI_HE
 }
 
+void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
+                   signedIntType CI, signedIntType FH, signedIntType FW,
+                   signedIntType CO, signedIntType zPadHLeft,
+                   signedIntType zPadHRight, signedIntType zPadWLeft,
+                   signedIntType zPadWRight, signedIntType strideH,
+                   signedIntType strideW, intType *inputArr, intType *filterArr,
+                   intType *outArr) {
+  Conv2DWrapper(false, conv_ntt, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+                zPadWLeft, zPadWRight, strideH, strideW, inputArr, filterArr,
+                outArr);                 
+}
+
 #ifdef SCI_HE
-void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+void ConvOfflineHeliks(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                   signedIntType CI, signedIntType FH, signedIntType FW,
                   signedIntType CO, signedIntType zPadHLeft,
                   signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -674,7 +842,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
   }
 
   he_conv->convolution_offline(
-      use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+      true, conv_ntt, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
       zPadWLeft, zPadWRight, strideH, strideW, filterVec, noise_pt,
       secret_share_vec, encoded_filters);
 
@@ -689,7 +857,7 @@ void ConvOfflineHeliks(bool use_heliks, signedIntType N, signedIntType H, signed
   }
 
 
-void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedIntType W,
+void ConvOnlineHeliks(bool conv_ntt, signedIntType N, signedIntType H, signedIntType W,
                   signedIntType CI, signedIntType FH, signedIntType FW,
                   signedIntType CO, signedIntType zPadHLeft,
                   signedIntType zPadHRight, signedIntType zPadWLeft,
@@ -753,7 +921,7 @@ void ConvOnlineHeliks(bool use_heliks, signedIntType N, signedIntType H, signedI
                           newH, std::vector<std::vector<intType>>(
                                     newW, std::vector<intType>(CO, 0))));
 
-  he_conv->convolution_online(use_heliks, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
+  he_conv->convolution_online(true, conv_ntt, N, H, W, CI, FH, FW, CO, zPadHLeft, zPadHRight,
       zPadWLeft, zPadWRight, strideH, strideW, inputVec, filterVec, noise_pt, 
       secret_share_vec, encoded_filters, outputVec);
 

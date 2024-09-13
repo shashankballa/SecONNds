@@ -8,6 +8,16 @@ Then hand crafted by Wen-jie Lu
 #include "library_fixed.h"
 using namespace std;
 
+#if RUN_TRIP_TRIALS
+int _sf = 1; // scale factor for chunking
+int n_trials = 4;
+int n_trials_p = 4;
+#endif  
+
+string model_name = "DenseNet121";
+stringstream print_ss;
+
+
 int party = 0;
 int port = 32000;
 string address = "127.0.0.1";
@@ -15,6 +25,15 @@ int num_threads = 4;
 int32_t bitlength = 41;
 int32_t kScale = 12;
 int32_t kDoExtractTruncate = 1;
+
+int num_trips = 1 << 28;
+int trips_csize = 1 << 10;
+int _snn = 0;
+bool use_seconnds = false;
+int _ntt = 0;
+bool conv_ntt = false;
+int _mlr = 0;
+bool mill_low_rnd = false;
 
 int64_t getSignValue(uint64_t x) {
   static int64_t upper = 1LL << bitlength;
@@ -2175,8 +2194,29 @@ int main(int argc, char **argv) {
   amap.arg("nt", num_threads, "Number of Threads");
   amap.arg("ell", bitlength, "Uniform Bitwidth");
   amap.arg("k", kScale, "bits of scale");
-  amap.parse(argc, argv);
+  amap.arg("snn", _snn, "Use SecONNds");
+  amap.arg("ntt", _ntt, "Perform NTT mults in convolutions");
+  amap.arg("mlr", _mlr, "Perform Mill with lower rounds");
+  amap.arg("ntrips", num_trips, "Number of triples to generate");
+  amap.arg("csize", trips_csize, "Chunk size for triple generation");
 
+  amap.parse(argc, argv);
+  use_seconnds = (_snn == 1);
+  conv_ntt = (_ntt == 1);
+  mill_low_rnd = (_mlr == 1);
+
+  // Print all the input arguments
+  print_ss << "Starting main_sqnet with the following inputs: \n"
+    << "Role : " << party << ", " << "Port: " << port << ", " << "IP: " << address << "\n"
+    << "Num Threads : " << num_threads << "\n"
+    << "Bitlength   : " << bitlength << ", " << "Scaling Factor: " << kScale << "\n"
+    << "Use SecONNds: " << std::boolalpha << use_seconnds << ", " 
+    << "NTT in convolutions: " << conv_ntt << "\n"
+    << "Millionaires' with lower rounds: " << mill_low_rnd << "\n"
+    << "Number of triples: " << num_trips << ", " << "Chunk size: " << trips_csize << "\n"
+    << "\n";
+  cout << print_ss.str();
+  print_ss.str("");
 
   assert(party == SERVER || party == CLIENT);
 
@@ -9710,8 +9750,78 @@ int main(int argc, char **argv) {
     }
     Arr1DIdxRowM(tmp606, 1000, i0) = (party == SERVER) ? __tmp_in_tmp606 : 0;
   }
+  
+  ConnectAndSetUp();
+
+  std::vector<std::vector<seal::Plaintext>> tmp15_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp25_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp35_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp45_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp55_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp65_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp70_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp80_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp90_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp100_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp105_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp110_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp120_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp130_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp140_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp150_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp160_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp170_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp180_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp190_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp195_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp205_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp215_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp225_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp235_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp245_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp255_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp265_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp275_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp285_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp295_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp305_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp315_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp325_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp335_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp345_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp355_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp365_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp375_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp385_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp395_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp405_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp415_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp425_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp435_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp440_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp450_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp460_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp470_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp480_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp490_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp500_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp510_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp520_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp530_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp540_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp550_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp560_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp570_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp580_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp590_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp600_pts;
+  std::vector<std::vector<seal::Plaintext>> tmp605_pts;
+
   StartComputation();
+
+#if USE_CHEETAH
   kIsSharedInput = false;
+#endif
 
   uint64_t *tmp610 = make_array<uint64_t>(1, 112, 112, 64);
   FusedBN(1, 224, 224, 3, 7, 7, 64, 2, 3, 2, 3, 2, 2, tmp0, tmp1, tmp2, tmp3, tmp610);
@@ -9719,7 +9829,9 @@ int main(int argc, char **argv) {
   ClearMemSecret4(7, 7, 3, 64, tmp1);
   ClearMemSecret1(64, tmp2);
   ClearMemSecret1(64, tmp3);
+#if USE_CHEETAH
   kIsSharedInput = true;
+#endif
 
   uint64_t *tmp614 = make_array<uint64_t>(1, 56, 56, 64);
   MaxPool(1, 56, 56, 64, 3, 3, 0, 1, 0, 1, 2, 2, 1, 112, 112, 64, tmp610,

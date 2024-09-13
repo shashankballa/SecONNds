@@ -3086,8 +3086,7 @@ int main(int argc, char **argv) {
         (party == SERVER) ? __tmp_in_tmp51 : 0;
   }
 
-  uint64_t *tmp52 =
-      make_array<uint64_t>(1, 1, 256, 512);
+  uint64_t *tmp52 = make_array<uint64_t>(1, 1, 256, 512);
   /* Variable to read the clear value corresponding to the input variable tmp52
    * at (2086,1-2086,47) */
   uint64_t __tmp_in_tmp52;

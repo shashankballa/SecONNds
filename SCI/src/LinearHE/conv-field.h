@@ -27,6 +27,7 @@ Modified by Deevashwer Rathee
 #define CONV_FIELD_H__
 
 #include <Eigen/Dense>
+#include <optional>
 
 #include "LinearHE/utils-HE.h"
 
@@ -167,7 +168,8 @@ std::vector<seal::Ciphertext> HE_conv_OP(
     std::vector<std::vector<std::vector<seal::Plaintext>>> &masks,
     std::vector<std::vector<seal::Ciphertext>> &rotations,
     const ConvMetadata &data, seal::Evaluator &evaluator,
-    seal::Ciphertext &zero);
+    seal::Ciphertext &zero,
+    bool conv_ntt = false);
 
 std::vector<seal::Ciphertext> HE_output_rotations(
     std::vector<seal::Ciphertext> &convs, const ConvMetadata &data,
@@ -211,7 +213,7 @@ class ConvField {
         void non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
                                 int32_t FW, int32_t CO, Image *image, Filters *filters,
                                 std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-                                bool verbose = false);
+                                bool verbose = false, bool conv_ntt = false);
 
         void convolution(
             int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
@@ -222,7 +224,7 @@ class ConvField {
             const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
                 &filterArr,
             std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = false);
+            bool verify_output = false, bool verbose = false, bool conv_ntt = false);
 
         void verify(int H, int W, int CI, int CO, Image &image,
                     const Filters *filters,
@@ -243,24 +245,8 @@ class ConvField {
 
         void configure(bool verbose);
 
-        void non_strided_conv_NTT_MR(int32_t H, int32_t W, int32_t CI, int32_t FH,
-            int32_t FW, int32_t CO, Image *image, Filters *filters,
-            std::vector<std::vector<std::vector<uint64_t>>> &outArr,
-            bool verbose = false
-            );
-
-        void convolution_heliks(
-            int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
-            int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
-            int32_t zPadWRight, int32_t strideH, int32_t strideW,
-            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
-                &inputArr,
-            const std::vector<std::vector<std::vector<std::vector<uint64_t>>>>
-                &filterArr,
-            std::vector<std::vector<std::vector<std::vector<uint64_t>>>> &outArr,
-            bool verify_output = false, bool verbose = false);
-
-        ConvField(int party, sci::NetIO *io, bool use_heliks);
+        ConvField(int party, sci::NetIO *io, bool use_heliks, std::optional<std::vector<int>> CoeffModBits = std::nullopt, 
+            std::optional<int> slot_count = std::nullopt, bool verbose = false);
 
         void set_seal(
             bool use_heliks,
@@ -269,7 +255,7 @@ class ConvField {
             seal::Ciphertext *&zero_);
 
         void non_strided_conv_offline(
-            bool use_heliks,
+            bool use_heliks, bool conv_ntt,
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO,
             Filters *filters,
@@ -279,7 +265,7 @@ class ConvField {
             bool verbose = false);
 
         void non_strided_conv_online(
-            bool use_heliks,
+            bool use_heliks, bool conv_ntt,
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image,
             std::vector<seal::Plaintext> noise_pt,
@@ -289,14 +275,14 @@ class ConvField {
             bool verbose = false);
 
         void non_strided_conv(
-            bool use_heliks,
+            bool use_heliks, bool conv_ntt,
             int32_t H, int32_t W, int32_t CI, int32_t FH,
             int32_t FW, int32_t CO, Image *image, Filters *filters,
             std::vector<std::vector<std::vector<uint64_t>>> &outArr,
             bool verbose = false);
 
         void convolution_offline(
-            bool use_heliks,
+            bool use_heliks, bool conv_ntt,
             int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
             int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
             int32_t zPadWRight, int32_t strideH, int32_t strideW,
@@ -307,7 +293,7 @@ class ConvField {
             bool verbose = false);
 
         void convolution_online(
-            bool use_heliks,
+            bool use_heliks, bool conv_ntt,
             int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
             int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
             int32_t zPadWRight, int32_t strideH, int32_t strideW,
@@ -320,7 +306,7 @@ class ConvField {
             bool verify_output = false, bool verbose = false);
 
         void convolution(
-            bool use_heliks,
+            bool use_heliks, bool conv_ntt,
             int32_t N, int32_t H, int32_t W, int32_t CI, int32_t FH, int32_t FW,
             int32_t CO, int32_t zPadHLeft, int32_t zPadHRight, int32_t zPadWLeft,
             int32_t zPadWRight, int32_t strideH, int32_t strideW,

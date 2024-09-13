@@ -28,7 +28,6 @@ SOFTWARE.
 #include "utils-vec.h"
 
 #define PRINT_NOISE_BUDGET(decryptor, ct, print_msg)                           \
-  if (verbose)                                                                 \
   std::cout << "[Server] Noise Budget " << print_msg << ": " << YELLOW         \
             << decryptor->invariant_noise_budget(ct) << " bits" << RESET       \
             << std::endl

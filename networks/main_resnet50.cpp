@@ -8,7 +8,7 @@
 
 #include "library_fixed.h"
 using namespace std;
-#define USE_FUSED_BN 1
+#define USE_FUSED_BN 0
 
 #if RUN_TRIP_TRIALS
 int _sf = 1; // scale factor for chunking
@@ -5126,6 +5126,7 @@ int main(int argc, char **argv) {
   if(use_seconnds){
     uint64_t buffer_size = (num_trips / num_threads);
     buffer_size += (buffer_size >> 7);
+    buffer_size = (buffer_size >> 3) << 3;
 #if RUN_TRIP_TRIALS
     n_trials_p = _sf == 1 ? 1 : n_trials_p;
     std::cout << "Running " << n_trials << " x " << n_trials_p 
