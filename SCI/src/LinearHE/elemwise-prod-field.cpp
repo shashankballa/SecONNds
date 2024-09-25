@@ -111,7 +111,7 @@ void ElemWiseProdField::elemwise_product(int32_t size, vector<uint64_t> &inArr,
 
     vector<Ciphertext> enc_result(num_ct);
     for (int i = 0; i < num_ct; i++) {
-#ifdef HE_DEBUG
+#if HE_DEBUG
       if (!i)
         PRINT_NOISE_BUDGET(decryptor, ct[i], "before product");
 #endif
@@ -123,14 +123,14 @@ void ElemWiseProdField::elemwise_product(int32_t size, vector<uint64_t> &inArr,
       }
       evaluator->add_inplace(enc_result[i], enc_noise[i]);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
       if (!i)
         PRINT_NOISE_BUDGET(decryptor, enc_result[i], "after product");
 #endif
 
       evaluator->mod_switch_to_next_inplace(enc_result[i]);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
       if (!i)
         PRINT_NOISE_BUDGET(decryptor, enc_result[i], "after mod-switch");
 #endif
@@ -141,14 +141,14 @@ void ElemWiseProdField::elemwise_product(int32_t size, vector<uint64_t> &inArr,
 
       flood_ciphertext(enc_result[i], context_data, SMUDGING_BITLEN);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
       if (!i)
         PRINT_NOISE_BUDGET(decryptor, enc_result[i], "after noise flooding");
 #endif
 
       evaluator->mod_switch_to_next_inplace(enc_result[i]);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
       if (!i)
         PRINT_NOISE_BUDGET(decryptor, enc_result[i], "after mod-switch");
 #endif

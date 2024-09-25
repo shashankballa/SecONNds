@@ -86,7 +86,7 @@ void exchange_keys(int party, NetIO *io, size_t slot_count,
     gal_keys_ = new GaloisKeys();
     gal_keys_->load(*context_, os);
     encryptor_->set_secret_key(sec_key); // For symmetric key encryption
-#ifdef HE_DEBUG
+#if HE_DEBUG
     stringstream os_sk;
     sec_key.save(os_sk);
     uint64_t sk_size = os_sk.tellp();
@@ -127,7 +127,7 @@ void exchange_keys(int party, NetIO *io, size_t slot_count,
     zero_ = new Ciphertext;
     encryptor_->encrypt(tmp, *zero_);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     uint64_t sk_size;
     io->recv_data(&sk_size, sizeof(uint64_t));
     char *key_share_sk = new char[sk_size];
@@ -206,7 +206,7 @@ void generate_new_keys_SB(int party, NetIO *io, size_t slot_count,
     decryptor_ = new Decryptor(*context_, sec_key);
     gal_keys_ = new GaloisKeys();
     gal_keys_->load(*context_, os);
-#ifdef HE_DEBUG
+#if HE_DEBUG
     stringstream os_sk;
     sec_key.save(os_sk);
     uint64_t sk_size = os_sk.tellp();
@@ -238,7 +238,7 @@ void generate_new_keys_SB(int party, NetIO *io, size_t slot_count,
     zero_ = new Ciphertext;
     encryptor_->encrypt(tmp, *zero_);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     uint64_t sk_size;
     io->recv_data(&sk_size, sizeof(uint64_t));
     char *key_share_sk = new char[sk_size];
@@ -268,7 +268,7 @@ void free_keys(int party, Encryptor *&encryptor_, Decryptor *&decryptor_,
     delete decryptor_;
   } else  // party ==ALICE
   {
-#ifdef HE_DEBUG
+#if HE_DEBUG
     delete decryptor_;
 #endif
     delete gal_keys_;

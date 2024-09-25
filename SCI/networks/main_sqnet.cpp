@@ -3252,7 +3252,7 @@ int main(int argc, char **argv) {
   }
 
   print_ss << "\n-> One-time setup done for " << model_name << "!" << std::endl;
-  std::cout << print_ss.str();
+  std::cout << print_ss.str() << std::endl;
   std::cerr << print_ss.str();
   print_ss = std::stringstream();
 

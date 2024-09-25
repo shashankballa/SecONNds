@@ -37,7 +37,7 @@ fi
 if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
   if [ "$2" == "seconnds_2" ] || [ "$2" == "seconnds_p" ]; then
     MILL_LR=1
-    echo -e "${GREEN}-mlr/--mill_low_rnd${NC}: Using Millionaires' with lower rounds."
+    echo -e "${GREEN}--mill_low_rnd/-mlr${NC}: Using Millionaires' with lower rounds."
     echo -e "${RED}(Must be set for both server and client.)${NC}"
     echo -e " "
   fi
@@ -46,7 +46,7 @@ fi
 
 if [[ "$*" == *"--conv_ntt"* ]] || [[ "$*" == *"-ntt"* ]]; then
   NTT=1
-  echo -e "${GREEN}-ntt/--conv_ntt${NC}: Server is using convolution with NTT preprocessing."
+  echo -e "${GREEN}--conv_ntt/-ntt${NC}: Server is using convolution with NTT preprocessing."
   echo -e " "
 fi
 
@@ -163,11 +163,13 @@ mkdir -p data
 echo -e "${GREEN}$ROLE${NC}: Running ${GREEN}$3${NC} with ${GREEN}$2${NC}..."
 echo -e " "
 
-if [[ "$*" == *"--debug"* ]]; then
+if [[ "$*" == *"-debug"* ]]; then
+  echo -e "${GREEN}-debug${NC}: Running in Debug mode (with GDB)."
+  echo -e " "
   gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR < $PRIVINP"
 else
-  if [[ "$*" == *"-nl"* ]] || [[ "$*" == *"--no_log"* ]]; then
-    echo -e "${GREEN}-nl/--no_log${NC}: No log file will be generated."
+  if [[ "$*" == *"--no_log"* ]] || [[ "$*" == *"-nl"* ]]; then
+    echo -e "${GREEN}--no_log/-nl${NC}: No log file will be generated."
     echo -e " "
     cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR
   else

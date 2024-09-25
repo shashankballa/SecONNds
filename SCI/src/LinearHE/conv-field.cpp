@@ -674,7 +674,7 @@ void ConvField::non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
     rotations = filter_rotations(ct, data, evaluator_, gal_keys_);
     if (verbose) cout << "[Server] Filter Rotations done" << endl;
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, rotations[0][0],
                        "before homomorphic convolution");
 #endif
@@ -683,7 +683,7 @@ void ConvField::non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
         HE_conv_OP(masks_OP, rotations, data, *evaluator_, *zero_, conv_ntt);
     if (verbose) cout << "[Server] Convolution done" << endl;
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
                        "after homomorphic convolution");
 #endif
@@ -692,7 +692,7 @@ void ConvField::non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
                                  *zero_, noise_ct);
     if (verbose) cout << "[Server] Output Rotations done" << endl;
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
 #endif
 
@@ -703,7 +703,7 @@ void ConvField::non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
       flood_ciphertext(result[ct_idx], context_data, SMUDGING_BITLEN);
     }
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, result[0], "after noise flooding");
 #endif
 
@@ -711,7 +711,7 @@ void ConvField::non_strided_conv(int32_t H, int32_t W, int32_t CI, int32_t FH,
       evaluator_->mod_switch_to_next_inplace(result[ct_idx]);
     }
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, result[0], "after mod-switch");
 #endif
 
@@ -1790,7 +1790,7 @@ void ConvField::non_strided_conv_online(
 
     if (verbose) cout << "[Server] [HLK] Input received." << endl;
     
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, ct[0],
                       "in received ciphertexts");
 #endif
@@ -1812,7 +1812,7 @@ void ConvField::non_strided_conv_online(
     if (verbose) {cout << "[Server] [HLK] Convolution done. Shape: (";
     cout << conv_result.size() << ")" << endl;}
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
                       "after homomorphic convolution");
 #endif
@@ -1821,7 +1821,7 @@ void ConvField::non_strided_conv_online(
       evaluator_->mod_switch_to_next_inplace(conv_result.at(ct_idx));
     }
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, conv_result[0], "after mod switch");
 #endif
 
@@ -1829,7 +1829,7 @@ void ConvField::non_strided_conv_online(
     if (verbose) {cout << "[Server] [HLK] Output Rotations done. Shape: (";
     cout << result.size() << ")" << endl;}
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, result[0], "after output rotations");
 #endif
 

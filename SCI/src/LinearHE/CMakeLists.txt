@@ -13,3 +13,8 @@ target_link_libraries(SCI-LinearHE
     OpenMP::OpenMP_CXX
     Eigen3::Eigen
 )
+
+target_compile_definitions(SCI-LinearHE
+    PUBLIC
+    HE_DEBUG=${TRACK_HE_NOISE}
+)

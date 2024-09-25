@@ -435,7 +435,7 @@ void MulCir(int64_t I, int64_t J, int64_t shrA, int64_t shrB, int64_t demote,
   MulCirCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
@@ -591,7 +591,7 @@ void MatMul(int64_t I, int64_t K, int64_t J, int64_t shrA, int64_t shrB,
   delete[] tmpA;
   delete[] tmpB;
   delete[] tmpC;
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * K];
   int64_t *recB = new int64_t[K * J];
   int64_t *recC = new int64_t[I * J];
@@ -684,7 +684,7 @@ void Sigmoid(int64_t I, int64_t J, int64_t scale_in, int64_t scale_out,
   SigmoidCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *correctB = new int64_t[I * J];
@@ -757,7 +757,7 @@ void TanH(int64_t I, int64_t J, int64_t scale_in, int64_t scale_out,
   TanhCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *correctB = new int64_t[I * J];
@@ -828,7 +828,7 @@ void Sqrt(int64_t I, int64_t J, int64_t scale_in, int64_t scale_out,
   SqrtCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *correctB = new int64_t[I * J];
@@ -1084,7 +1084,7 @@ void Convolution(int32_t N, int32_t H, int32_t W, int32_t CIN, int32_t HF,
             << std::endl;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[N * H * W * CIN];
   int64_t *recB = new int64_t[G * HF * WF * CINF * COUTF];
   int64_t *recC = new int64_t[N * HOUT * WOUT * COUTF * G];
@@ -1346,7 +1346,7 @@ void MatAdd(int64_t I, int64_t J, int64_t shrA, int64_t shrB, int64_t shrC,
   if (!verbose)
     return;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
@@ -1413,7 +1413,7 @@ void MatSub(int64_t I, int64_t J, int64_t shrA, int64_t shrB, int64_t shrC,
 
   delete[] minus_B;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
@@ -1486,7 +1486,7 @@ void MatAddBroadCastA(int64_t I, int64_t J, int64_t shrA, int64_t shrB,
   if (!verbose)
     return;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
   int64_t *correctC = new int64_t[I * J];
@@ -1564,7 +1564,7 @@ void MatAddBroadCastB(int64_t I, int64_t J, int64_t shrA, int64_t shrB,
   if (!verbose)
     return;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
   int64_t *correctC = new int64_t[I * J];
@@ -1625,7 +1625,7 @@ void MatSubBroadCastA(int64_t I, int64_t J, int64_t shrA, int64_t shrB,
 
   delete[] minus_B;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
   int64_t *correctC = new int64_t[I * J];
@@ -1682,7 +1682,7 @@ void MatSubBroadCastB(int64_t I, int64_t J, int64_t shrA, int64_t shrB,
   MatAddBroadCastB(I, J, shrA, shrB, shrC, demote, bwA, bwB, bwTemp, bwC, A,
                    minus_B, C, false);
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
   int64_t *correctC = new int64_t[I * J];
@@ -1780,7 +1780,7 @@ void ScalarMul(int64_t I, int64_t J, int64_t shrA, int64_t shrB, int64_t demote,
   delete[] tmpB;
   delete[] tmpC;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];
   int64_t *correctC = new int64_t[I * J];
@@ -1889,7 +1889,7 @@ void ArgMax(int64_t I, int64_t J, int32_t bwA, int32_t bw_index, int64_t *A,
   delete[] tmpA;
   delete[] tmp_index;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *rec_index = new int64_t[1];
   int *correct_index = new int[1];
@@ -2007,7 +2007,7 @@ void NormaliseL2(int32_t N, int32_t H, int32_t W, int32_t C, int32_t scaleA,
   delete[] tmpA;
   delete[] tmpB;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[N * H * W * C];
   int64_t *recB = new int64_t[N * H * W * C];
   int64_t *correctB = new int64_t[N * H * W * C];
@@ -2070,7 +2070,7 @@ void Relu6(int32_t N, int32_t H, int32_t W, int32_t C, int64_t six, int32_t div,
   delete[] tmpA;
   delete[] tmpB;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[N * H * W * C];
   int64_t *recB = new int64_t[N * H * W * C];
   int64_t *correctB = new int64_t[N * H * W * C];
@@ -2139,7 +2139,7 @@ void BNorm(int32_t I, int32_t J, int32_t shA, int32_t shBNB, int32_t shB,
   delete[] tmpBNB;
   delete[] tmpB;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recBNW = new int64_t[J];
   int64_t *recBNB = new int64_t[J];
@@ -2197,7 +2197,7 @@ void MaxPool2D(int I, int J, int bwA, int bwB, int64_t *A, int64_t *B) {
   delete[] tmpA;
   delete[] tmp_max;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I];
   int64_t *correct_max = new int64_t[I];
@@ -2331,7 +2331,7 @@ void MBConv(int32_t N, int32_t H, int32_t W, int32_t Cin, int32_t Ct,
   delete[] tmpUB1W;
   delete[] tmpUB2W;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[N * H * W * Cin];
   int64_t *recF1 = new int64_t[Cin * Ct];
   int64_t *recBN1W = new int64_t[Ct];
@@ -2422,7 +2422,7 @@ void AddOrSubCir4D(int32_t N, int32_t H, int32_t W, int32_t C, int32_t shrA,
 
   typecast_from_uint64(tmpC, X, N * H * W, C, bwC);
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *origA = new int64_t[N * H * W * C];
   typecast_from_uint64(tmpA, origA, N * H * W, C, bwA);
   int64_t *recA = new int64_t[N * H * W * C];
@@ -2522,7 +2522,7 @@ void Exp(int32_t I, int32_t J, int32_t shrA, int32_t shrB, int32_t bwA,
   delete[] tmpA;
   delete[] tmpB;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *correctB = new int64_t[I * J];
@@ -2576,7 +2576,7 @@ void Div(int32_t I, int32_t J, int32_t shrA, int32_t shrB, int32_t shrC,
   delete[] tmpB;
   delete[] tmpC;
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int64_t *recA = new int64_t[I * J];
   int64_t *recB = new int64_t[I * J];
   int64_t *recC = new int64_t[I * J];

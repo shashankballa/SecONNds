@@ -8,7 +8,7 @@
 #include "defines_uniform.h"
 #include "globals.h"
 
-#define VERIFY_LAYERWISE
+// #define VERIFY_LAYERWISE
 #define LOG _LAYERWISE
 //#undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation
 //#undef LOG_LAYERWISE // undefine this to turn OFF the log
@@ -135,7 +135,7 @@ void MatMul2D(int32_t d0, int32_t d1, int32_t d2, const intType *mat_A,
   MatMulCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   int s1 = d0;
   int s2 = d1;
   int s3 = d2;
@@ -306,7 +306,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
   ConvCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {
@@ -518,7 +518,7 @@ void Conv2DWrapper(bool conv_ntt, signedIntType N, signedIntType H, signedIntTyp
   ConvCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {
@@ -783,7 +783,7 @@ void ConvOnlineCheetah(bool conv_ntt, signedIntType N, signedIntType H, signedIn
   ConvCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {
@@ -1005,7 +1005,7 @@ void ElemWiseActModelVectorMult(int32_t size, intType *inArr,
   BatchNormCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   for (int i = 0; i < size; i++) {
     assert(outputArr[i] < prime_mod);
   }

@@ -36,9 +36,11 @@ add_subdirectory(include)
 target_link_libraries(gemini SEAL::seal Eigen3::Eigen Threads::Threads Troy::troy ${CUDA_LIBRARIES})
 
 if (USE_APPROX_RESHARE)
-  target_compile_definitions(gemini PUBLIC USE_APPROX_RESHARE=1)
+  target_compile_definitions(gemini PUBLIC USE_APPROX_RESHARE=1 
+    VERIFY_LAYERWISE=${VERIFY_LAYERWISE} HE_DEBUG=${TRACK_HE_NOISE})
 else()
-  target_compile_definitions(gemini PUBLIC USE_APPROX_RESHARE=0)
+  target_compile_definitions(gemini PUBLIC USE_APPROX_RESHARE=0 
+    VERIFY_LAYERWISE=${VERIFY_LAYERWISE} HE_DEBUG=${TRACK_HE_NOISE})
 endif()
 
 ## SCI
@@ -55,7 +57,7 @@ macro (add_network_cheetah _name)
   add_executable(${_name}-cheetah "networks/main_${_name}.cpp")
   target_link_libraries(${_name}-cheetah gemini SCI-Cheetah)
   message(STATUS "Adding ${_name}-cheetah with RUN_TRIP_TRIALS=${RUN_TRIP_TRIALS}")
-  target_compile_definitions(${_name}-cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1 
+  target_compile_definitions(${_name}-cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1
       RUN_TRIP_TRIALS=${RUN_TRIP_TRIALS})
 endmacro()
 

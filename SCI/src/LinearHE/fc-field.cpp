@@ -312,14 +312,14 @@ void FCField::matrix_multiplication(int32_t num_rows, int32_t common_dim,
     Ciphertext ct;
     recv_ciphertext(io, *context_, ct);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, ct, "before FC Online");
 #endif
 
     auto HE_result = fc_online(ct, encoded_mat, data, *evaluator_, *gal_keys_,
                                *zero_, enc_noise);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, HE_result, "after FC Online");
 #endif
 
@@ -328,13 +328,13 @@ void FCField::matrix_multiplication(int32_t num_rows, int32_t common_dim,
         context_->get_context_data(parms_id);
     flood_ciphertext(HE_result, context_data, SMUDGING_BITLEN);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, HE_result, "after noise flooding");
 #endif
 
     evaluator_->mod_switch_to_next_inplace(HE_result);
 
-#ifdef HE_DEBUG
+#if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, HE_result, "after mod-switch");
 #endif
 

@@ -27,10 +27,10 @@ SOFTWARE.
 #include "library_fixed_common.h"
 
 #define LOG_LAYERWISE
-#define VERIFY_LAYERWISE
+// #define VERIFY_LAYERWISE
 
 #if USE_CHEETAH
-#undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation
+// #undef VERIFY_LAYERWISE // undefine this to turn OFF the verifcation
 // #undef LOG_LAYERWISE // undefine this to turn OFF the log
 #endif
 
@@ -216,7 +216,7 @@ void MatMul2D(int32_t s1, int32_t s2, int32_t s3, const intType *A,
   MatMulCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < s1; i++) {
     for (int j = 0; j < s3; j++) {
@@ -411,7 +411,7 @@ void Conv2DWrapper(signedIntType N, signedIntType H, signedIntType W,
   ConvCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {
@@ -529,7 +529,7 @@ void Conv2DWrapper(bool use_heliks, bool conv_ntt, signedIntType N, signedIntTyp
   ConvCommSent += curComm;
 #endif // LOG_LAYERWISE
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   if (party == SERVER) {
     funcReconstruct2PCCons(nullptr, inputArr, N * H * W * CI);
     funcReconstruct2PCCons(nullptr, filterArr, FH * FW * CI * CO);
@@ -696,7 +696,7 @@ void Conv2DWrapper(bool use_heliks, bool conv_ntt, signedIntType N, signedIntTyp
     ConvCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < newH; j++) {
         for (int k = 0; k < newW; k++) {
@@ -946,7 +946,7 @@ void ConvOnlineHeliks(bool conv_ntt, signedIntType N, signedIntType H, signedInt
   ConvCommSent += curComm;
 #endif // LOG_LAYERWISE
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < newH; j++) {
       for (int k = 0; k < newW; k++) {
@@ -1183,7 +1183,7 @@ void ElemWiseActModelVectorMult(int32_t size, intType *inArr,
             << (curComm / 1024. / 1024.) << "] MB" << std::endl;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < size; i++) {
     assert(outputArr[i] < prime_mod);
@@ -1255,7 +1255,7 @@ void ArgMax(int32_t s1, int32_t s2, intType *inArr, intType *outArr) {
   ArgMaxCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   if (party == SERVER) {
     funcReconstruct2PCCons(nullptr, inArr, s1 * s2);
     funcReconstruct2PCCons(nullptr, outArr, s1);
@@ -1402,7 +1402,7 @@ void Relu(int32_t size, intType *inArr, intType *outArr, int sf,
   }
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < size; i++) {
     assert(tempOutp[i] < prime_mod);
@@ -1592,7 +1592,7 @@ void MaxPool(int32_t N, int32_t H, int32_t W, int32_t C, int32_t ksizeH,
   MaxpoolCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < H; j++) {
@@ -1775,7 +1775,7 @@ void AvgPool(int32_t N, int32_t H, int32_t W, int32_t C, int32_t ksizeH,
   AvgpoolCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < H; j++) {
@@ -1888,7 +1888,7 @@ void ScaleDown(int32_t size, intType *inArr, int32_t sf) {
   TruncationCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
 #ifdef SCI_HE
   for (int i = 0; i < size; i++) {
     assert(outp[i] < prime_mod);
@@ -2053,6 +2053,12 @@ void ConnectAndSetUp(bool use_heliks){
   std::cout << "ConnectAndSetUp() called with"
             << " bitlength = " << bitlength
             << ", num_threads = " << num_threads
+#if VERIFY_LAYERWISE
+            << ", VERIFY_LAYERWISE = true"
+#endif
+#if HE_DEBUG
+            << ", HE_DEBUG = true"
+#endif
             << std::endl;
 
 #ifdef SCI_HE
@@ -2683,7 +2689,7 @@ void ElemWiseSecretSharedVectorMult(int32_t size, intType *inArr,
   BatchNormCommSent += curComm;
 #endif
 
-#ifdef VERIFY_LAYERWISE
+#if VERIFY_LAYERWISE
   if (party == SERVER) {
     funcReconstruct2PCCons(nullptr, inArr, size);
     funcReconstruct2PCCons(nullptr, multArrVec, size);

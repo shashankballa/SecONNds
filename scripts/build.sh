@@ -2,38 +2,57 @@
 
 BUILD_MODE=Release
 TRIP_TRIALS=0
+TRACK_HE_NOISE=0
+VERIFY_LAYERWISE=0
+
+if [[ $* == *"-clean"* ]]; then
+  rm -rf $BUILD_DIR
+  echo -e "${GREEN}-clean${NC}: Removed ${BUILD_DIR}"
+fi
 
 for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0
 do
-  if [ ! -d $BUILD_DIR/include/$deps ] 
-  then
-	echo -e "${RED}$deps${NC} seems absent in ${BUILD_DIR}/include/, please re-run scripts/build-deps.sh"
-	exit 1
+  if [ ! -d $BUILD_DIR/include/$deps ]; then
+	echo -e "${RED}$deps${NC} seems absent in ${BUILD_DIR}/include/"
+  echo -e "${GREEN}Building dependencies...${NC}"
+  bash scripts/build-deps.sh
   fi
 done
 
 for deps in zstd.h 
 do
-  if [ ! -f $BUILD_DIR/include/$deps ] 
-  then
-	echo -e "${RED}$deps${NC} seems absent in ${BUILD_DIR}/include/, please re-run scripts/build-deps.sh"
-	exit 1
+  if [ ! -f $BUILD_DIR/include/$deps ]; then
+	echo -e "${RED}$deps${NC} seems absent in ${BUILD_DIR}/include/"
+  echo -e "${GREEN}Building dependencies...${NC}"
+  bash scripts/build-deps.sh
   fi
 done
 
 cd $BUILD_DIR/
 
-if [[ $* == *"--debug"* ]]; then
+if [[ $* == *"-debug"* ]]; then
   BUILD_MODE=Debug
+  echo -e "${GREEN}-debug${NC}: Building in Debug mode."
 fi
 
 if [[ $* == *"--trip_trials"* ]]; then
   TRIP_TRIALS=1
+  echo -e "${GREEN}--trip_trials${NC}: Running triple generation trials."
+fi
+
+if [[ $* == *"--track_he_noise"* ]] || [[ "$*" == *"-noise"* ]]; then
+  TRACK_HE_NOISE=1
+  echo -e "${GREEN}--track_he_noise/-noise${NC}: Tracking HE noise."
+fi
+
+if [[ $* == *"--verify_layerwise"* ]] || [[ "$*" == *"-verify"* ]]; then
+  VERIFY_LAYERWISE=1
+  echo -e "${GREEN}--verify_layerwise/-verify${NC}: Verifying layerwise output."
 fi
 
 cmake .. -DCMAKE_BUILD_TYPE=$BUILD_MODE -DSCI_BUILD_NETWORKS=ON -DSCI_BUILD_TESTS=ON \
           -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$BUILD_DIR -DUSE_APPROX_RESHARE=ON \
-          -DRUN_TRIP_TRIALS=$TRIP_TRIALS
+          -DRUN_TRIP_TRIALS=$TRIP_TRIALS -DTRACK_HE_NOISE=$TRACK_HE_NOISE -DVERIFY_LAYERWISE=$VERIFY_LAYERWISE
 
 for net in resnet50 sqnet densenet121
 do

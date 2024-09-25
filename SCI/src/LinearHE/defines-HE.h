@@ -26,7 +26,7 @@ SOFTWARE.
 #include <cmath>
 #include <vector>
 
-#define HE_DEBUG 1
+// #define HE_DEBUG 1
 
 extern uint64_t prime_mod;
 extern int32_t bitlength;
