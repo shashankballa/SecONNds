@@ -50,7 +50,13 @@ if [[ "$*" == *"--conv_ntt"* ]] || [[ "$*" == *"-ntt"* ]]; then
   echo -e " "
 fi
 
-# if -j is passed, then set the number of threads to the value passed
+if [[ "$*" == *"-bl="* ]]; then
+  SS_BITLEN=$(echo $* | grep -o -P '(?<=-bl=)\d+' | head -1)
+  echo -e "${GREEN}-bl=$SS_BITLEN${NC}: Setting secret sharing bit length to ${GREEN}$SS_BITLEN${NC}."
+  echo -e "${RED}(Must be same for both server and client.)${NC}"
+  echo -e " "
+fi
+
 if [[ "$*" == *"-j="* ]]; then
   NTHREADS=$(echo $* | grep -o -P '(?<=-j=)\d+' | head -1)
   echo -e "${GREEN}-j=$NTHREADS${NC}: Setting number of threads to ${GREEN}$NTHREADS${NC}."
@@ -175,7 +181,7 @@ else
   else
     mkdir -p $LOGS_DIR
 
-    LOGFILE="$3-j$NTHREADS-$2"
+    LOGFILE="$3-bl$SS_BITLEN-j$NTHREADS-$2"
 
     if [ "$MILL_LR" == "1" ]; then
       LOGFILE="$LOGFILE"_"mlr"
