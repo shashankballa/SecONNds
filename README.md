@@ -56,10 +56,18 @@ The build script will automatically check for and build necessary dependencies i
 
 ## Running the Project
 
-To run SecONNds, use:
+To run SecONNds, both the **server** and **client** programs need to be executed. The client supplies the private data, and the server supplies the private model to the secure inference protocol. If running locally, you need to use two terminal sessions: one for the server command and one for the client command.
+
+In one terminal session, run the server command:
 
 ```bash
-bash scripts/run-cnn.sh [server|client] [framework] [network] [options]
+bash scripts/run-cnn.sh server [framework] [network] [options]
+```
+
+In another terminal session, run the client command:
+
+```bash
+bash scripts/run-cnn.sh client [framework] [network] [options]
 ```
 
 ### Required Arguments
@@ -79,51 +87,60 @@ bash scripts/run-cnn.sh [server|client] [framework] [network] [options]
 
 - `--mill_low_rnd` or `-mlr`: Use Millionaires' protocol with lower rounds. **Default:** Off.
   - *Note:* Applicable for `seconnds_2` and `seconnds_p` frameworks.
-- `--conv_ntt` or `-ntt`: Use convolution with NTT preprocessing. **Default:** Off.
+  - *Note:* Must be consistent between server and client.
+- `--conv_ntt` or `-ntt`: Use convolution with NTT preprocessing at the server. **Default:** Off.
   - *Note:* Applicable for `cheetah` and `SCI_HE` frameworks.
 - `-bl=[bit length]`: Set the secret sharing bit length. **Default:** `32`.
-  - *Note:* Must be the same for both server and client.
+  - *Note:* Must be consistent between server and client.
 - `-j=[number of threads]`: Set the number of threads. **Default:** `1`.
-  - *Note:* Must be the same for both server and client.
+  - *Note:* Must be consistent between server and client.
 - `-debug`: Run in Debug mode using GDB. **Default:** Off.
 - `--no_log` or `-nl`: Do not generate a log file. **Default:** Log files are generated.
 - `-l=[log file number]`: Prefix the log file name with a number. **Default:** No prefix.
 
 ### Examples
 
-- **Run as server using `seconnds_2` on `sqnet` network:**
+- **Run `sqnet` network using `seconnds_2` framework:**
+
+  **Terminal Session 1 (Server):**
 
   ```bash
   bash scripts/run-cnn.sh server seconnds_2 sqnet
   ```
 
-- **Run as client using `cheetah` on `resnet50` with NTT preprocessing:**
+  **Terminal Session 2 (Client):**
 
   ```bash
-  bash scripts/run-cnn.sh client cheetah resnet50 -ntt
+  bash scripts/run-cnn.sh client seconnds_2 sqnet
   ```
 
-- **Run as server with 4 threads and secret sharing bit length 37:**
+- **Run `sqnet` network using `seconnds_p` framework with lower rounds Millionaires' protocol and 16 threads:**
+
+  **Terminal Session 1 (Server):**
 
   ```bash
-  bash scripts/run-cnn.sh server seconnds_p sqnet -j=4 -bl=37
+  bash scripts/run-cnn.sh server seconnds_p sqnet -mlr -j=16
   ```
 
-### Notes on Options
+  **Terminal Session 2 (Client):**
 
-- **`-bl` Option:**
-  - Sets the bit length for secret sharing.
-  - Must be consistent between server and client.
-- **`-j` Option:**
-  - Sets the number of threads for execution.
-  - Must be consistent between server and client.
-- **`-mlr` Option:**
-  - Activates the Millionaires' protocol with lower rounds.
-  - Applicable only to `seconnds_2` and `seconnds_p` frameworks.
-  - Must be consistent between server and client.
-- **`-ntt` Option:**
-  - Enables convolution with NTT preprocessing.
-  - Applicable only to `cheetah` and `SCI_HE` frameworks.
+  ```bash
+  bash scripts/run-cnn.sh client seconnds_p sqnet -mlr -j=16
+  ```
+
+- **Run `resnet50` network using `cheetah` framework with server-side NTT preprocessing and 37-bit secret sharing:**
+
+  **Terminal Session 1 (Server):**
+
+  ```bash
+  bash scripts/run-cnn.sh server cheetah resnet50 -ntt -bl=37
+  ```
+
+  **Terminal Session 2 (Client):**
+
+  ```bash
+  bash scripts/run-cnn.sh client cheetah resnet50 -bl=37
+  ```
 
 ## Running All Frameworks
 
@@ -133,11 +150,19 @@ To run all frameworks for a given network, use:
 bash scripts/run-cnn-all-fw.sh [server|client] [network] [options]
 ```
 
-- This script sequentially runs the specified network with all frameworks (`seconnds_2`, `seconnds_p`, `cheetah`, `SCI_HE`) and corresponding options.
+- This script sequentially runs all frameworks (`seconnds_2`, `seconnds_p`, `cheetah`, `SCI_HE`) with the specified network and options.
 
 ### Example
 
-- **Run all frameworks as client on `densenet121` network:**
+- **Run all frameworks on `densenet121` network:**
+
+  **Terminal Session 1 (Server):**
+
+  ```bash
+  bash scripts/run-cnn-all-fw.sh server densenet121
+  ```
+
+  **Terminal Session 2 (Client):**
 
   ```bash
   bash scripts/run-cnn-all-fw.sh client densenet121
@@ -200,8 +225,9 @@ The scripts use common configurations defined in `scripts/common.sh`. Important 
 - **CMake Version:**
   - If you encounter issues during the build, ensure that your CMake version is 3.10 or higher.
 - **Missing Dependencies:**
-  - If a dependency is missing, the build script should automatically attempt to build it.
+  - If a dependency is missing, the build script should automatically attempt to fetch and build it.
   - If problems persist, manually check the `deps/` and `build/` directories.
+
 
 ## Contact
 
