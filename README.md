@@ -100,32 +100,32 @@ bash scripts/run-cnn.sh client [framework] [network] [options]
 
 ### Examples
 
-- **Run `sqnet` network using `seconnds_2` framework:**
+- **Run `sqnet` network using `seconnds_2` framework with 16 threads:**
 
   **Terminal Session 1 (Server):**
 
   ```bash
-  bash scripts/run-cnn.sh server seconnds_2 sqnet
+  bash scripts/run-cnn.sh server seconnds_2 sqnet -j=16
   ```
 
   **Terminal Session 2 (Client):**
 
   ```bash
-  bash scripts/run-cnn.sh client seconnds_2 sqnet
+  bash scripts/run-cnn.sh client seconnds_2 sqnet -j=16
   ```
 
-- **Run `sqnet` network using `seconnds_p` framework with lower rounds Millionaires' protocol and 16 threads:**
+- **Run `sqnet` network using `seconnds_p` framework with lower rounds Millionaires' protocol:**
 
   **Terminal Session 1 (Server):**
 
   ```bash
-  bash scripts/run-cnn.sh server seconnds_p sqnet -mlr -j=16
+  bash scripts/run-cnn.sh server seconnds_p sqnet -mlr
   ```
 
   **Terminal Session 2 (Client):**
 
   ```bash
-  bash scripts/run-cnn.sh client seconnds_p sqnet -mlr -j=16
+  bash scripts/run-cnn.sh client seconnds_p sqnet -mlr
   ```
 
 - **Run `resnet50` network using `cheetah` framework with server-side NTT preprocessing and 37-bit secret sharing:**
@@ -154,18 +154,18 @@ bash scripts/run-cnn-all-fw.sh [server|client] [network] [options]
 
 ### Example
 
-- **Run all frameworks on `densenet121` network:**
+- **Run all frameworks on `sqnet` network:**
 
   **Terminal Session 1 (Server):**
 
   ```bash
-  bash scripts/run-cnn-all-fw.sh server densenet121
+  bash scripts/run-cnn-all-fw.sh server sqnet
   ```
 
   **Terminal Session 2 (Client):**
 
   ```bash
-  bash scripts/run-cnn-all-fw.sh client densenet121
+  bash scripts/run-cnn-all-fw.sh client sqnet
   ```
 
 ## Common Configuration

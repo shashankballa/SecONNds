@@ -34,15 +34,18 @@ if ! contains "sqnet resnet50 densenet121" $3; then
   exit 1
 fi
 
+ROLE=$1
+FWORK=$2
+DNN=$3
+
 if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
-  if [ "$2" == "seconnds_2" ] || [ "$2" == "seconnds_p" ]; then
+  if [ "$FWORK" == "seconnds_2" ] || [ "$FWORK" == "seconnds_p" ]; then
     MILL_LR=1
     echo -e "${GREEN}--mill_low_rnd/-mlr${NC}: Using Millionaires' with lower rounds."
     echo -e "${RED}(Must be set for both server and client.)${NC}"
     echo -e " "
   fi
 fi
-
 
 if [[ "$*" == *"--conv_ntt"* ]] || [[ "$*" == *"-ntt"* ]]; then
   NTT=1
@@ -64,8 +67,6 @@ if [[ "$*" == *"-j="* ]]; then
   echo -e " "
 fi
 
-ROLE=$1
-
 if [ "$ROLE" = "server" ]; then
   ROLENUM=1
   PRIVINP=pretrained/$3_model_scale12.inp
@@ -74,23 +75,27 @@ else
   PRIVINP=pretrained/$3_input_scale12_pred*.inp
 fi
 
-if [ "$2" = "SCI_HE" ]; then
+if [ "$FWORK" = "SCI_HE" ]; then
   BASE_FWORK=SCI_HE
 fi
 
+if [ "$DNN" = "resnet50" ]; then
+  SS_BITLEN=37
+fi
+
 if [ "$SS_BITLEN" == "32" ]; then
-  if [ "$2" = "seconnds_2" ]; then
+  if [ "$FWORK" = "seconnds_2" ]; then
     BASE_FWORK=cheetah
     SNN=1
     NTT=1
-    if [ "$3" = "sqnet" ]; then
+    if [ "$DNN" = "sqnet" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_SQNET_2_LR_32
       else
         NTRIPS=$NTRIPS_SQNET_2_32
       fi
     fi
-    if [ "$3" = "resnet50" ]; then
+    if [ "$DNN" = "resnet50" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_RESNET50_2_LR_32
       else
@@ -98,19 +103,18 @@ if [ "$SS_BITLEN" == "32" ]; then
       fi
     fi
   fi
-
-  if [ "$2" = "seconnds_p" ]; then
+  if [ "$FWORK" = "seconnds_p" ]; then
     BASE_FWORK=SCI_HE
     SNN=1
     NTT=1
-    if [ "$3" = "sqnet" ]; then
+    if [ "$DNN" = "sqnet" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_SQNET_P_LR_32
       else
         NTRIPS=$NTRIPS_SQNET_P_32
       fi
     fi
-    if [ "$3" = "resnet50" ]; then
+    if [ "$DNN" = "resnet50" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_RESNET50_P_LR_32
       else
@@ -122,18 +126,18 @@ fi
 
 
 if [ "$SS_BITLEN" == "37" ]; then
-  if [ "$2" = "seconnds_2" ]; then
+  if [ "$FWORK" = "seconnds_2" ]; then
     BASE_FWORK=cheetah
     SNN=1
     NTT=1
-    if [ "$3" = "sqnet" ]; then
+    if [ "$DNN" = "sqnet" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_SQNET_2_LR_37
       else
         NTRIPS=$NTRIPS_SQNET_2_37
       fi
     fi
-    if [ "$3" = "resnet50" ]; then
+    if [ "$DNN" = "resnet50" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_RESNET50_2_LR_37
       else
@@ -142,18 +146,18 @@ if [ "$SS_BITLEN" == "37" ]; then
     fi
   fi
 
-  if [ "$2" = "seconnds_p" ]; then
+  if [ "$FWORK" = "seconnds_p" ]; then
     BASE_FWORK=SCI_HE
     SNN=1
     NTT=1
-    if [ "$3" = "sqnet" ]; then
+    if [ "$DNN" = "sqnet" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_SQNET_P_LR_37
       else
         NTRIPS=$NTRIPS_SQNET_P_37
       fi
     fi
-    if [ "$3" = "resnet50" ]; then
+    if [ "$DNN" = "resnet50" ]; then
       if [ "$MILL_LR" = 1 ]; then
         NTRIPS=$NTRIPS_RESNET50_P_LR_37
       else
@@ -166,28 +170,27 @@ fi
 # create a data/ to store the Ferret output
 mkdir -p data
 
-echo -e "${GREEN}$ROLE${NC}: Running ${GREEN}$3${NC} with ${GREEN}$2${NC}..."
-echo -e " "
+echo -e "${GREEN}$ROLE${NC}: Running ${GREEN}$DNN${NC} with ${GREEN}$FWORK${NC}..."
 
 if [[ "$*" == *"-debug"* ]]; then
   echo -e "${GREEN}-debug${NC}: Running in Debug mode (with GDB)."
   echo -e " "
-  gdb build/bin/$3-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR < $PRIVINP"
+  gdb build/bin/$DNN-$BASE_FWORK -ex "run r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR < $PRIVINP"
 else
   if [[ "$*" == *"--no_log"* ]] || [[ "$*" == *"-nl"* ]]; then
     echo -e "${GREEN}--no_log/-nl${NC}: No log file will be generated."
     echo -e " "
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR
+    cat $PRIVINP | build/bin/$DNN-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR
   else
     mkdir -p $LOGS_DIR
 
-    LOGFILE="$3-bl$SS_BITLEN-j$NTHREADS-$2"
+    LOGFILE="$DNN-bl$SS_BITLEN-j$NTHREADS-$FWORK"
 
     if [ "$MILL_LR" == "1" ]; then
       LOGFILE="$LOGFILE"_"mlr"
     fi
 
-    if [[ "$2" == "SCI_HE"  || "$2" == "cheetah" ]] && [ "$NTT" == "1" ]; then
+    if [[ "$FWORK" == "SCI_HE"  || "$FWORK" == "cheetah" ]] && [ "$NTT" == "1" ]; then
       LOGFILE="$LOGFILE"_"ntt"
     fi
 
@@ -201,13 +204,13 @@ else
     fi
 
     echo -e "Date: $(date)" > "$LOGS_DIR/$LOGFILE"
-    echo -e "$ROLE: Running $3 with $2..." >> "$LOGS_DIR/$LOGFILE"
+    echo -e "$ROLE: Running $DNN with $FWORK..." >> "$LOGS_DIR/$LOGFILE"
     echo -e " " >> "$LOGS_DIR/$LOGFILE"
-    cat $PRIVINP | build/bin/$3-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR >> "$LOGS_DIR/$LOGFILE"
-    echo -e "Done! Log saved to:"
+    cat $PRIVINP | build/bin/$DNN-$BASE_FWORK r=$ROLENUM k=$FXP_SCALE ell=$SS_BITLEN nt=$NTHREADS ip=$SERVER_IP p=$SERVER_PORT snn=$SNN ntt=$NTT ntrips=$NTRIPS csize=$CSIZE mlr=$MILL_LR >> "$LOGS_DIR/$LOGFILE"
+    echo -e "${GREEN}Done!${NC} Log saved to:"
     echo -e "${GREEN}$LOGS_DIR/$LOGFILE${NC}"
+    echo -e " "
   fi
 fi
 
-echo -e " "
 echo -e "=============================================================================="

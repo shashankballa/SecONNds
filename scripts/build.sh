@@ -7,7 +7,8 @@ VERIFY_LAYERWISE=0
 
 if [[ $* == *"-clean"* ]]; then
   rm -rf $BUILD_DIR
-  echo -e "${GREEN}-clean${NC}: Removed ${BUILD_DIR}"
+  rm -rf $DEPS_DIR
+  echo -e "${GREEN}-clean${NC}: Removed ${BUILD_DIR} and ${DEPS_DIR}."
 fi
 
 for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0

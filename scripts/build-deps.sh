@@ -32,6 +32,7 @@ repos=(
   "https://github.com/facebook/zstd.git|$DEPS_DIR/zstd|master"
   "https://github.com/intel/hexl.git|$DEPS_DIR/hexl|343acab"
   "https://github.com/microsoft/SEAL.git|$DEPS_DIR/SEAL|a0fc0b7"
+  "https://github.com/shashankballa/troy-nova-szb.git|$DEPS_DIR/troy-nova|szb"
 )
 
 # Clone or update each repository
@@ -41,6 +42,7 @@ for repo in "${repos[@]}"; do
 done
 
 target=emp-tool
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
 patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/emp-tool.patch -d $DEPS_DIR/$target
 mkdir -p $BUILD_DIR/deps/$target
@@ -49,6 +51,7 @@ cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR
 make install -j8
 
 target=emp-ot
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
@@ -56,6 +59,7 @@ cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$B
 make install -j8
 
 target=eigen
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
@@ -63,17 +67,20 @@ cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR
 make install -j8
 
 target=zstd
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
 cmake $DEPS_DIR/$target/build/cmake -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_SHARED=OFF\
                                       -DZLIB_BUILD_STATIC=ON -DZSTD_BUILD_TESTS=OFF -DZSTD_MULTITHREAD_SUPPORT=OFF
 make install -j8
 
 target=hexl
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DHEXL_BENCHMARK=OFF -DHEXL_COVERAGE=OFF -DHEXL_TESTING=OFF
 make install -j8
 
 target=SEAL
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
 patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/SEAL.patch -d $DEPS_DIR/SEAL/
 mkdir -p $BUILD_DIR/deps/$target
@@ -83,15 +90,11 @@ cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$B
                         -DSEAL_THROW_ON_TRANSPARENT_CIPHERTEXT=ON
 make install -j8
 
-# Troy (seal-cuda)
-target=seal-cuda
+# Troy-nova
+target=troy-nova
+echo "Building dependency: $target"
 cd $DEPS_DIR/$target
-mkdir -p build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR
-make -j8
-make install
-cd ..
+bash scripts/build.sh -install -prefix=$BUILD_DIR
 
 for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0 troy
 do

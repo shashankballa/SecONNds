@@ -52,7 +52,7 @@ SERVER_PORT=12345
 # fixed-point scale
 FXP_SCALE=12
 # secret sharing bit length
-SS_BITLEN=32
+SS_BITLEN=37
 # number of threads
 NUM_THREADS=1
 
