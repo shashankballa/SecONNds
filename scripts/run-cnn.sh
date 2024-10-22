@@ -167,6 +167,13 @@ if [ "$SS_BITLEN" == "37" ]; then
   fi
 fi
 
+if [[ "$*" == *"--disable_buffer"* ]] || [[ "$*" == *"-nobuff"* ]]; then
+  NTRIPS=0
+  echo -e "${GREEN}--disable_buffer/-nobuff${NC}: Disabling Bit Triple Buffer."
+  echo -e "${RED}(Must be set for both server and client.)${NC}"
+  echo -e " "
+fi
+
 # create a data/ to store the Ferret output
 mkdir -p data
 

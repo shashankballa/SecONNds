@@ -1817,6 +1817,7 @@ void ConvField::non_strided_conv_online(
                       "after homomorphic convolution");
 #endif
 
+#pragma omp parallel for num_threads(num_threads) schedule(static)
     for (int ct_idx = 0; ct_idx < conv_result.size(); ct_idx++) {
       evaluator_->mod_switch_to_next_inplace(conv_result.at(ct_idx));
     }
