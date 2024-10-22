@@ -133,7 +133,7 @@ public:
     std::chrono::duration<double> total_time = end - start;
     std::stringstream log_time;
     // log_time << "P" << party;
-    // log_time << "-OLD-MILL-";
+    log_time << "-OLD-MILL-";
     log_time << "TIME";
     // log_time << ": num_cmps = " << num_cmps;
     // log_time << ", bitlength = " << bitlength;
@@ -148,7 +148,7 @@ public:
     uint64_t comm_start = io->counter;
     uint64_t comm_total = 0;
     // log_comm << "P" << party;
-    // log_comm << "-OLD-MILL-";
+    log_comm << "-OLD-MILL-";
     log_comm << "COMM";
     // log_comm << ": num_cmps = " << num_cmps;
     // log_comm << ", bitlength = " << bitlength;
@@ -753,7 +753,7 @@ public:
     std::chrono::duration<double> total_time = end - start;
     std::stringstream log_time;
     // log_time << "P" << party;
-    // log_time << "-NEW-MILL-";
+    log_time << "-NEW-MILL-";
     log_time << "TIME";
     // log_time << ": num_cmps = " << num_cmps;
     // log_time << ", bitlength = " << bitlength;
@@ -768,7 +768,7 @@ public:
     uint64_t comm_start = io->counter;
     uint64_t comm_total = 0;
     // log_comm << "P" << party;
-    // log_comm << "-NEW-MILL-";
+    log_comm << "-NEW-MILL-";
     log_comm << "COMM";
     // log_comm << ": num_cmps = " << num_cmps;
     // log_comm << ", bitlength = " << bitlength;
@@ -805,19 +805,6 @@ public:
       memset(data_ext + old_num_cmps, 0,
              (num_cmps - old_num_cmps) * sizeof(uint64_t));
     }
-
-#if MILL_PRINT_TIME
-    // get running time of triple generation in ms
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> tripgen_time = end - (start + total_time);
-    total_time += tripgen_time;
-    log_time << " | TripGen: " << std::setw(_w1) << tripgen_time.count() * 1000 << " ms" ;
-#endif
-#if MILL_PRINT_COMM
-    uint64_t comm_tripgen = io->counter - (comm_start + comm_total);
-    comm_total += comm_tripgen;
-    log_comm << " | TripGen: " << std::setw(_w2) << double(comm_tripgen) / 1024 << " KB";
-#endif
 
     // make secret shares of the input and share with the other party
     uint64_t n_bits   = bitlength * num_cmps;
