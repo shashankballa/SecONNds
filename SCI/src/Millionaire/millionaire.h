@@ -28,15 +28,11 @@ SOFTWARE.
 #include "utils/emp-tool.h"
 #include <cmath>
 
-#define MILL_PRINT_TIME 1
-#define MILL_PRINT_COMP 0
-#define MILL_PRINT_COMM 1
 #if MILL_PRINT_COMP || MILL_PRINT_COMM || MILL_PRINT_TIME
 #include <iomanip>
 #endif
 
 #define MILL_PARAM 4
-// Cheetah's variant MillionaireProtocol when USE_CHEETAH=1
 template <typename IO> class MillionaireProtocol {
 public:
   IO *io = nullptr;
@@ -114,6 +110,7 @@ public:
       compare_old(res, data, num_cmps, bitlength, greater_than, equality, radix_base);
     }
   }
+  
   void traverse_and_compute_ANDs(int num_cmps, uint8_t *leaf_res_eq,
                                  uint8_t *leaf_res_cmp){
     if(this->triple_gen->isBufferEnabled()){
@@ -135,9 +132,9 @@ public:
     auto end   = std::chrono::system_clock::now();
     std::chrono::duration<double> total_time = end - start;
     std::stringstream log_time;
-    // std::string f_tag = "OLD | MILL";
-    // log_time << "P" << party << " TIME | ";
-    // log_time << "OLD | MILL";
+    // log_time << "P" << party;
+    // log_time << "-OLD-MILL-";
+    log_time << "TIME";
     // log_time << ": num_cmps = " << num_cmps;
     // log_time << ", bitlength = " << bitlength;
     // log_time << ", greater_than = " << std::boolalpha << greater_than;
@@ -150,10 +147,13 @@ public:
     std::stringstream log_comm;
     uint64_t comm_start = io->counter;
     uint64_t comm_total = 0;
-    // log_comm << "P" << party << " COMM | ";
-    // log_comm << "OLD | MILL";
+    // log_comm << "P" << party;
+    // log_comm << "-OLD-MILL-";
+    log_comm << "COMM";
     // log_comm << ": num_cmps = " << num_cmps;
     // log_comm << ", bitlength = " << bitlength;
+    // log_comm << ", greater_than = " << std::boolalpha << greater_than;
+    // log_comm << ", equality = " << std::boolalpha << equality;
     // log_comm << ", radix_base = " << radix_base;
     // log_comm << std::endl;
 #endif
@@ -747,21 +747,35 @@ public:
     configure(bitlength, 1);
 
 #if MILL_PRINT_TIME
-    // double time_start = emp::time::get_wall_time();
-    // get current time using std::chrono::system_clock
+    int _w1 = 8;
     auto start = std::chrono::system_clock::now();
     auto end   = std::chrono::system_clock::now();
     std::chrono::duration<double> total_time = end - start;
     std::stringstream log_time;
-    std::string f_tag = "NEW | MILL";
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag;
-    log_time << ": num_cmps = " << num_cmps;
-    log_time << ", bitlength = " << bitlength;
-    log_time << ", greater_than = " << std::boolalpha << greater_than;
-    log_time << ", equality = " << std::boolalpha << equality;
-    log_time << ", radix_base = " << radix_base;
-    log_time << std::endl;
+    // log_time << "P" << party;
+    // log_time << "-NEW-MILL-";
+    log_time << "TIME";
+    // log_time << ": num_cmps = " << num_cmps;
+    // log_time << ", bitlength = " << bitlength;
+    // log_time << ", greater_than = " << std::boolalpha << greater_than;
+    // log_time << ", equality = " << std::boolalpha << equality;
+    // log_time << ", radix_base = " << radix_base;
+    // log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    int _w2 = 8;
+    std::stringstream log_comm;
+    uint64_t comm_start = io->counter;
+    uint64_t comm_total = 0;
+    // log_comm << "P" << party;
+    // log_comm << "-NEW-MILL-";
+    log_comm << "COMM";
+    // log_comm << ": num_cmps = " << num_cmps;
+    // log_comm << ", bitlength = " << bitlength;
+    // log_comm << ", greater_than = " << std::boolalpha << greater_than;
+    // log_comm << ", equality = " << std::boolalpha << equality;
+    // log_comm << ", radix_base = " << radix_base;
+    // log_comm << std::endl;
 #endif
 #if MILL_PRINT_COMP
     int _w1 = 2;
@@ -776,18 +790,6 @@ public:
       << ", equality = " << std::boolalpha << equality
       << ", radix_base = " << std::setw(_w1) << radix_base
       << std::endl;
-#endif
-#if MILL_PRINT_COMM
-    int _w2 = 10;
-    std::stringstream log_comm;
-    uint64_t comm_start = io->counter;
-    uint64_t comm_total = 0;
-    log_comm << "P" << party << " COMM | ";
-    log_comm << "NEW | MILL";
-    log_comm << ": num_cmps = " << num_cmps;
-    log_comm << ", bitlength = " << bitlength;
-    log_comm << ", radix_base = " << radix_base;
-    log_comm << std::endl;
 #endif
 
     int old_num_cmps = num_cmps;
@@ -805,20 +807,16 @@ public:
     }
 
 #if MILL_PRINT_TIME
-    // get running time of leaf OTs in ms
+    // get running time of triple generation in ms
     end = std::chrono::system_clock::now();
-    std::chrono::duration<double> trip_gen_time = end - (start + total_time);
-    total_time += trip_gen_time;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag << " | Triple GET : " << trip_gen_time.count() * 1000;
-    log_time << " ms" << std::endl;
+    std::chrono::duration<double> tripgen_time = end - (start + total_time);
+    total_time += tripgen_time;
+    log_time << " | TripGen: " << std::setw(_w1) << tripgen_time.count() * 1000 << " ms" ;
 #endif
 #if MILL_PRINT_COMM
-    uint64_t comm_trips = io->counter - (comm_start + comm_total);
-    comm_total += comm_trips;
-    log_comm << "P" << party << " COMM";
-    log_comm << ": _TRIPS = " << std::setw(_w2) << comm_trips;
-    log_comm << std::endl;
+    uint64_t comm_tripgen = io->counter - (comm_start + comm_total);
+    comm_total += comm_tripgen;
+    log_comm << " | TripGen: " << std::setw(_w2) << double(comm_tripgen) / 1024 << " KB";
 #endif
 
     // make secret shares of the input and share with the other party
@@ -959,6 +957,22 @@ public:
 #endif
 */
 
+#if MILL_PRINT_TIME
+    // get running time of Bit comparisons in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> leaf_ot_time = end - (start + total_time);
+    total_time += leaf_ot_time;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | Bit-cmp: " << std::setw(_w1) << leaf_ot_time.count() * 1000 << " ms" ;
+    // log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_bit_lt = io->counter - (comm_start + comm_total);
+    comm_total += comm_bit_lt;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | Bit-cmp: " << std::setw(_w2) << double(comm_bit_lt) / 1024 << " KB";
+    // log_comm << std::endl;
+#endif
 #if MILL_PRINT_COMP
     // get BOB's inp_bits_0 for debugging
     if (party == sci::BOB){
@@ -1007,45 +1021,44 @@ public:
         << std::endl;
     }
 #endif
-#if MILL_PRINT_COMM
-    uint64_t comm_bit_lt = io->counter - (comm_start + comm_total);
-    comm_total += comm_bit_lt;
-    log_comm << "P" << party << " COMM";
-    log_comm << ": Bit_LT = " << std::setw(_w2) << comm_bit_lt;
-    log_comm << std::endl;
-#endif
-#if MILL_PRINT_TIME
-    // get running time of leaf OTs in ms
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> leaf_ot_time = end - (start + total_time);
-    total_time += leaf_ot_time;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag << " | Bit cmp eq : " << leaf_ot_time.count() * 1000;
-    log_time << " ms" << std::endl;
-#endif
 
     traverse_and_compute_ANDs(num_cmps, bit_res_eql, bit_res_cmp);
+
 
 #if MILL_PRINT_TIME
     // get running time of traverse_and_compute_ANDs in ms
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> and_time = end - (start + total_time);
     total_time += and_time;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag << " | t_n_c_ANDsT: " << and_time.count() * 1000;
-    log_time << " ms" << std::endl;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | tcANDs: " << std::setw(_w1) << and_time.count() * 1000 << " ms";
+    // log_time << std::endl;
 #endif
 #if MILL_PRINT_COMM
     uint64_t comm_tANDs = io->counter - (comm_start + comm_total);
     comm_total += comm_tANDs;
-    log_comm << "P" << party << " COMM";
-    log_comm << ": tcANDs = " << std::setw(_w2) << comm_tANDs;
-    log_comm << std::endl;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | tcANDs: " << std::setw(_w2) << double(comm_tANDs) / 1024 << " KB";
+    // log_comm << std::endl;
 #endif
 
     for (int i = 0; i < old_num_cmps; i++)
       res[i] = bit_res_cmp[i];
 
+#if MILL_PRINT_TIME
+    // get running time of the entire function in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time_ = end - start;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | Total: " << std::setw(_w1) << total_time_.count() * 1000 << " ms";
+    log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_total_1 = comm_total;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | Total: " << std::setw(_w2) << double(comm_total_1) / 1024 << " KB";
+    log_comm << std::endl;
+#endif
 #if MILL_PRINT_COMP
     // get BOB's inputs and results for debugging
     if (party == sci::BOB){
@@ -1077,19 +1090,9 @@ public:
         << std::endl;
     }
 #endif
-#if MILL_PRINT_COMM
-    uint64_t comm_total_1 = comm_total;
-    log_comm << "P" << party << " COMM";
-    log_comm << ": CMPNEW = " << std::setw(_w2) << comm_total_1;
-    log_comm << std::endl;
-#endif
+
 #if MILL_PRINT_TIME
-    // get running time of the entire function in ms
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> total_time_ = end - start;
-    log_time << "P" << party << " TIME | ";
-    log_time << f_tag << " | Total      : " << total_time_.count() * 1000;
-    log_time << " ms" << std::endl;
+    std::cout << log_time.str();
 #endif
 #if MILL_PRINT_COMM  
     std::cout << log_comm.str();
@@ -1099,9 +1102,7 @@ public:
     delete[] inp_bits_0_ali;
     delete[] inp_bits_1_bob;
 #endif
-#if MILL_PRINT_TIME
-    std::cout << log_time.str();
-#endif
+    
     // Cleanup
     if (old_num_cmps != num_cmps)
       delete[] data_ext;

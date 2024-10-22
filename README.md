@@ -26,8 +26,11 @@ bash scripts/build.sh [options]
 - `-clean`: Removes the build directory before building. **Default:** Do not clean.
 - `-debug`: Builds in Debug mode. **Default:** Release mode.
 - `--trip_trials`: Runs triple generation trials. **Default:** Off.
-- `--track_he_noise` or `-noise`: Tracks Homomorphic Encryption (HE) noise during computation. **Default:** Off.
 - `--verify_layerwise` or `-verify`: Verifies layer-wise outputs during execution. **Default:** Off.
+- `--track_he_noise` or `-noise`: Tracks Homomorphic Encryption (HE) noise during computation. **Default:** Off.
+- `--track_mill_time` or `-milltime`: Tracks Millionaires' protocol execution time. **Default:** Off.
+- `--track_mill_comm` or `-millcomm`: Tracks Millionaires' protocol bandwidth usage. **Default:** Off.
+
 
 ### Examples
 

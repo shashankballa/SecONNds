@@ -35,14 +35,16 @@ target_include_directories(SCI-common
 add_library(SCI-HE library_fixed_uniform.cpp globals.cpp)
 target_link_libraries(SCI-HE PUBLIC SCI-common SCI-LinearHE SCI-BuildingBlocks SCI-Math Eigen3::Eigen)
 target_compile_definitions(SCI-HE PUBLIC SCI_HE=1 SCI_CHEETAH=0 
-    VERIFY_LAYERWISE=${VERIFY_LAYERWISE} HE_DEBUG=${TRACK_HE_NOISE})
+    VERIFY_LAYERWISE=${VERIFY_LAYERWISE} HE_DEBUG=${TRACK_HE_NOISE} 
+    MILL_PRINT_COMP=${MILL_PRINT_COMP} MILL_PRINT_COMM=${MILL_PRINT_COMM} MILL_PRINT_TIME=${MILL_PRINT_TIME})
 
 # Cheetah releated
 add_subdirectory(cheetah)
 add_library(SCI-Cheetah library_fixed_uniform_cheetah.cpp library_fixed_uniform.cpp library_fixed.cpp globals.cpp cleartext_library_fixed.cpp)
 target_link_libraries(SCI-Cheetah PUBLIC SCI-common Cheetah-Linear SCI-Cheetah-BuildingBlocks SCI-Math Eigen3::Eigen)
 target_compile_definitions(SCI-Cheetah PUBLIC SCI_OT=1 USE_CHEETAH=1 
-    VERIFY_LAYERWISE=${VERIFY_LAYERWISE} HE_DEBUG=${TRACK_HE_NOISE})
+    VERIFY_LAYERWISE=${VERIFY_LAYERWISE} HE_DEBUG=${TRACK_HE_NOISE}
+    MILL_PRINT_COMP=${MILL_PRINT_COMP} MILL_PRINT_COMM=${MILL_PRINT_COMM} MILL_PRINT_TIME=${MILL_PRINT_TIME})
 
 if (OPENMP_FOUND)
     target_link_libraries(SCI-HE PUBLIC OpenMP::OpenMP_CXX)

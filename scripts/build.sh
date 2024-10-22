@@ -4,6 +4,9 @@ BUILD_MODE=Release
 TRIP_TRIALS=0
 TRACK_HE_NOISE=0
 VERIFY_LAYERWISE=0
+TRACK_MILL_TIME=0
+TRACK_MILL_COMM=0
+TRACK_MILL_COMP=0
 
 if [[ $* == *"-clean"* ]]; then
   rm -rf $BUILD_DIR
@@ -51,9 +54,25 @@ if [[ $* == *"--verify_layerwise"* ]] || [[ "$*" == *"-verify"* ]]; then
   echo -e "${GREEN}--verify_layerwise/-verify${NC}: Verifying layerwise output."
 fi
 
+if [[ $* == *"--track_mill_time"* ]] || [[ "$*" == *"-milltime"* ]]; then
+  TRACK_MILL_TIME=1
+  echo -e "${GREEN}--track_mill_time/-milltime${NC}: Tracking time for Millionaires' Protocol."
+fi
+
+if [[ $* == *"--track_mill_comm"* ]] || [[ "$*" == *"-millcomm"* ]]; then
+  TRACK_MILL_COMM=1
+  echo -e "${GREEN}--track_mill_comm/-millcomm${NC}: Tracking communication for Millionaires' Protocol."
+fi
+
+if [[ $* == *"--track_mill_comp"* ]] || [[ "$*" == *"-millcomp"* ]]; then
+  TRACK_MILL_COMP=1
+  echo -e "${GREEN}--track_mill_comp/-millcomp${NC}: Tracking computation in Millionaires' Protocol."
+fi
+
 cmake .. -DCMAKE_BUILD_TYPE=$BUILD_MODE -DSCI_BUILD_NETWORKS=ON -DSCI_BUILD_TESTS=ON \
           -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$BUILD_DIR -DUSE_APPROX_RESHARE=ON \
-          -DRUN_TRIP_TRIALS=$TRIP_TRIALS -DTRACK_HE_NOISE=$TRACK_HE_NOISE -DVERIFY_LAYERWISE=$VERIFY_LAYERWISE
+          -DRUN_TRIP_TRIALS=$TRIP_TRIALS -DTRACK_HE_NOISE=$TRACK_HE_NOISE -DVERIFY_LAYERWISE=$VERIFY_LAYERWISE \
+          -DMILL_PRINT_TIME=$TRACK_MILL_TIME -DMILL_PRINT_COMM=$TRACK_MILL_COMM -DMILL_PRINT_COMP=$TRACK_MILL_COMP
 
 for net in resnet50 sqnet densenet121
 do
