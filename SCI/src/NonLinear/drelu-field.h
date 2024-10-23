@@ -107,6 +107,25 @@ class DReLUFieldProtocol {
   }
 
   void compute_drelu_old(uint8_t *drelu, uint64_t *share, int num_relu) {
+
+#if MILL_PRINT_TIME
+    int _w1 = 8;
+    auto start = std::chrono::system_clock::now();
+    auto end   = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time = end - start;
+    std::stringstream log_time;
+    log_time << "-OLD-MILL-";
+    log_time << "TIME";
+#endif
+#if MILL_PRINT_COMM
+    int _w2 = 8;
+    std::stringstream log_comm;
+    uint64_t comm_start = io->counter;
+    uint64_t comm_total = 0;
+    log_comm << "-OLD-MILL-";
+    log_comm << "COMM";
+#endif
+
     int num_cmps = 2 * num_relu;
     uint8_t *digits;        // num_digits * num_cmps
     uint8_t *leaf_res_cmp;  // num_digits * num_cmps
@@ -303,9 +322,43 @@ class DReLUFieldProtocol {
       delete[] leaf_ot_recvd;
     }
 
+#if MILL_PRINT_TIME
+    // get running time of leaf OTs in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> leaf_ot_time = end - (start + total_time);
+    total_time += leaf_ot_time;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | LUT-cmp: " << std::setw(_w1) << leaf_ot_time.count() * 1000 << " ms" ;
+    // log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_bit_lt = io->counter - (comm_start + comm_total);
+    comm_total += comm_bit_lt;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | LUT-cmp: " << std::setw(_w2) << double(comm_bit_lt) / 1024 << " KB";
+    // log_comm << std::endl;
+#endif
+
     // Generate required Bit-Triples and traverse tree to compute the results of
     // comparsions
     millionaire->traverse_and_compute_ANDs(num_cmps, leaf_res_eq, leaf_res_cmp);
+
+#if MILL_PRINT_TIME
+    // get running time of traverse_and_compute_ANDs in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> and_time = end - (start + total_time);
+    total_time += and_time;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | tcANDs: " << std::setw(_w1) << and_time.count() * 1000 << " ms";
+    // log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_tANDs = io->counter - (comm_start + comm_total);
+    comm_total += comm_tANDs;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | tcANDs: " << std::setw(_w2) << double(comm_tANDs) / 1024 << " KB";
+    // log_comm << std::endl;
+#endif
 
     assert(num_relu % 8 == 0 && "Number of ReLUs should be a multiple of 8");
 
@@ -336,6 +389,29 @@ class DReLUFieldProtocol {
       otpack->kkot[1]->recv(drelu, mux_ot_selection, num_relu, 1);
       delete[] mux_ot_selection;
     }
+
+#if MILL_PRINT_TIME
+    // get running time of the entire function in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time_ = end - start;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | Total: " << std::setw(_w1) << total_time_.count() * 1000 << " ms";
+    log_time << std::endl;
+    this->triple_gen->addMillTime(total_time_.count());
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_total_1 = comm_total;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | Total: " << std::setw(_w2) << double(comm_total_1) / 1024 << " KB";
+    log_comm << std::endl;
+    this->triple_gen->addMillComm(comm_total_1);
+#endif
+#if MILL_PRINT_TIME
+    std::cout << log_time.str();
+#endif
+#if MILL_PRINT_COMM  
+    std::cout << log_comm.str();
+#endif
 
     delete[] digits;
     delete[] leaf_res_cmp;
@@ -395,6 +471,24 @@ class DReLUFieldProtocol {
 
 
   void compute_drelu_new(uint8_t *drelu, uint64_t *share, int num_relu) {
+#if MILL_PRINT_TIME
+    int _w1 = 8;
+    auto start = std::chrono::system_clock::now();
+    auto end   = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time = end - start;
+    std::stringstream log_time;
+    log_time << "-NEW-MILL-";
+    log_time << "TIME";
+#endif
+#if MILL_PRINT_COMM
+    int _w2 = 8;
+    std::stringstream log_comm;
+    uint64_t comm_start = io->counter;
+    uint64_t comm_total = 0;
+    log_comm << "-NEW-MILL-";
+    log_comm << "COMM";
+#endif
+
     assert(beta == 1 && "SecONNds requires beta = 1");
 
     int num_cmps = 2 * num_relu;
@@ -504,9 +598,43 @@ class DReLUFieldProtocol {
       }
     }
 
+#if MILL_PRINT_TIME
+    // get running time of Bit Comparisons in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> leaf_ot_time = end - (start + total_time);
+    total_time += leaf_ot_time;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | Bit-cmp: " << std::setw(_w1) << leaf_ot_time.count() * 1000 << " ms" ;
+    // log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_bit_lt = io->counter - (comm_start + comm_total);
+    comm_total += comm_bit_lt;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | Bit-cmp: " << std::setw(_w2) << double(comm_bit_lt) / 1024 << " KB";
+    // log_comm << std::endl;
+#endif
+
     // Generate required Bit-Triples and traverse tree to compute the results of
     // comparsions
     millionaire->traverse_and_compute_ANDs(num_cmps, bit_res_eql, bit_res_cmp);
+
+#if MILL_PRINT_TIME
+    // get running time of traverse_and_compute_ANDs in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> and_time = end - (start + total_time);
+    total_time += and_time;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | tcANDs: " << std::setw(_w1) << and_time.count() * 1000 << " ms";
+    // log_time << std::endl;
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_tANDs = io->counter - (comm_start + comm_total);
+    comm_total += comm_tANDs;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | tcANDs: " << std::setw(_w2) << double(comm_tANDs) / 1024 << " KB";
+    // log_comm << std::endl;
+#endif
 
     assert(num_relu % 8 == 0 && "Number of ReLUs should be a multiple of 8");
 
@@ -538,6 +666,28 @@ class DReLUFieldProtocol {
       delete[] mux_ot_selection;
     }
 
+#if MILL_PRINT_TIME
+    // get running time of the entire function in ms
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> total_time_ = end - start;
+    // log_time << "P" << party << " TIME | " << f_tag;
+    log_time << " | Total: " << std::setw(_w1) << total_time_.count() * 1000 << " ms";
+    log_time << std::endl;
+    this->triple_gen->addMillTime(total_time_.count());
+#endif
+#if MILL_PRINT_COMM
+    uint64_t comm_total_1 = comm_total;
+    // log_comm << "P" << party << " COMM";
+    log_comm << " | Total: " << std::setw(_w2) << double(comm_total_1) / 1024 << " KB";
+    log_comm << std::endl;
+    this->triple_gen->addMillComm(comm_total_1);
+#endif
+#if MILL_PRINT_TIME
+    std::cout << log_time.str();
+#endif
+#if MILL_PRINT_COMM  
+    std::cout << log_comm.str();
+#endif
     delete[] bit_res_cmp;
     delete[] bit_res_eql;
   }

@@ -175,6 +175,22 @@ template <typename IO> class TripleGenerator {
       return this->_buffPtr;
     }
 
+    inline double getMillTime() {
+      return this->mill_time;
+    }
+
+    inline double getMillComm() {
+      return this->mill_comm;
+    }
+
+    void addMillTime(double time) {
+      this->mill_time += time;
+    }
+
+    void addMillComm(double comm) {
+      this->mill_comm += comm;
+    }
+
     /* Refill the buffer with new triples
       Resets the buffer size to num_triples
       Resets the chunk size to min(_buffSize, CSIZE)
@@ -331,6 +347,8 @@ template <typename IO> class TripleGenerator {
     bool _buffEnable = false; // Flag to enable/disable buffer
     int _buffPtr = 0;// Pointer to the current triple in the buffer
     int _nRefill = 0;// Number of times the buffer has been refilled
+    double mill_time = 0; // Time taken for millioinaires' protocol
+    double mill_comm = 0; // Communication in millionaires' protocol
 
     void generate(int party, uint8_t *ai, uint8_t *bi, uint8_t *ci,
                   uint64_t num_triples, TripleGenMethod method, bool packed = false,

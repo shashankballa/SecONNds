@@ -201,6 +201,10 @@ else
       LOGFILE="$LOGFILE"_"ntt"
     fi
 
+    if [[ "$*" == *"--disable_buffer"* ]] || [[ "$*" == *"-nobuff"* ]]; then
+      LOGFILE="$LOGFILE"_"nobuff"
+    fi
+
     LOGFILE="$LOGFILE-$ROLE.log"
 
     

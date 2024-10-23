@@ -2318,6 +2318,12 @@ void EndComputation() {
   for (int i = 0; i < num_threads; i++) {
     auto temp = ioArr[i]->counter;
     std::cout << "Thread i = " << i << ", total data sent = " << temp
+#if MILL_PRINT_TIME
+              << ", MILL time = " << tripleGenArr[i]->getMillTime()
+#endif
+#if MILL_PRINT_COMM
+              << ", MILL comm = " << tripleGenArr[i]->getMillComm()
+#endif
               << ", 3Gen Buffer pointer = " << tripleGenArr[i]->getBufferPointer()
               << std::endl;
     totalComm += (temp - comm_threads[i]);

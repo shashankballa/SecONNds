@@ -436,12 +436,14 @@ public:
     // log_time << "P" << party << " TIME | " << f_tag;
     log_time << " | Total: " << std::setw(_w1) << total_time_.count() * 1000 << " ms";
     log_time << std::endl;
+    this->triple_gen->addMillTime(total_time_.count());
 #endif
 #if MILL_PRINT_COMM
     uint64_t comm_total_1 = comm_total;
     // log_comm << "P" << party << " COMM";
     log_comm << " | Total: " << std::setw(_w2) << double(comm_total_1) / 1024 << " KB";
     log_comm << std::endl;
+    this->triple_gen->addMillComm(comm_total_1);
 #endif
 #if MILL_PRINT_TIME
     std::cout << log_time.str();
@@ -1039,12 +1041,14 @@ public:
     // log_time << "P" << party << " TIME | " << f_tag;
     log_time << " | Total: " << std::setw(_w1) << total_time_.count() * 1000 << " ms";
     log_time << std::endl;
+    this->triple_gen->addMillTime(total_time_.count());
 #endif
 #if MILL_PRINT_COMM
     uint64_t comm_total_1 = comm_total;
     // log_comm << "P" << party << " COMM";
     log_comm << " | Total: " << std::setw(_w2) << double(comm_total_1) / 1024 << " KB";
     log_comm << std::endl;
+    this->triple_gen->addMillComm(comm_total_1);
 #endif
 #if MILL_PRINT_COMP
     // get BOB's inputs and results for debugging
