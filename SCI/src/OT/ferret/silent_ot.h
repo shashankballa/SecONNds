@@ -88,7 +88,7 @@ class SilentOT : public sci::OT<SilentOT<IO>> {
     ferret->io->flush();
 
     block pad[2 * ot_bsize];
-    uint32_t y_size = (uint32_t)ceil((ot_bsize * l) / (float(64)));
+    uint32_t y_size = (uint32_t)ceil((ot_bsize * l) / (float(sizeof(uint64_t) * 8)));
     uint32_t corrected_y_size, corrected_bsize;
     uint64_t y[y_size];
     uint64_t corr_data[ot_bsize];
@@ -114,6 +114,52 @@ class SilentOT : public sci::OT<SilentOT<IO>> {
       sci::pack_cot_messages(y, corr_data, corrected_y_size, corrected_bsize,
                              l);
       ferret->io->send_data(y, sizeof(uint64_t) * (corrected_y_size));
+    }
+
+    delete[] rcm_data;
+  }
+
+  template <typename T>
+  void send_ot_cam_cc(T* data0, const T* corr, int64_t length,
+                      int l) {
+    uint64_t modulo_mask = (1ULL << l) - 1;
+    if (l == 64) modulo_mask = -1;
+    block* rcm_data = new block[length];
+    send_ot_rcm_cc(rcm_data, length);
+
+    block s;
+    ferret->prg.random_block(&s, 1);
+    ferret->io->send_block(&s, 1);
+    ferret->mitccrh.setS(s);
+    ferret->io->flush();
+
+    block pad[2 * ot_bsize];
+    uint32_t y_size = (uint32_t)ceil((ot_bsize * l) / (float(sizeof(T) * 8)));
+    uint32_t corrected_y_size, corrected_bsize;
+    T y[y_size];
+    T corr_data[ot_bsize];
+
+    for (int64_t i = 0; i < length; i += ot_bsize) {
+      for (int64_t j = i; j < std::min(i + ot_bsize, length); ++j) {
+        pad[2 * (j - i)] = rcm_data[j];
+        pad[2 * (j - i) + 1] = rcm_data[j] ^ ferret->Delta;
+      }
+
+      ferret->mitccrh.template hash<ot_bsize, 2>(pad);
+
+      for (int j = i; j < i + ot_bsize and j < length; ++j) {
+        data0[j] = _mm_extract_epi64(pad[2 * (j - i)], 0) & modulo_mask;
+        corr_data[j - i] =
+            (corr[j] + data0[j] + _mm_extract_epi64(pad[2 * (j - i) + 1], 0)) &
+            modulo_mask;
+      }
+      corrected_y_size = (uint32_t)ceil((std::min(ot_bsize, length - i) * l) /
+                                        ((float)sizeof(T) * 8));
+      corrected_bsize = std::min(ot_bsize, length - i);
+
+      sci::pack_cot_messages(y, corr_data, corrected_y_size, corrected_bsize,
+                             l);
+      ferret->io->send_data(y, sizeof(T) * (corrected_y_size));
     }
 
     delete[] rcm_data;
@@ -149,6 +195,53 @@ class SilentOT : public sci::OT<SilentOT<IO>> {
       ferret->mitccrh.template hash<ot_bsize, 1>(pad);
 
       ferret->io->recv_data(recvd, sizeof(uint64_t) * corrected_recvd_size);
+
+      sci::unpack_cot_messages(corr_data, recvd, corrected_bsize, l);
+
+      for (int j = i; j < i + ot_bsize and j < length; ++j) {
+        if (b[j])
+          data[j] = (corr_data[j - i] - _mm_extract_epi64(pad[j - i], 0)) &
+                    modulo_mask;
+        else
+          data[j] = _mm_extract_epi64(pad[j - i], 0) & modulo_mask;
+      }
+    }
+
+    delete[] rcm_data;
+  }
+
+
+  // chosen additive message, chosen choice
+  // Receiver chooses a choice bit 'b', and
+  // receives 'x' if b = 0, and 'x + corr' if b = 1
+  template <typename T>
+  void recv_ot_cam_cc(T* data, const bool* b, int64_t length, int l) {
+    uint64_t modulo_mask = (1ULL << l) - 1;
+    if (l == 64) modulo_mask = -1;
+
+    block* rcm_data = new block[length];
+    recv_ot_rcm_cc(rcm_data, b, length);
+    block s;
+    ferret->io->recv_block(&s, 1);
+    ferret->mitccrh.setS(s);
+    // ferret->io->flush();
+
+    block pad[ot_bsize];
+
+    uint32_t recvd_size = (uint32_t)ceil((ot_bsize * l) / (float(sizeof(T) * 8)));
+    uint32_t corrected_recvd_size, corrected_bsize;
+    T corr_data[ot_bsize];
+    T recvd[recvd_size];
+
+    for (int64_t i = 0; i < length; i += ot_bsize) {
+      corrected_recvd_size =
+          (uint32_t)ceil((std::min(ot_bsize, length - i) * l) / (float(sizeof(T) * 8)));
+      corrected_bsize = std::min(ot_bsize, length - i);
+
+      memcpy(pad, rcm_data + i, std::min(ot_bsize, length - i) * sizeof(block));
+      ferret->mitccrh.template hash<ot_bsize, 1>(pad);
+
+      ferret->io->recv_data(recvd, sizeof(T) * corrected_recvd_size);
 
       sci::unpack_cot_messages(corr_data, recvd, corrected_bsize, l);
 

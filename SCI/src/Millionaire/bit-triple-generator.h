@@ -36,6 +36,7 @@ enum TripleGenMethod {
   _2ROT,          // 1 Bit Triple from 2 ROT
   _16KKOT_to_4OT, // 2 Bit Triples from 1oo16 KKOT to 1oo4 OT
   _8KKOT,         // 2 Correlated Bit Triples from 1oo8 KKOT
+  _2COT,           // 1 Bit Triple from 2 COT
 };
 
 class Triple {
@@ -483,6 +484,57 @@ template <typename IO> class TripleGenerator {
 // #else
 //           throw std::invalid_argument("To be implemented");
 // #endif
+          break;
+        }
+        case _2COT: {
+          uint8_t *a, *b, *c;
+          if (packed) {
+              a = new uint8_t[num_triples];
+              b = new uint8_t[num_triples];
+              c = new uint8_t[num_triples];
+          } else {
+              a = ai;
+              b = bi;
+              c = ci;
+          }
+          prg->random_bool((bool *)a, num_triples);
+          prg->random_bool((bool *)b, num_triples);
+          uint8_t *u, *v;
+          u = new uint8_t[num_triples];
+          v = new uint8_t[num_triples];
+          io->sync();
+          switch (party) {
+              case sci::ALICE: {
+                  otpack->silent_ot_reversed->template recv_ot_rm_rc<uint8_t>(u, (bool*)a, num_triples, 1);
+                  otpack->silent_ot->send_ot_rm_rc(v, b, num_triples, 1);
+                  break;
+              }
+              case sci::BOB: {
+                  otpack->silent_ot_reversed->template send_ot_rm_rc<uint8_t>(v, b, num_triples, 1);
+                  otpack->silent_ot->recv_ot_rm_rc(u, (bool*)a, num_triples, 1);
+                  break;
+              }
+          }
+          io->flush();
+
+          for (int i = 0; i < num_triples; i++)
+              b[i] = b[i] ^ v[i];
+          for (int i = 0; i < num_triples; i++)
+              c[i] = (a[i] & b[i]) ^ u[i] ^ v[i];
+
+
+          delete[] u;
+          delete[] v;
+          if (packed) {
+              for (int i = 0; i < num_triples; i += 8) {
+                  ai[i / 8] = sci::bool_to_uint8(a + i, 8);
+                  bi[i / 8] = sci::bool_to_uint8(b + i, 8);
+                  ci[i / 8] = sci::bool_to_uint8(c + i, 8);
+              }
+              delete[] a;
+              delete[] b;
+              delete[] c;
+          }
           break;
         }
         case _16KKOT_to_4OT: {

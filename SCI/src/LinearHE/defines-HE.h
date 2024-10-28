@@ -35,8 +35,7 @@ extern int32_t num_threads;
 const uint64_t POLY_MOD_DEGREE_SMALL = 8192;
 const uint64_t POLY_MOD_DEGREE = 8192;
 const uint64_t POLY_MOD_DEGREE_LARGE = 32768;
-// const int32_t SMUDGING_BITLEN = 100 - bitlength;
-const int32_t SMUDGING_BITLEN = 80 - bitlength;
+const int32_t SMUDGING_BITLEN = 100 - bitlength;
 
 // Default coefficient modulus for CryptFlow2
 inline std::vector<int> GET_COEFF_MOD_CF2() { return {60, 60, 60, 49}; }
@@ -48,7 +47,7 @@ inline std::vector<int> GET_COEFF_MOD_HLK() {
 
     switch (bitlength) {
     case 37:
-        coeff_mod = {50, 40, 60};
+        coeff_mod = {55, 40, 60};
         break;
     case 32:
         coeff_mod = {43, 37, 50};

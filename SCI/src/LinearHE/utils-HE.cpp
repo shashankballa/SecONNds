@@ -32,7 +32,14 @@ void generate_context(size_t slot_count, vector<int> coeff_modulus,
                       SEALContext *&context_, Evaluator *&evaluator_, 
                       BatchEncoder *&encoder_, bool verbose) {
 
-  EncryptionParameters parms(scheme_type::bfv);
+  EncryptionParameters parms(
+#if USE_BFV
+    // scheme_type::bgv
+#else
+    scheme_type::bfv
+#endif
+    );
+  auto scheme = parms.scheme();
   parms.set_poly_modulus_degree(slot_count);
   parms.set_coeff_modulus(CoeffModulus::Create(slot_count, coeff_modulus));
   parms.set_plain_modulus(prime_mod);
@@ -41,6 +48,7 @@ void generate_context(size_t slot_count, vector<int> coeff_modulus,
   evaluator_ = new Evaluator(*context_);
   if (verbose){
     cout << "[generate_context] HE Parameters: " << endl;
+    cout << "+ scheme   : " << (scheme == scheme_type::bfv ? "BFV" : "BGV") << endl;
     cout << "+ poly_mod : "<< slot_count << endl;
     cout << "+ plain_mod: " << prime_mod << endl;
     cout << "+ coeff_mod: "; print1D(coeff_modulus, 2);
@@ -175,7 +183,7 @@ void generate_new_keys_SB(int party, NetIO *io, size_t slot_count,
                        Decryptor *&decryptor_, Evaluator *&evaluator_,
                        BatchEncoder *&encoder_, GaloisKeys *&gal_keys_,
                        Ciphertext *&zero_, bool verbose) {
-  EncryptionParameters parms(scheme_type::bfv);
+  EncryptionParameters parms(scheme_type::bgv);
   parms.set_poly_modulus_degree(slot_count);
   parms.set_coeff_modulus(CoeffModulus::Create(slot_count, GET_COEFF_MOD_HLK()));
   parms.set_plain_modulus(prime_mod);

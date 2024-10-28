@@ -38,6 +38,9 @@ ROLE=$1
 FWORK=$2
 DNN=$3
 
+echo -e "${GREEN}$ROLE${NC}: Running ${GREEN}$DNN${NC} with ${GREEN}$FWORK${NC}..."
+echo -e " "
+
 if [[ "$*" == *"--mill_low_rnd"* ]] || [[ "$*" == *"-mlr"* ]]; then
   if [ "$FWORK" == "seconnds_2" ] || [ "$FWORK" == "seconnds_p" ]; then
     MILL_LR=1
@@ -176,8 +179,6 @@ fi
 
 # create a data/ to store the Ferret output
 mkdir -p data
-
-echo -e "${GREEN}$ROLE${NC}: Running ${GREEN}$DNN${NC} with ${GREEN}$FWORK${NC}..."
 
 if [[ "$*" == *"-debug"* ]]; then
   echo -e "${GREEN}-debug${NC}: Running in Debug mode (with GDB)."
