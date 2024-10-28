@@ -25,6 +25,7 @@ Modified by Deevashwer Rathee
 
 #include "LinearHE/conv-field.h"
 
+#define USE_HELIKS2 1
 
 using namespace std;
 using namespace sci;
@@ -1192,7 +1193,7 @@ vector<vector<vector<seal::Plaintext>>> HE_preprocess_filters_NTT_MR(
     , Evaluator &evaluator
     , parms_id_type parms_id
     , bool conv_ntt = true
-    , bool pre_rotate = false
+    , bool pre_rotate = true
     ) {
 
   vector<vector<vector<seal::Plaintext>>> encoded_masks(
@@ -1722,6 +1723,10 @@ void ConvField::non_strided_conv_offline(
     encoded_filters = HE_preprocess_filters_NTT_MR(*filters, data, *encoder_
                                           , *evaluator_
                                           , context_->first_parms_id()
+                                          , conv_ntt
+#if USE_HELIKS2
+                                          , false
+#endif
                                           );
 
     if (verbose) {
@@ -1868,27 +1873,30 @@ void ConvField::non_strided_conv_online(
     if (verbose) {cout << "[Server] [HLK] Input transformed to NTT. Shape: (";
     cout << input_ntt.size() << ")" << endl;}
 
-//     auto conv_result = HE_conv_heliks( input_ntt
-//                                       , encoded_filters
-//                                       , gal_keys_
-//                                       , *evaluator_ 
-//                                       , data
-//                                       , conv_ntt
-//                                       );
-//     if (verbose) {cout << "[Server] [HLK] Convolution done. Shape: (";
-//     cout << conv_result.size() << ")" << endl;}
+#if !USE_HELIKS2
+    auto conv_result = HE_conv_heliks( input_ntt
+                                      , encoded_filters
+                                      , gal_keys_
+                                      , *evaluator_ 
+                                      , data
+                                      , conv_ntt
+                                      );
+    if (verbose) {cout << "[Server] [HLK] Convolution done. Shape: (";
+    cout << conv_result.size() << ")" << endl;}
 
-// #if HE_DEBUG
-//     PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
-//                       "after HE convolution (HELiKs)");
-// #endif
-
+#if HE_DEBUG
+    PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
+                      "after HE convolution (HELiKs)");
+#endif
+#else
     auto conv_result = HE_conv_heliks2(encoded_filters, rotations, data, *evaluator_, conv_ntt);
 
 #if HE_DEBUG
     PRINT_NOISE_BUDGET(decryptor_, conv_result[0],
                       "after HE convolution (HELiKs2)");
 #endif
+#endif
+
 
 #pragma omp parallel for num_threads(num_threads) schedule(static)
     for (int ct_idx = 0; ct_idx < conv_result.size(); ct_idx++) {
