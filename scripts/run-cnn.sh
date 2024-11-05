@@ -206,13 +206,12 @@ else
       LOGFILE="$LOGFILE"_"nobuff"
     fi
 
-    LOGFILE="$LOGFILE-$ROLE.log"
-
-    
     if [[ "$*" == *"-l="* ]]; then
       LOGNUM=$(echo $* | grep -o -P '(?<=-l=)\d+' | head -1)
-      LOGFILE="$LOGNUM-$LOGFILE"
+      LOGFILE="$LOGFILE-$LOGNUM-$ROLE.log"
       echo -e "${GREEN}-l=$LOGNUM${NC}: Log file will be saved as ${GREEN}$LOGFILE${NC}."
+    else
+      LOGFILE="$LOGFILE-$ROLE.log"
     fi
 
     echo -e "Date: $(date)" > "$LOGS_DIR/$LOGFILE"

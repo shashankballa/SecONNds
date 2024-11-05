@@ -143,3 +143,8 @@ deps/emp-ot
 deps/emp-tool
 deps/zstd
 deps/troy-nova
+
+# temp files
+*_conv_off*
+*_tmp_pts*
+*_conv_on*

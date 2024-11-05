@@ -8,31 +8,13 @@ Then hand crafted by Wen-jie Lu
 #include "library_fixed.h"
 using namespace std;
 
-#if RUN_TRIP_TRIALS
-int _sf = 1; // scale factor for chunking
-int n_trials = 4;
-int n_trials_p = 4;
-#endif  
-
-string model_name = "DenseNet121";
-stringstream print_ss;
-
 int party = 0;
 int port = 32000;
 string address = "127.0.0.1";
-int num_threads = 8;
-int32_t bitlength = 37;
+int num_threads = 4;
+int32_t bitlength = 41;
 int32_t kScale = 12;
 int32_t kDoExtractTruncate = 1;
-
-int num_trips = 1 << 28;
-int trips_csize = 1 << 10;
-int _snn = 0;
-bool use_seconnds = false;
-int _ntt = 0;
-bool conv_ntt = false;
-int _mlr = 0;
-bool mill_low_rnd = false;
 
 int64_t getSignValue(uint64_t x) {
   static int64_t upper = 1LL << bitlength;
@@ -2161,7 +2143,7 @@ void FusedBN(int32_t N, int32_t H, int32_t W, int32_t CI, int32_t fh,
     std::fill_n(scaled_filters, fh * fw * CI * CO, 0);
   }
 
-  Conv2DWrapper(conv_ntt,N,H,W,CI,fh,fw,CO,padHLeft,padHRight,padWLeft,padWRight,strideH,strideW,in_tensor,scaled_filters,out_tensor);
+  Conv2DWrapper(N, H, W, CI, fh, fw, CO, padHLeft, padHRight, padWLeft, padWRight, strideH, strideW, in_tensor, scaled_filters, out_tensor);
 
   if (party == SERVER) {
     int32_t newH = (((H + (padHLeft + padHRight)) - fh) / strideH) + 1;
@@ -2193,29 +2175,8 @@ int main(int argc, char **argv) {
   amap.arg("nt", num_threads, "Number of Threads");
   amap.arg("ell", bitlength, "Uniform Bitwidth");
   amap.arg("k", kScale, "bits of scale");
-  amap.arg("snn", _snn, "Use SecONNds");
-  amap.arg("ntt", _ntt, "Perform NTT mults in convolutions");
-  amap.arg("mlr", _mlr, "Perform Mill with lower rounds");
-  amap.arg("ntrips", num_trips, "Number of triples to generate");
-  amap.arg("csize", trips_csize, "Chunk size for triple generation");
-
   amap.parse(argc, argv);
-  use_seconnds = (_snn == 1);
-  conv_ntt = (_ntt == 1);
-  mill_low_rnd = (_mlr == 1);
 
-  // Print all the input arguments
-  print_ss << "Starting main_sqnet with the following inputs: \n"
-    << "Role : " << party << ", " << "Port: " << port << ", " << "IP: " << address << "\n"
-    << "Num Threads : " << num_threads << "\n"
-    << "Bitlength   : " << bitlength << ", " << "Scaling Factor: " << kScale << "\n"
-    << "Use SecONNds: " << std::boolalpha << use_seconnds << ", " 
-    << "NTT in convolutions: " << conv_ntt << "\n"
-    << "Millionaires' with lower rounds: " << mill_low_rnd << "\n"
-    << "Number of triples: " << num_trips << ", " << "Chunk size: " << trips_csize << "\n"
-    << "\n";
-  cout << print_ss.str();
-  print_ss.str("");
 
   assert(party == SERVER || party == CLIENT);
 
@@ -9749,172 +9710,8 @@ int main(int argc, char **argv) {
     }
     Arr1DIdxRowM(tmp606, 1000, i0) = (party == SERVER) ? __tmp_in_tmp606 : 0;
   }
-  
-  ConnectAndSetUp();
-
-  std::vector<std::vector<seal::Plaintext>> tmp15_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp25_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp35_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp45_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp55_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp65_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp70_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp80_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp90_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp100_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp105_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp110_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp120_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp130_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp140_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp150_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp160_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp170_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp180_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp190_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp195_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp205_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp215_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp225_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp235_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp245_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp255_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp265_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp275_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp285_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp295_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp305_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp315_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp325_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp335_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp345_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp355_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp365_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp375_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp385_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp395_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp405_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp415_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp425_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp435_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp440_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp450_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp460_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp470_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp480_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp490_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp500_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp510_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp520_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp530_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp540_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp550_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp560_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp570_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp580_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp590_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp600_pts;
-  std::vector<std::vector<seal::Plaintext>> tmp605_pts;
-
-  if(use_seconnds && (party == SERVER)){
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp15, tmp15_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp25, tmp25_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp35, tmp35_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp45, tmp45_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp55, tmp55_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp65, tmp65_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 56, 56, 256, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp70, tmp70_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp80, tmp80_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp90, tmp90_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp100, tmp100_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 224, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp105, tmp105_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp110, tmp110_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp120, tmp120_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp130, tmp130_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp140, tmp140_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp150, tmp150_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp160, tmp160_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp170, tmp170_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp180, tmp180_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp190, tmp190_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 28, 28, 512, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp195, tmp195_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp205, tmp205_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp215, tmp215_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp225, tmp225_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp235, tmp235_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp245, tmp245_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp255, tmp255_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp265, tmp265_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp275, tmp275_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp285, tmp285_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp295, tmp295_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp305, tmp305_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp315, tmp315_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp325, tmp325_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp335, tmp335_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp345, tmp345_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp355, tmp355_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp365, tmp365_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp375, tmp375_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp385, tmp385_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp395, tmp395_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp405, tmp405_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp415, tmp415_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp425, tmp425_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp435, tmp435_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 14, 14, 1024, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp440, tmp440_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp450, tmp450_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp460, tmp460_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp470, tmp470_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp480, tmp480_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp490, tmp490_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp500, tmp500_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp510, tmp510_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp520, tmp520_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp530, tmp530_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp540, tmp540_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp550, tmp550_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp560, tmp560_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp570, tmp570_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp580, tmp580_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp590, tmp590_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp600, tmp600_pts);
-    ConvOfflineCheetah(conv_ntt, 1, 1, 1, 1024, 1, 1, 1000, 0, 0, 0, 0, 1, 1, tmp605, tmp605_pts);
-  }
-
-  print_ss << "\n-> One-time setup done for " << model_name << "!" << std::endl;
-  std::cout << print_ss.str() << std::endl;
-  std::cerr << print_ss.str();
-  print_ss = std::stringstream();
-
-  if(use_seconnds){
-    uint64_t buffer_size = (num_trips / num_threads);
-    buffer_size += (buffer_size >> 7);
-    buffer_size = (buffer_size >> 3) << 3;
-#if RUN_TRIP_TRIALS
-    n_trials_p = _sf == 1 ? 1 : n_trials_p;
-    std::cout << "Running " << n_trials << " x " << n_trials_p 
-      << " triple gen trials with sf = " << _sf << std::endl;
-    for(int i = 0; i < n_trials; i++){
-      for(int j = 0; j < n_trials_p; j++){
-        GenerateTriples(buffer_size, std::pow(_sf, j)*trips_csize);
-      }
-    }
-#endif
-    GenerateTriples(buffer_size, trips_csize);
-    std::cout << "Triples generated!" << std::endl;
-  }
-
-  StartComputation(false, mill_low_rnd);
-
-  print_ss << "\n-> Private inputs loaded, starting Online...\n" << std::endl;
-  std::cout << print_ss.str();
-  std::cerr << print_ss.str();
-  print_ss = std::stringstream();
-
-#if USE_CHEETAH
+  StartComputation();
   kIsSharedInput = false;
-#endif
 
   uint64_t *tmp610 = make_array<uint64_t>(1, 112, 112, 64);
   FusedBN(1, 224, 224, 3, 7, 7, 64, 2, 3, 2, 3, 2, 2, tmp0, tmp1, tmp2, tmp3, tmp610);
@@ -9922,9 +9719,7 @@ int main(int argc, char **argv) {
   ClearMemSecret4(7, 7, 3, 64, tmp1);
   ClearMemSecret1(64, tmp2);
   ClearMemSecret1(64, tmp3);
-#if USE_CHEETAH
   kIsSharedInput = true;
-#endif
 
   uint64_t *tmp614 = make_array<uint64_t>(1, 56, 56, 64);
   MaxPool(1, 56, 56, 64, 3, 3, 0, 1, 0, 1, 2, 2, 1, 112, 112, 64, tmp610,
@@ -9956,11 +9751,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 128, tmp626);
 
   uint64_t *tmp632 = make_array<uint64_t>(1, 56, 56, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp630,tmp15,tmp632);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp630,tmp15,tmp15_pts,tmp632);
-	}
+  Conv2DWrapper(1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp630, tmp15,
+                tmp632);
   ClearMemSecret4(1, 56, 56, 128, tmp630);
   ClearMemSecret4(3, 3, 128, 32, tmp15);
 
@@ -9995,11 +9787,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 128, tmp648);
 
   uint64_t *tmp654 = make_array<uint64_t>(1, 56, 56, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp652,tmp25,tmp654);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp652,tmp25,tmp25_pts,tmp654);
-	}
+  Conv2DWrapper(1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp652, tmp25,
+                tmp654);
   ClearMemSecret4(1, 56, 56, 128, tmp652);
   ClearMemSecret4(3, 3, 128, 32, tmp25);
 
@@ -10034,11 +9823,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 128, tmp670);
 
   uint64_t *tmp676 = make_array<uint64_t>(1, 56, 56, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp674,tmp35,tmp676);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp674,tmp35,tmp35_pts,tmp676);
-	}
+  Conv2DWrapper(1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp674, tmp35,
+                tmp676);
   ClearMemSecret4(3, 3, 128, 32, tmp35);
   ClearMemSecret4(1, 56, 56, 128, tmp674);
 
@@ -10073,11 +9859,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 128, tmp692);
 
   uint64_t *tmp698 = make_array<uint64_t>(1, 56, 56, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp696,tmp45,tmp698);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp696,tmp45,tmp45_pts,tmp698);
-	}
+  Conv2DWrapper(1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp696, tmp45,
+                tmp698);
   ClearMemSecret4(3, 3, 128, 32, tmp45);
   ClearMemSecret4(1, 56, 56, 128, tmp696);
 
@@ -10112,11 +9895,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 128, tmp714);
 
   uint64_t *tmp720 = make_array<uint64_t>(1, 56, 56, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp718,tmp55,tmp720);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp718,tmp55,tmp55_pts,tmp720);
-	}
+  Conv2DWrapper(1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp718, tmp55,
+                tmp720);
   ClearMemSecret4(3, 3, 128, 32, tmp55);
   ClearMemSecret4(1, 56, 56, 128, tmp718);
 
@@ -10151,11 +9931,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 128, tmp736);
 
   uint64_t *tmp742 = make_array<uint64_t>(1, 56, 56, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp740,tmp65,tmp742);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,128,3,3,32,1,1,1,1,1,1,tmp740,tmp65,tmp65_pts,tmp742);
-	}
+  Conv2DWrapper(1, 56, 56, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp740, tmp65,
+                tmp742);
   ClearMemSecret4(3, 3, 128, 32, tmp65);
   ClearMemSecret4(1, 56, 56, 128, tmp740);
 
@@ -10180,11 +9957,7 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 56, 56, 256, tmp750);
 
   uint64_t *tmp756 = make_array<uint64_t>(1, 56, 56, 128);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,56,56,256,1,1,128,0,0,0,0,1,1,tmp754,tmp70,tmp756);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,56,56,256,1,1,128,0,0,0,0,1,1,tmp754,tmp70,tmp70_pts,tmp756);
-	}
+  Conv2DWrapper(1, 56, 56, 256, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp754, tmp70, tmp756);
   ClearMemSecret4(1, 56, 56, 256, tmp754);
   ClearMemSecret4(1, 1, 256, 128, tmp70);
 
@@ -10214,11 +9987,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp769);
 
   uint64_t *tmp775 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp773,tmp80,tmp775);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp773,tmp80,tmp80_pts,tmp775);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp773, tmp80,
+                tmp775);
   ClearMemSecret4(1, 28, 28, 128, tmp773);
   ClearMemSecret4(3, 3, 128, 32, tmp80);
 
@@ -10253,11 +10023,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp791);
 
   uint64_t *tmp797 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp795,tmp90,tmp797);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp795,tmp90,tmp90_pts,tmp797);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp795, tmp90,
+                tmp797);
   ClearMemSecret4(1, 28, 28, 128, tmp795);
   ClearMemSecret4(3, 3, 128, 32, tmp90);
 
@@ -10292,11 +10059,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp813);
 
   uint64_t *tmp819 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp817,tmp100,tmp819);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp817,tmp100,tmp100_pts,tmp819);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp817, tmp100,
+                tmp819);
   ClearMemSecret4(3, 3, 128, 32, tmp100);
   ClearMemSecret4(1, 28, 28, 128, tmp817);
 
@@ -10320,11 +10084,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 224, tmp827);
 
   uint64_t *tmp832 = make_array<uint64_t>(1, 28, 28, 128);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,224,1,1,128,0,0,0,0,1,1,tmp830,tmp105,tmp832);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,224,1,1,128,0,0,0,0,1,1,tmp830,tmp105,tmp105_pts,tmp832);
-	}
+  Conv2DWrapper(1, 28, 28, 224, 1, 1, 128, 0, 0, 0, 0, 1, 1, tmp830, tmp105,
+                tmp832);
   ClearMemSecret4(1, 1, 224, 128, tmp105);
   ClearMemSecret4(1, 28, 28, 224, tmp830);
 
@@ -10340,11 +10101,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp835);
 
   uint64_t *tmp841 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp839,tmp110,tmp841);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp839,tmp110,tmp110_pts,tmp841);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp839, tmp110,
+                tmp841);
   ClearMemSecret4(1, 28, 28, 128, tmp839);
   ClearMemSecret4(3, 3, 128, 32, tmp110);
 
@@ -10379,11 +10137,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp857);
 
   uint64_t *tmp863 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp861,tmp120,tmp863);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp861,tmp120,tmp120_pts,tmp863);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp861, tmp120,
+                tmp863);
   ClearMemSecret4(1, 28, 28, 128, tmp861);
   ClearMemSecret4(3, 3, 128, 32, tmp120);
 
@@ -10418,11 +10173,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp879);
 
   uint64_t *tmp885 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp883,tmp130,tmp885);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp883,tmp130,tmp130_pts,tmp885);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp883, tmp130,
+                tmp885);
   ClearMemSecret4(1, 28, 28, 128, tmp883);
   ClearMemSecret4(3, 3, 128, 32, tmp130);
 
@@ -10457,11 +10209,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp901);
 
   uint64_t *tmp907 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp905,tmp140,tmp907);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp905,tmp140,tmp140_pts,tmp907);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp905, tmp140,
+                tmp907);
   ClearMemSecret4(3, 3, 128, 32, tmp140);
   ClearMemSecret4(1, 28, 28, 128, tmp905);
 
@@ -10496,11 +10245,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp923);
 
   uint64_t *tmp929 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp927,tmp150,tmp929);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp927,tmp150,tmp150_pts,tmp929);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp927, tmp150,
+                tmp929);
   ClearMemSecret4(3, 3, 128, 32, tmp150);
   ClearMemSecret4(1, 28, 28, 128, tmp927);
 
@@ -10535,11 +10281,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp945);
 
   uint64_t *tmp951 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp949,tmp160,tmp951);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp949,tmp160,tmp160_pts,tmp951);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp949, tmp160,
+                tmp951);
   ClearMemSecret4(1, 28, 28, 128, tmp949);
   ClearMemSecret4(3, 3, 128, 32, tmp160);
 
@@ -10574,11 +10317,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp967);
 
   uint64_t *tmp973 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp971,tmp170,tmp973);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp971,tmp170,tmp170_pts,tmp973);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp971, tmp170,
+                tmp973);
   ClearMemSecret4(1, 28, 28, 128, tmp971);
   ClearMemSecret4(3, 3, 128, 32, tmp170);
 
@@ -10613,11 +10353,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp989);
 
   uint64_t *tmp995 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp993,tmp180,tmp995);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp993,tmp180,tmp180_pts,tmp995);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp993, tmp180,
+                tmp995);
   ClearMemSecret4(3, 3, 128, 32, tmp180);
   ClearMemSecret4(1, 28, 28, 128, tmp993);
 
@@ -10652,11 +10389,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 128, tmp1011);
 
   uint64_t *tmp1017 = make_array<uint64_t>(1, 28, 28, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp1015,tmp190,tmp1017);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,128,3,3,32,1,1,1,1,1,1,tmp1015,tmp190,tmp190_pts,tmp1017);
-	}
+  Conv2DWrapper(1, 28, 28, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1015, tmp190,
+                tmp1017);
   ClearMemSecret4(3, 3, 128, 32, tmp190);
   ClearMemSecret4(1, 28, 28, 128, tmp1015);
 
@@ -10681,11 +10415,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 28, 28, 512, tmp1025);
 
   uint64_t *tmp1031 = make_array<uint64_t>(1, 28, 28, 256);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,28,28,512,1,1,256,0,0,0,0,1,1,tmp1029,tmp195,tmp1031);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,28,28,512,1,1,256,0,0,0,0,1,1,tmp1029,tmp195,tmp195_pts,tmp1031);
-	}
+  Conv2DWrapper(1, 28, 28, 512, 1, 1, 256, 0, 0, 0, 0, 1, 1, tmp1029, tmp195,
+                tmp1031);
   ClearMemSecret4(1, 1, 512, 256, tmp195);
   ClearMemSecret4(1, 28, 28, 512, tmp1029);
 
@@ -10716,11 +10447,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1044);
 
   uint64_t *tmp1050 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1048,tmp205,tmp1050);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1048,tmp205,tmp205_pts,tmp1050);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1048, tmp205,
+                tmp1050);
   ClearMemSecret4(1, 14, 14, 128, tmp1048);
   ClearMemSecret4(3, 3, 128, 32, tmp205);
 
@@ -10755,11 +10483,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1066);
 
   uint64_t *tmp1072 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1070,tmp215,tmp1072);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1070,tmp215,tmp215_pts,tmp1072);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1070, tmp215,
+                tmp1072);
   ClearMemSecret4(3, 3, 128, 32, tmp215);
   ClearMemSecret4(1, 14, 14, 128, tmp1070);
 
@@ -10794,11 +10519,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1088);
 
   uint64_t *tmp1094 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1092,tmp225,tmp1094);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1092,tmp225,tmp225_pts,tmp1094);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1092, tmp225,
+                tmp1094);
   ClearMemSecret4(1, 14, 14, 128, tmp1092);
   ClearMemSecret4(3, 3, 128, 32, tmp225);
 
@@ -10833,11 +10555,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1110);
 
   uint64_t *tmp1116 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1114,tmp235,tmp1116);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1114,tmp235,tmp235_pts,tmp1116);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1114, tmp235,
+                tmp1116);
   ClearMemSecret4(3, 3, 128, 32, tmp235);
   ClearMemSecret4(1, 14, 14, 128, tmp1114);
 
@@ -10872,11 +10591,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1132);
 
   uint64_t *tmp1138 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1136,tmp245,tmp1138);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1136,tmp245,tmp245_pts,tmp1138);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1136, tmp245,
+                tmp1138);
   ClearMemSecret4(1, 14, 14, 128, tmp1136);
   ClearMemSecret4(3, 3, 128, 32, tmp245);
 
@@ -10911,11 +10627,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1154);
 
   uint64_t *tmp1160 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1158,tmp255,tmp1160);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1158,tmp255,tmp255_pts,tmp1160);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1158, tmp255,
+                tmp1160);
   ClearMemSecret4(1, 14, 14, 128, tmp1158);
   ClearMemSecret4(3, 3, 128, 32, tmp255);
 
@@ -10950,11 +10663,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1176);
 
   uint64_t *tmp1182 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1180,tmp265,tmp1182);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1180,tmp265,tmp265_pts,tmp1182);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1180, tmp265,
+                tmp1182);
   ClearMemSecret4(1, 14, 14, 128, tmp1180);
   ClearMemSecret4(3, 3, 128, 32, tmp265);
 
@@ -10989,11 +10699,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1198);
 
   uint64_t *tmp1204 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1202,tmp275,tmp1204);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1202,tmp275,tmp275_pts,tmp1204);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1202, tmp275,
+                tmp1204);
   ClearMemSecret4(3, 3, 128, 32, tmp275);
   ClearMemSecret4(1, 14, 14, 128, tmp1202);
 
@@ -11028,11 +10735,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1220);
 
   uint64_t *tmp1226 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1224,tmp285,tmp1226);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1224,tmp285,tmp285_pts,tmp1226);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1224, tmp285,
+                tmp1226);
   ClearMemSecret4(3, 3, 128, 32, tmp285);
   ClearMemSecret4(1, 14, 14, 128, tmp1224);
 
@@ -11067,11 +10771,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1242);
 
   uint64_t *tmp1248 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1246,tmp295,tmp1248);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1246,tmp295,tmp295_pts,tmp1248);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1246, tmp295,
+                tmp1248);
   ClearMemSecret4(3, 3, 128, 32, tmp295);
   ClearMemSecret4(1, 14, 14, 128, tmp1246);
 
@@ -11106,11 +10807,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1264);
 
   uint64_t *tmp1270 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1268,tmp305,tmp1270);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1268,tmp305,tmp305_pts,tmp1270);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1268, tmp305,
+                tmp1270);
   ClearMemSecret4(1, 14, 14, 128, tmp1268);
   ClearMemSecret4(3, 3, 128, 32, tmp305);
 
@@ -11145,11 +10843,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1286);
 
   uint64_t *tmp1292 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1290,tmp315,tmp1292);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1290,tmp315,tmp315_pts,tmp1292);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1290, tmp315,
+                tmp1292);
   ClearMemSecret4(1, 14, 14, 128, tmp1290);
   ClearMemSecret4(3, 3, 128, 32, tmp315);
 
@@ -11184,11 +10879,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1308);
 
   uint64_t *tmp1314 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1312,tmp325,tmp1314);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1312,tmp325,tmp325_pts,tmp1314);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1312, tmp325,
+                tmp1314);
   ClearMemSecret4(1, 14, 14, 128, tmp1312);
   ClearMemSecret4(3, 3, 128, 32, tmp325);
 
@@ -11223,11 +10915,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1330);
 
   uint64_t *tmp1336 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1334,tmp335,tmp1336);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1334,tmp335,tmp335_pts,tmp1336);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1334, tmp335,
+                tmp1336);
   ClearMemSecret4(3, 3, 128, 32, tmp335);
   ClearMemSecret4(1, 14, 14, 128, tmp1334);
 
@@ -11262,11 +10951,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1352);
 
   uint64_t *tmp1358 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1356,tmp345,tmp1358);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1356,tmp345,tmp345_pts,tmp1358);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1356, tmp345,
+                tmp1358);
   ClearMemSecret4(1, 14, 14, 128, tmp1356);
   ClearMemSecret4(3, 3, 128, 32, tmp345);
 
@@ -11301,11 +10987,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1374);
 
   uint64_t *tmp1380 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1378,tmp355,tmp1380);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1378,tmp355,tmp355_pts,tmp1380);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1378, tmp355,
+                tmp1380);
   ClearMemSecret4(3, 3, 128, 32, tmp355);
   ClearMemSecret4(1, 14, 14, 128, tmp1378);
 
@@ -11340,11 +11023,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1396);
 
   uint64_t *tmp1402 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1400,tmp365,tmp1402);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1400,tmp365,tmp365_pts,tmp1402);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1400, tmp365,
+                tmp1402);
   ClearMemSecret4(3, 3, 128, 32, tmp365);
   ClearMemSecret4(1, 14, 14, 128, tmp1400);
 
@@ -11379,11 +11059,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1418);
 
   uint64_t *tmp1424 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1422,tmp375,tmp1424);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1422,tmp375,tmp375_pts,tmp1424);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1422, tmp375,
+                tmp1424);
   ClearMemSecret4(1, 14, 14, 128, tmp1422);
   ClearMemSecret4(3, 3, 128, 32, tmp375);
 
@@ -11418,11 +11095,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1440);
 
   uint64_t *tmp1446 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1444,tmp385,tmp1446);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1444,tmp385,tmp385_pts,tmp1446);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1444, tmp385,
+                tmp1446);
   ClearMemSecret4(3, 3, 128, 32, tmp385);
   ClearMemSecret4(1, 14, 14, 128, tmp1444);
 
@@ -11457,11 +11131,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1462);
 
   uint64_t *tmp1468 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1466,tmp395,tmp1468);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1466,tmp395,tmp395_pts,tmp1468);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1466, tmp395,
+                tmp1468);
   ClearMemSecret4(3, 3, 128, 32, tmp395);
   ClearMemSecret4(1, 14, 14, 128, tmp1466);
 
@@ -11496,11 +11167,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1484);
 
   uint64_t *tmp1490 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1488,tmp405,tmp1490);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1488,tmp405,tmp405_pts,tmp1490);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1488, tmp405,
+                tmp1490);
   ClearMemSecret4(3, 3, 128, 32, tmp405);
   ClearMemSecret4(1, 14, 14, 128, tmp1488);
 
@@ -11535,11 +11203,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1506);
 
   uint64_t *tmp1512 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1510,tmp415,tmp1512);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1510,tmp415,tmp415_pts,tmp1512);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1510, tmp415,
+                tmp1512);
   ClearMemSecret4(3, 3, 128, 32, tmp415);
   ClearMemSecret4(1, 14, 14, 128, tmp1510);
 
@@ -11574,11 +11239,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1528);
 
   uint64_t *tmp1534 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1532,tmp425,tmp1534);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1532,tmp425,tmp425_pts,tmp1534);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1532, tmp425,
+                tmp1534);
   ClearMemSecret4(1, 14, 14, 128, tmp1532);
   ClearMemSecret4(3, 3, 128, 32, tmp425);
 
@@ -11613,11 +11275,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 128, tmp1550);
 
   uint64_t *tmp1556 = make_array<uint64_t>(1, 14, 14, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1554,tmp435,tmp1556);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,128,3,3,32,1,1,1,1,1,1,tmp1554,tmp435,tmp435_pts,tmp1556);
-	}
+  Conv2DWrapper(1, 14, 14, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1554, tmp435,
+                tmp1556);
   ClearMemSecret4(1, 14, 14, 128, tmp1554);
   ClearMemSecret4(3, 3, 128, 32, tmp435);
 
@@ -11642,11 +11301,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 14, 14, 1024, tmp1564);
 
   uint64_t *tmp1570 = make_array<uint64_t>(1, 14, 14, 512);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,14,14,1024,1,1,512,0,0,0,0,1,1,tmp1568,tmp440,tmp1570);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,14,14,1024,1,1,512,0,0,0,0,1,1,tmp1568,tmp440,tmp440_pts,tmp1570);
-	}
+  Conv2DWrapper(1, 14, 14, 1024, 1, 1, 512, 0, 0, 0, 0, 1, 1, tmp1568, tmp440,
+                tmp1570);
   ClearMemSecret4(1, 14, 14, 1024, tmp1568);
   ClearMemSecret4(1, 1, 1024, 512, tmp440);
 
@@ -11677,11 +11333,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1583);
 
   uint64_t *tmp1589 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1587,tmp450,tmp1589);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1587,tmp450,tmp450_pts,tmp1589);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1587, tmp450,
+                tmp1589);
   ClearMemSecret4(1, 7, 7, 128, tmp1587);
   ClearMemSecret4(3, 3, 128, 32, tmp450);
 
@@ -11716,11 +11369,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1605);
 
   uint64_t *tmp1611 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1609,tmp460,tmp1611);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1609,tmp460,tmp460_pts,tmp1611);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1609, tmp460,
+                tmp1611);
   ClearMemSecret4(1, 7, 7, 128, tmp1609);
   ClearMemSecret4(3, 3, 128, 32, tmp460);
 
@@ -11755,11 +11405,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1627);
 
   uint64_t *tmp1633 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1631,tmp470,tmp1633);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1631,tmp470,tmp470_pts,tmp1633);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1631, tmp470,
+                tmp1633);
   ClearMemSecret4(1, 7, 7, 128, tmp1631);
   ClearMemSecret4(3, 3, 128, 32, tmp470);
 
@@ -11794,11 +11441,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1649);
 
   uint64_t *tmp1655 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1653,tmp480,tmp1655);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1653,tmp480,tmp480_pts,tmp1655);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1653, tmp480,
+                tmp1655);
   ClearMemSecret4(1, 7, 7, 128, tmp1653);
   ClearMemSecret4(3, 3, 128, 32, tmp480);
 
@@ -11833,11 +11477,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1671);
 
   uint64_t *tmp1677 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1675,tmp490,tmp1677);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1675,tmp490,tmp490_pts,tmp1677);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1675, tmp490,
+                tmp1677);
   ClearMemSecret4(3, 3, 128, 32, tmp490);
   ClearMemSecret4(1, 7, 7, 128, tmp1675);
 
@@ -11872,11 +11513,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1693);
 
   uint64_t *tmp1699 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1697,tmp500,tmp1699);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1697,tmp500,tmp500_pts,tmp1699);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1697, tmp500,
+                tmp1699);
   ClearMemSecret4(3, 3, 128, 32, tmp500);
   ClearMemSecret4(1, 7, 7, 128, tmp1697);
 
@@ -11911,11 +11549,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1715);
 
   uint64_t *tmp1721 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1719,tmp510,tmp1721);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1719,tmp510,tmp510_pts,tmp1721);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1719, tmp510,
+                tmp1721);
   ClearMemSecret4(1, 7, 7, 128, tmp1719);
   ClearMemSecret4(3, 3, 128, 32, tmp510);
 
@@ -11950,11 +11585,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1737);
 
   uint64_t *tmp1743 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1741,tmp520,tmp1743);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1741,tmp520,tmp520_pts,tmp1743);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1741, tmp520,
+                tmp1743);
   ClearMemSecret4(3, 3, 128, 32, tmp520);
   ClearMemSecret4(1, 7, 7, 128, tmp1741);
 
@@ -11989,11 +11621,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1759);
 
   uint64_t *tmp1765 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1763,tmp530,tmp1765);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1763,tmp530,tmp530_pts,tmp1765);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1763, tmp530,
+                tmp1765);
   ClearMemSecret4(3, 3, 128, 32, tmp530);
   ClearMemSecret4(1, 7, 7, 128, tmp1763);
 
@@ -12028,11 +11657,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1781);
 
   uint64_t *tmp1787 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1785,tmp540,tmp1787);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1785,tmp540,tmp540_pts,tmp1787);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1785, tmp540,
+                tmp1787);
   ClearMemSecret4(1, 7, 7, 128, tmp1785);
   ClearMemSecret4(3, 3, 128, 32, tmp540);
 
@@ -12067,11 +11693,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1803);
 
   uint64_t *tmp1809 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1807,tmp550,tmp1809);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1807,tmp550,tmp550_pts,tmp1809);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1807, tmp550,
+                tmp1809);
   ClearMemSecret4(3, 3, 128, 32, tmp550);
   ClearMemSecret4(1, 7, 7, 128, tmp1807);
 
@@ -12106,11 +11729,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1825);
 
   uint64_t *tmp1831 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1829,tmp560,tmp1831);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1829,tmp560,tmp560_pts,tmp1831);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1829, tmp560,
+                tmp1831);
   ClearMemSecret4(1, 7, 7, 128, tmp1829);
   ClearMemSecret4(3, 3, 128, 32, tmp560);
 
@@ -12145,11 +11765,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1847);
 
   uint64_t *tmp1853 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1851,tmp570,tmp1853);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1851,tmp570,tmp570_pts,tmp1853);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1851, tmp570,
+                tmp1853);
   ClearMemSecret4(1, 7, 7, 128, tmp1851);
   ClearMemSecret4(3, 3, 128, 32, tmp570);
 
@@ -12184,11 +11801,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1869);
 
   uint64_t *tmp1875 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1873,tmp580,tmp1875);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1873,tmp580,tmp580_pts,tmp1875);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1873, tmp580,
+                tmp1875);
   ClearMemSecret4(3, 3, 128, 32, tmp580);
   ClearMemSecret4(1, 7, 7, 128, tmp1873);
 
@@ -12223,11 +11837,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1891);
 
   uint64_t *tmp1897 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1895,tmp590,tmp1897);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1895,tmp590,tmp590_pts,tmp1897);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1895, tmp590,
+                tmp1897);
   ClearMemSecret4(1, 7, 7, 128, tmp1895);
   ClearMemSecret4(3, 3, 128, 32, tmp590);
 
@@ -12262,11 +11873,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 128, tmp1913);
 
   uint64_t *tmp1919 = make_array<uint64_t>(1, 7, 7, 32);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1917,tmp600,tmp1919);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,7,7,128,3,3,32,1,1,1,1,1,1,tmp1917,tmp600,tmp600_pts,tmp1919);
-	}
+  Conv2DWrapper(1, 7, 7, 128, 3, 3, 32, 1, 1, 1, 1, 1, 1, tmp1917, tmp600,
+                tmp1919);
   ClearMemSecret4(3, 3, 128, 32, tmp600);
   ClearMemSecret4(1, 7, 7, 128, tmp1917);
 
@@ -12296,11 +11904,8 @@ int main(int argc, char **argv) {
   ClearMemSecret4(1, 7, 7, 1024, tmp1931);
 
   uint64_t *tmp1935 = make_array<uint64_t>(1, 1, 1, 1000);
-  if (!use_seconnds) {
-		Conv2DWrapper(conv_ntt,1,1,1,1024,1,1,1000,0,0,0,0,1,1,tmp1933,tmp605,tmp1935);
-	} else {
-		ConvOnlineCheetah(conv_ntt,1,1,1,1024,1,1,1000,0,0,0,0,1,1,tmp1933,tmp605,tmp605_pts,tmp1935);
-	}
+  Conv2DWrapper(1, 1, 1, 1024, 1, 1, 1000, 0, 0, 0, 0, 1, 1, tmp1933, tmp605,
+                tmp1935);
   ClearMemSecret4(1, 1, 1, 1024, tmp1933);
   ClearMemSecret4(1, 1, 1024, 1000, tmp605);
 
@@ -12338,13 +11943,7 @@ int main(int argc, char **argv) {
         auto pred = funcReconstruct2PCCons(
                     Arr3DIdxRowM(tmp1942, 1, 1, 1, i0, i1, i2), 2);
         if (party == CLIENT) {
-          printf("-> Predicted label = %lld\n", pred);
-          std::cerr << "-> Predicted label = " << pred << std::endl;
-          std::cerr << " " << std::endl;
-        } else {
-          printf("-> Predicted label = (see client output)\n");
-          std::cerr << "-> Predicted label = (see client output)" << std::endl;
-          std::cerr << " " << std::endl;
+	  printf("predicted label=%lld\n", pred);
         }
       }
     }

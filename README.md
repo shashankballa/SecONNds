@@ -99,7 +99,7 @@ bash scripts/run-cnn.sh client [framework] [network] [options]
   - *Note:* Must be consistent between server and client.
 - `-debug`: Run in Debug mode using GDB. **Default:** Off.
 - `--no_log` or `-nl`: Do not generate a log file. **Default:** Log files are generated.
-- `-l=[log file number]`: Prefix the log file name with a number. **Default:** No prefix.
+- `-l=[log file number]`: tag the log file name with a number. **Default:** No prefix.
 
 ### Examples
 
@@ -193,13 +193,14 @@ The scripts use common configurations defined in `scripts/common.sh`. Important 
 ## Logs
 
 - By default, logs are saved in the `logs/` directory.
+
+- Use `-l=[log number]` to tag the log file with a number.
+
 - The log file name format is:
 
   ```
-  [network]-bl[bit length]-j[threads]-[framework]-[options]-[role].log
+  [network]-bl[bit length]-j[threads]-[framework]-[options]-[log number]-[role].log
   ```
-
-- Use `-l=[number]` to prefix the log file with a number.
 
 ### Disable Logging
 
