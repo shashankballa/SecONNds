@@ -1815,6 +1815,111 @@ void FusedBN(int32_t N, int32_t H, int32_t W, int32_t CI, int32_t fh,
   ClearMemSecret1(CO * CI * fh * fw, scaled_filters);
 }
 
+void FusedBNoffline(bool conv_ntt, int32_t N, int32_t H, int32_t W, int32_t CI, int32_t fh,
+            int32_t fw, int32_t CO, int32_t padHLeft, int32_t padHRight,
+            int32_t padWLeft, int32_t padWRight, int32_t strideH,
+            int32_t strideW,
+            const uint64_t *filters,
+            const uint64_t *bn_scales,
+            uint64_t *scaled_filters,
+            std::vector<std::vector<seal::Plaintext>> &scaled_filters_pts) {
+
+  const double _scale = std::pow(2., kScale);
+
+  // uint64_t *scaled_filters = make_array<uint64_t>(fh, fw, CI, CO);
+  scaled_filters = make_array<uint64_t>(fh, fw, CI, CO);
+  if (party == SERVER) {
+    std::vector<double>bn_scales_f64(CO);
+    std::transform(bn_scales, bn_scales + CO, bn_scales_f64.data(), [_scale](uint64_t v) -> double { return getSignValue(v) / _scale; });
+    for (int32_t h = 0; h < fh; ++h) {
+      for (int32_t w = 0; w < fw; ++w) {
+        for (int32_t c = 0; c < CI; ++c) {
+          for (int32_t m = 0; m < CO; ++m) {
+            const double bn_scale = bn_scales_f64[m];
+            double fval = getSignValue(Arr4DIdxRowM(filters, fh, fw, CI, CO, h, w, c, m)) / _scale;
+            int64_t f64 = static_cast<int64_t>(std::round(fval * bn_scale * _scale));
+            Arr4DIdxRowM(scaled_filters, fh, fw, CI, CO, h, w, c, m) = sci::neg_mod(f64, prime_mod);
+          }
+        }
+      }
+    }
+    bool allz = std::all_of(scaled_filters, scaled_filters + fh * fw * CI * CO, [](uint64_t v) { return 0 == v; });
+    if (allz) {
+      for (int i = 0; i < 8; ++i) {
+        double fval = getSignValue(filters[i]) / _scale;
+        std::cout << bn_scales_f64[i]  << " * " << fval << "\n";
+      }
+      printf("warning! fusedBN result at all zero filter!\n");
+      exit(0);
+    }
+  } else {
+    std::fill_n(scaled_filters, fh * fw * CI * CO, 0);
+  }
+  ConvOfflineCheetah(conv_ntt, N,H,W,CI,fh,fw,CO,padHLeft,padHRight,padWLeft,padWRight,strideH,strideW, scaled_filters, scaled_filters_pts);
+}
+
+void FusedBNonline(bool conv_ntt, int32_t N, int32_t H, int32_t W, int32_t CI, int32_t fh,
+             int32_t fw, int32_t CO, int32_t padHLeft, int32_t padHRight,
+             int32_t padWLeft, int32_t padWRight, int32_t strideH,
+             int32_t strideW, uint64_t *in_tensor, 
+             const uint64_t *filters,
+             const uint64_t *bn_scales, 
+             const uint64_t *bn_bias,
+             uint64_t *out_tensor) {
+  const double _scale = std::pow(2., kScale);
+
+  uint64_t *scaled_filters = make_array<uint64_t>(fh, fw, CI, CO);
+  if (party == SERVER) {
+    std::vector<double>bn_scales_f64(CO);
+    std::transform(bn_scales, bn_scales + CO, bn_scales_f64.data(), [_scale](uint64_t v) -> double { return getSignValue(v) / _scale; });
+    for (int32_t h = 0; h < fh; ++h) {
+      for (int32_t w = 0; w < fw; ++w) {
+        for (int32_t c = 0; c < CI; ++c) {
+          for (int32_t m = 0; m < CO; ++m) {
+            const double bn_scale = bn_scales_f64[m];
+            double fval = getSignValue(Arr4DIdxRowM(filters, fh, fw, CI, CO, h, w, c, m)) / _scale;
+            int64_t f64 = static_cast<int64_t>(std::round(fval * bn_scale * _scale));
+            Arr4DIdxRowM(scaled_filters, fh, fw, CI, CO, h, w, c, m) = sci::neg_mod(f64, prime_mod);
+          }
+        }
+      }
+    }
+    bool allz = std::all_of(scaled_filters, scaled_filters + fh * fw * CI * CO, [](uint64_t v) { return 0 == v; });
+    if (allz) {
+      for (int i = 0; i < 8; ++i) {
+        double fval = getSignValue(filters[i]) / _scale;
+        std::cout << bn_scales_f64[i]  << " * " << fval << "\n";
+      }
+      printf("warning! fusedBN result at all zero filter!\n");
+      exit(0);
+    }
+  } else {
+    std::fill_n(scaled_filters, fh * fw * CI * CO, 0);
+  }
+
+  Conv2DWrapper(N,H,W,CI,fh,fw,CO,padHLeft,padHRight,padWLeft,padWRight,strideH,strideW,in_tensor,scaled_filters,out_tensor);
+
+  int32_t newH = (((H + (padHLeft + padHRight)) - fh) / strideH) + 1;
+  int32_t newW = (((W + (padWLeft + padWRight)) - fw) / strideW) + 1;
+  if (party == SERVER) {
+    uint64_t *scaled_bias = make_array<uint64_t>(CO);
+    std::copy_n(bn_bias, CO, scaled_bias);
+    ScaleUp1(CO, scaled_bias, kScale);
+    for (int32_t n = 0; n < N; ++n) {
+      for (int32_t h = 0; h < newH; ++h) {
+        for (int32_t w = 0; w < newW; ++w) {
+          for (int32_t m = 0; m < CO; ++m) {
+            uint64_t val = Arr4DIdxRowM(out_tensor, N, newH, newW, CO, n, h, w, m);
+            Arr4DIdxRowM(out_tensor, N, newH, newW, CO, n, h, w, m) = SecretAdd(val, scaled_bias[m]);
+          }
+        }
+      }
+    }
+    ClearMemSecret1(CO, scaled_bias);
+  }
+  ClearMemSecret1(CO * CI * fh * fw, scaled_filters);
+}
+
 #define gINPUT std::cin
 #define gINPUTCLOSE
 int main(int argc, char **argv) {

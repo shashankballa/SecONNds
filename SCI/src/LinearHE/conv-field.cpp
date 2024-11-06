@@ -25,7 +25,7 @@ Modified by Deevashwer Rathee
 
 #include "LinearHE/conv-field.h"
 
-#define USE_HELIKS2 1
+#define USE_HELIKS2 0
 
 using namespace std;
 using namespace sci;
