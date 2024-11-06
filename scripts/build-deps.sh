@@ -32,7 +32,7 @@ repos=(
   "https://github.com/facebook/zstd.git|$DEPS_DIR/zstd|master"
   "https://github.com/intel/hexl.git|$DEPS_DIR/hexl|343acab"
   "https://github.com/microsoft/SEAL.git|$DEPS_DIR/SEAL|a0fc0b7"
-  "https://github.com/shashankballa/troy-nova-szb.git|$DEPS_DIR/troy-nova|szb"
+  "https://github.com/lightbulb128/troy-nova.git|$DEPS_DIR/troy-nova|3354734"
 )
 
 # Clone or update each repository
@@ -44,7 +44,7 @@ done
 target=emp-tool
 echo "Building dependency: $target"
 cd $DEPS_DIR/$target
-patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/emp-tool.patch -d $DEPS_DIR/$target
+patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/$target.patch -d $DEPS_DIR/$target
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR
@@ -82,7 +82,7 @@ make install -j8
 target=SEAL
 echo "Building dependency: $target"
 cd $DEPS_DIR/$target
-patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/SEAL.patch -d $DEPS_DIR/SEAL/
+patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/$target.patch -d $DEPS_DIR/$target/
 mkdir -p $BUILD_DIR/deps/$target
 cd $BUILD_DIR/deps/$target
 cmake $DEPS_DIR/$target -DCMAKE_INSTALL_PREFIX=$BUILD_DIR -DCMAKE_PREFIX_PATH=$BUILD_DIR -DSEAL_USE_MSGSL=OFF -DSEAL_USE_ZLIB=OFF\
@@ -94,6 +94,7 @@ make install -j8
 target=troy-nova
 echo "Building dependency: $target"
 cd $DEPS_DIR/$target
+patch --quiet --no-backup-if-mismatch -N -p1 -i $WORK_DIR/patch/$target.patch -d $DEPS_DIR/$target/
 bash scripts/build.sh -install -prefix=$BUILD_DIR
 
 for deps in eigen3 emp-ot emp-tool hexl SEAL-4.0 troy
