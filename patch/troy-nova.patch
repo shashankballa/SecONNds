@@ -83,7 +83,7 @@ index 0000000..a1bdd3d
 +++ b/scripts/build.sh
 @@ -0,0 +1,47 @@
 +# This script is used to build the project
-+# Author: Shashank Balla
++
 +
 +#!/bin/bash
 +
