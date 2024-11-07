@@ -24,6 +24,8 @@ clone_or_update_repo() {
   fi
 }
 
+mkdir -p $DEPS_DIR
+
 # Repositories and their respective commit hashes
 repos=(
   "https://github.com/emp-toolkit/emp-tool.git|$DEPS_DIR/emp-tool|44b1dde"
