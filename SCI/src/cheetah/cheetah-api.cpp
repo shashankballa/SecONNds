@@ -78,10 +78,6 @@ CheetahLinear::CheetahLinear(int party, sci::NetIO *io, uint64_t base_mod,
     throw std::logic_error("CheetahLinear: base_mod out-of-bound [2, 2^45)");
   }
 
-#if CONV_USE_CUDA
-  conv2d_impl_.initCudaKernel();
-#endif
-
   const bool is_mod_2k = IsTwoPower(base_mod_);
 
   if (is_mod_2k) {
@@ -486,13 +482,8 @@ void CheetahLinear::conv2d(const Tensor<uint64_t> &in_tensor,
     recv_encrypted_vector(io_, *context_, ct_buff, false);
 
     std::vector<seal::Ciphertext> out_ct;
-#if CONV_USE_CUDA
-    auto code = impl.conv2DSSCu(ct_buff, encoded_share, encoded_filters, meta,
-                      out_ct, out_tensor, nthreads_, conv_ntt, conv_ntt, conv_ntt);
-#else
     auto code = impl.conv2DSS(ct_buff, encoded_share, encoded_filters, meta,
                       out_ct, out_tensor, nthreads_, conv_ntt, conv_ntt, conv_ntt);
-#endif
     if (code != Code::OK) {
       throw std::runtime_error("CheetahLinear::conv2d conv2DSS: " +
                                CodeMessage(code));
@@ -527,11 +518,7 @@ void CheetahLinear::conv2d_offline(const std::vector<Tensor<uint64_t>> &filters,
     }
 
     if (conv_ntt){
-#if CONV_USE_CUDA
-      code = impl.filtersToNttCu(encoded_filters);
-#else
       code = impl.filtersToNtt(encoded_filters, nthreads_);
-#endif
       if (code != Code::OK) {
         throw std::runtime_error("CheetahLinear::conv2d filtersToNtt " +
                                 CodeMessage(code));

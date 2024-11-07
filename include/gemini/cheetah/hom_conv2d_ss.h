@@ -10,7 +10,6 @@
 
 #include "gemini/cheetah/tensor_shape.h"
 
-#define CONV_USE_CUDA 0
 
 // Forward
 namespace seal {
@@ -102,18 +101,18 @@ class HomConv2DSS {
                           const std::vector<Tensor<uint64_t>> &filters,
                           const Meta &meta, Tensor<uint64_t> &out_tensor) const;
                           
-#if CONV_USE_CUDA
-  void initCudaKernel();
-  bool isInitCu() const;
-  std::string schemeCu() const;
-  Code filtersToNttCu(std::vector<std::vector<seal::Plaintext>> &encoded_filters) const;
-  Code conv2DSSCu(const std::vector<seal::Ciphertext> &img_share0,
-                const std::vector<seal::Plaintext> &img_share1,
-                const std::vector<std::vector<seal::Plaintext>> &filters,
-                const Meta &meta, std::vector<seal::Ciphertext> &out_share0,
-                Tensor<uint64_t> &out_share1, size_t nthreads = 1, 
-                bool in_ntt = false, bool fil_ntt = false, bool out_ntt = false) const;
-#endif
+// #if CONV_USE_CUDA
+//   void initCudaKernel();
+//   bool isInitCu() const;
+//   std::string schemeCu() const;
+//   Code filtersToNttCu(std::vector<std::vector<seal::Plaintext>> &encoded_filters) const;
+//   Code conv2DSSCu(const std::vector<seal::Ciphertext> &img_share0,
+//                 const std::vector<seal::Plaintext> &img_share1,
+//                 const std::vector<std::vector<seal::Plaintext>> &filters,
+//                 const Meta &meta, std::vector<seal::Ciphertext> &out_share0,
+//                 Tensor<uint64_t> &out_share1, size_t nthreads = 1, 
+//                 bool in_ntt = false, bool fil_ntt = false, bool out_ntt = false) const;
+// #endif
 
  protected:
   size_t conv2DOneFilter(const std::vector<seal::Ciphertext> &enc_tensor,
@@ -144,10 +143,10 @@ class HomConv2DSS {
   std::shared_ptr<seal::PublicKey> pk_{nullptr};
   std::optional<seal::SecretKey> sk_{std::nullopt};
 
-#if CONV_USE_CUDA
-  troy::SEALContextCuda *contextCu_;
-  troy::EvaluatorCuda *evaluatorCu_;
-#endif
+// #if CONV_USE_CUDA
+//   troy::SEALContextCuda *contextCu_;
+//   troy::EvaluatorCuda *evaluatorCu_;
+// #endif
 
 };
 

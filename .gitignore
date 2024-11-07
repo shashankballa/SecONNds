@@ -133,6 +133,9 @@ logs
 # data
 data
 
+# Mac OS
+.DS_Store
+
 # vscode
 .vscode
 
