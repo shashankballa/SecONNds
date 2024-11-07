@@ -1,5 +1,7 @@
 # SecONNds: Secure Outsourced Neural Network Inference on ImageNet
 
+This branch only contains the code for CPU only execution. For the CUDA version, please switch to the `main` branch.
+
 ## Introduction
 
 SecONNds is a framework for secure outsourced neural network inference, particularly focusing on ImageNet models. It allows a client to perform inference on a server's model without revealing the client's input or the server's model weights.
